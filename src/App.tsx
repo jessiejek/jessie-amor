@@ -14,6 +14,7 @@ import {
   supabase,
   supabaseExpenseTable,
   supabaseChecklistTable,
+  supabaseNotesTable,
   tripKey,
 } from "./lib/supabase";
 
@@ -47,6 +48,11 @@ type SupabaseChecklistRow = {
   trip_key: string;
   text: string;
   completed: boolean;
+};
+
+type SupabaseNotesRow = {
+  trip_key: string;
+  notes: TravelNote[];
 };
 
 const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
@@ -105,8 +111,10 @@ export default function App() {
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
+  const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const expenseSignatureRef = useRef<string>("");
   const checklistSignatureRef = useRef<string>("");
+  const notesSignatureRef = useRef<string>("");
   const expenseIdsRef = useRef<string[]>([]);
   const checklistIdsRef = useRef<string[]>([]);
 
@@ -180,13 +188,14 @@ export default function App() {
     if (!supabase || !authReady || !session) {
       setExpensesLoaded(true);
       setChecklistLoaded(true);
+      setNotesLoaded(true);
       return;
     }
 
     let cancelled = false;
 
     const loadSyncedData = async () => {
-      const [expenseResult, checklistResult] = await Promise.all([
+      const [expenseResult, checklistResult, notesResult] = await Promise.all([
         supabase
           .from(supabaseExpenseTable)
           .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency")
@@ -198,12 +207,18 @@ export default function App() {
           .select("id, trip_key, text, completed")
           .eq("trip_key", tripKey)
           .order("id", { ascending: true }),
+        supabase
+          .from(supabaseNotesTable)
+          .select("trip_key, notes")
+          .eq("trip_key", tripKey)
+          .maybeSingle(),
       ]);
 
       if (cancelled) return;
 
       const { data: expenseData, error: expenseError } = expenseResult;
       const { data: checklistData, error: checklistError } = checklistResult;
+      const { data: notesData, error: notesError } = notesResult;
 
       if (expenseError) {
         console.warn("Supabase expense load failed:", expenseError.message);
@@ -243,8 +258,26 @@ export default function App() {
         }
       }
 
+      if (notesError) {
+        console.warn("Supabase notes load failed:", notesError.message);
+      } else if (notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes) && (notesData as SupabaseNotesRow).notes.length > 0) {
+        const remoteNotes = (notesData as SupabaseNotesRow).notes;
+        notesSignatureRef.current = JSON.stringify(remoteNotes);
+        setNotes(remoteNotes);
+      } else {
+        const localSignature = JSON.stringify(notes);
+        const payload = { trip_key: tripKey, notes };
+        const { error: seedError } = await supabase.from(supabaseNotesTable).upsert(payload, { onConflict: "trip_key" });
+        if (seedError) {
+          console.warn("Supabase notes seed failed:", seedError.message);
+        } else {
+          notesSignatureRef.current = localSignature;
+        }
+      }
+
       setExpensesLoaded(true);
       setChecklistLoaded(true);
+      setNotesLoaded(true);
     };
 
     loadSyncedData();
@@ -327,6 +360,28 @@ export default function App() {
 
     return () => window.clearTimeout(timeout);
   }, [checklist, checklistLoaded, authReady, session]);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session || !notesLoaded) return;
+
+    const currentSignature = JSON.stringify(notes);
+    if (currentSignature === notesSignatureRef.current) return;
+
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase
+        .from(supabaseNotesTable)
+        .upsert({ trip_key: tripKey, notes }, { onConflict: "trip_key" });
+
+      if (error) {
+        console.warn("Supabase notes sync failed:", error.message);
+        return;
+      }
+
+      notesSignatureRef.current = currentSignature;
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [notes, notesLoaded, authReady, session]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -494,10 +549,19 @@ export default function App() {
             expenses={expenses}
             setExpenses={setExpenses}
             isSupabaseConnected={Boolean(supabase && session)}
+            canEdit={Boolean(session)}
           />
         )}
-        {activeRoute === "/map" && <MapTab />}
-        {activeRoute === "/notes" && <NotesTab notes={notes} setNotes={setNotes} checklist={checklist} setChecklist={setChecklist} />}
+        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} />}
+        {activeRoute === "/notes" && (
+          <NotesTab
+            notes={notes}
+            setNotes={setNotes}
+            checklist={checklist}
+            setChecklist={setChecklist}
+            canEdit={Boolean(session)}
+          />
+        )}
       </main>
 
       <AuthPanel

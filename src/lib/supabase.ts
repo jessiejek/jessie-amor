@@ -5,6 +5,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 
 export const supabaseExpenseTable = import.meta.env.VITE_SUPABASE_EXPENSES_TABLE || "budget_expenses";
 export const supabaseChecklistTable = import.meta.env.VITE_SUPABASE_CHECKLIST_TABLE || "trip_checklist_items";
+export const supabaseMapTable = import.meta.env.VITE_SUPABASE_MAP_TABLE || "trip_map_itineraries";
+export const supabaseNotesTable = import.meta.env.VITE_SUPABASE_NOTES_TABLE || "trip_scratch_notes";
 export const tripKey = import.meta.env.VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 

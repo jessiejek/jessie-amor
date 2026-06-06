@@ -7,9 +7,10 @@ interface NotesTabProps {
   setNotes: React.Dispatch<React.SetStateAction<TravelNote[]>>;
   checklist: ChecklistItem[];
   setChecklist: React.Dispatch<React.SetStateAction<ChecklistItem[]>>;
+  canEdit?: boolean;
 }
 
-export default function NotesTab({ notes, setNotes, checklist, setChecklist }: NotesTabProps) {
+export default function NotesTab({ notes, setNotes, checklist, setChecklist, canEdit = false }: NotesTabProps) {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
@@ -18,6 +19,7 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) return;
     if (!noteTitle.trim() || !noteContent.trim()) return;
 
     const newNote: TravelNote = {
@@ -34,10 +36,12 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
   };
 
   const handleDeleteNote = (id: string) => {
+    if (!canEdit) return;
     setNotes((prev) => prev.filter((n) => n.id !== id));
   };
 
   const handleToggleCheck = (id: string) => {
+    if (!canEdit) return;
     const updated = checklist.map((item) => {
       if (item.id === id) return { ...item, completed: !item.completed };
       return item;
@@ -47,6 +51,7 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
 
   const handleAddCheckItem = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) return;
     if (!newCheckItem.trim()) return;
 
     const newItem: ChecklistItem = {
@@ -82,17 +87,25 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
             <h3 className="text-base font-serif font-bold text-[#0B3530]">Trip Checklist</h3>
           </div>
 
+          {!canEdit && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+              Sign in to add, edit, or mark checklist items.
+            </div>
+          )}
+
           <form onSubmit={handleAddCheckItem} className="flex gap-2 mb-4 font-sans">
             <input
               type="text"
               value={newCheckItem}
               onChange={(e) => setNewCheckItem(e.target.value)}
               placeholder="Add new checklist task..."
+              disabled={!canEdit}
               className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
               maxLength={80}
             />
             <button
               type="submit"
+              disabled={!canEdit}
               className="px-3 py-1.5 bg-[#0B3530] text-[#88B04B] hover:text-white hover:bg-[#18534C] text-xs font-semibold rounded-lg transition-colors cursor-pointer border-none"
             >
               Add
@@ -105,7 +118,9 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
               <div
                 key={item.id}
                 onClick={() => handleToggleCheck(item.id)}
-                className="flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 hover:bg-stone-50 transition-all cursor-pointer select-none"
+                className={`flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
+                  canEdit ? "hover:bg-stone-50 cursor-pointer" : "cursor-default opacity-80"
+                }`}
               >
                 <div className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
                   item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
@@ -134,18 +149,20 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
 
             <form onSubmit={handleAddNote} className="space-y-3 font-sans">
               <div className="grid grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="Note Title (e.g., Souvenir Ideas)"
-                  className="col-span-2 px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
-                  required
-                />
+              <input
+                type="text"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+                placeholder="Note Title (e.g., Souvenir Ideas)"
+                disabled={!canEdit}
+                className="col-span-2 px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
+                required
+              />
                 
                 <select
                   value={noteCategory}
                   onChange={(e) => setNoteCategory(e.target.value as any)}
+                  disabled={!canEdit}
                   className="px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
                   <option value="General">General Info</option>
@@ -159,6 +176,7 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
                 onChange={(e) => setNoteContent(e.target.value)}
                 placeholder="Write down sights to seek, shops to visit, or custom budgets ideas..."
                 rows={3}
+                disabled={!canEdit}
                 className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] resize-none"
                 required
               />
@@ -166,6 +184,7 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
               <div className="flex justify-end">
                 <button
                   type="submit"
+                  disabled={!canEdit}
                   className="px-4 py-2 bg-[#0B3530] text-white hover:bg-[#18534C] text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer border-none shadow-xs"
                 >
                   <Plus size={14} /> Add Scratch Note
@@ -188,6 +207,7 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist }: N
                     </span>
                     <button
                       onClick={() => handleDeleteNote(note.id)}
+                      disabled={!canEdit}
                       className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 absolute top-3 right-3"
                       title="Delete Note"
                     >

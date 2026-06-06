@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
   loadMapItinerary,
@@ -10,6 +11,7 @@ import {
   type MapDestination,
   type MapItineraryData,
 } from "../data/mapItinerary";
+import { hasSupabaseConfig, supabase, supabaseMapTable, tripKey } from "../lib/supabase";
 
 type DraftState = {
   name: string;
@@ -90,7 +92,13 @@ const renderPopup = (destination: MapDestination, order: number) => `
   </div>
 `;
 
-export default function MapTab() {
+interface MapTabProps {
+  session: Session | null;
+  canEdit?: boolean;
+}
+
+export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
+  const [session, setSession] = useState<Session | null>(authSession);
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => loadMapItinerary());
   const [selectedDay, setSelectedDay] = useState<number>(() => loadMapItinerary().days[0]?.day ?? 12);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
@@ -113,6 +121,8 @@ export default function MapTab() {
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const markerRefs = useRef<Record<string, Marker>>({});
   const searchAbortRef = useRef<AbortController | null>(null);
+  const mapSignatureRef = useRef<string>("");
+  const mapLoadedRef = useRef<boolean>(!hasSupabaseConfig);
 
   const activeDay = useMemo(
     () => itineraryData.days.find((day) => day.day === selectedDay) ?? itineraryData.days[0] ?? null,
@@ -122,6 +132,101 @@ export default function MapTab() {
   useEffect(() => {
     saveMapItinerary(itineraryData);
   }, [itineraryData]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setSession(null);
+      return;
+    }
+
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [authSession]);
+
+  useEffect(() => {
+    if (!supabase || !session) {
+      mapLoadedRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRemoteMap = async () => {
+      const { data, error } = await supabase
+        .from(supabaseMapTable)
+        .select("trip_key, data")
+        .eq("trip_key", tripKey)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Supabase map load failed:", error.message);
+        mapLoadedRef.current = true;
+        return;
+      }
+
+      const remoteData = data?.data as MapItineraryData | undefined;
+      if (remoteData?.days?.length) {
+        const normalized = { ...remoteData, version: 1, updatedAt: remoteData.updatedAt || new Date().toISOString() };
+        mapSignatureRef.current = JSON.stringify(normalized);
+        setItineraryData(normalized);
+      } else {
+        const localSignature = JSON.stringify(itineraryData);
+        const { error: seedError } = await supabase
+          .from(supabaseMapTable)
+          .upsert({ trip_key: tripKey, data: itineraryData }, { onConflict: "trip_key" });
+        if (seedError) {
+          console.warn("Supabase map seed failed:", seedError.message);
+        } else {
+          mapSignatureRef.current = localSignature;
+        }
+      }
+
+      mapLoadedRef.current = true;
+    };
+
+    loadRemoteMap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    if (!supabase || !session || !mapLoadedRef.current) return;
+
+    const currentSignature = JSON.stringify(itineraryData);
+    if (currentSignature === mapSignatureRef.current) return;
+
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase
+        .from(supabaseMapTable)
+        .upsert({ trip_key: tripKey, data: itineraryData }, { onConflict: "trip_key" });
+
+      if (error) {
+        console.warn("Supabase map sync failed:", error.message);
+        return;
+      }
+
+      mapSignatureRef.current = currentSignature;
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [itineraryData, session]);
 
   useEffect(() => {
     if (!activeDay) return;
@@ -266,6 +371,7 @@ export default function MapTab() {
   }, [selectedDestinationId, selectedDay]);
 
   const updateDestination = (destinationId: string, patch: Partial<MapDestination>) => {
+    if (!canEdit) return;
     setItineraryData((prev) => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -311,6 +417,7 @@ export default function MapTab() {
 
   const addDestination = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canEdit) return;
     if (!activeDay || !draft.name.trim()) return;
 
     const trimmedName = draft.name.trim();
@@ -352,6 +459,7 @@ export default function MapTab() {
   };
 
   const deleteDestination = (destinationId: string) => {
+    if (!canEdit) return;
     setItineraryData((prev) => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -392,7 +500,7 @@ export default function MapTab() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {itineraryData.days.map((day) => (
+      {itineraryData.days.map((day) => (
               <button
                 key={day.day}
                 type="button"
@@ -429,6 +537,12 @@ export default function MapTab() {
             <p className="text-[11px] text-stone-400">Inline edit, add, or remove stops for {activeDay.label}.</p>
           </div>
 
+          {!canEdit && (
+            <div className="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+              Sign in to add or edit map destinations.
+            </div>
+          )}
+
           <div className="max-h-[640px] overflow-y-auto p-4 space-y-4">
             <form onSubmit={addDestination} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-3">
               <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
@@ -438,12 +552,13 @@ export default function MapTab() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="relative space-y-1 sm:col-span-2">
                   <span className="text-[11px] font-semibold text-stone-600">Name</span>
-                  <input
-                    value={draft.name}
-                    onChange={(event) => {
-                      setDraft((prev) => ({ ...prev, name: event.target.value, lat: "", lng: "" }));
-                    }}
-                    onKeyDown={(event) => {
+                    <input
+                      value={draft.name}
+                      onChange={(event) => {
+                        setDraft((prev) => ({ ...prev, name: event.target.value, lat: "", lng: "" }));
+                      }}
+                      disabled={!canEdit}
+                      onKeyDown={(event) => {
                       if (!suggestions.length) return;
                       if (event.key === "ArrowDown") {
                         event.preventDefault();
@@ -488,6 +603,7 @@ export default function MapTab() {
                   <select
                     value={draft.time}
                     onChange={(event) => setDraft((prev) => ({ ...prev, time: event.target.value }))}
+                    disabled={!canEdit}
                     className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
                   >
                     {timeOptions.map((timeOption) => (
@@ -503,6 +619,7 @@ export default function MapTab() {
                 <textarea
                   value={draft.notes}
                   onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
+                  disabled={!canEdit}
                   className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530] min-h-[84px] resize-none"
                   placeholder="Short notes for the popup"
                 />
@@ -511,6 +628,7 @@ export default function MapTab() {
               <input type="hidden" value={draft.lng} readOnly />
               <button
                 type="submit"
+                disabled={!canEdit}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B3530] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#18534C]"
               >
                 <Plus size={14} />
@@ -564,6 +682,7 @@ export default function MapTab() {
                           value={destination.name}
                           onChange={(event) => updateDestination(destination.id, { name: event.target.value })}
                           onFocus={() => focusDestination(destination.id)}
+                          disabled={!canEdit}
                           className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
                         />
                       </label>
@@ -573,6 +692,7 @@ export default function MapTab() {
                           value={destination.time}
                           onChange={(event) => updateDestination(destination.id, { time: event.target.value })}
                           onFocus={() => focusDestination(destination.id)}
+                          disabled={!canEdit}
                           className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
                         />
                       </label>
@@ -584,6 +704,7 @@ export default function MapTab() {
                         value={destination.notes}
                         onChange={(event) => updateDestination(destination.id, { notes: event.target.value })}
                         onFocus={() => focusDestination(destination.id)}
+                        disabled={!canEdit}
                         className="w-full min-h-[96px] resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
                       />
                     </label>
@@ -601,6 +722,7 @@ export default function MapTab() {
                       <button
                         type="button"
                         onClick={() => deleteDestination(destination.id)}
+                        disabled={!canEdit}
                         className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-100"
                       >
                         <Trash2 size={12} />
