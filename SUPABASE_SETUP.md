@@ -47,11 +47,16 @@ create table if not exists public.budget_expenses (
   paid_with text not null,
   original_amount numeric,
   original_currency text,
+  saved_by_user_id text,
+  saved_by_email text,
   updated_at timestamptz not null default now()
 );
 
 create index if not exists budget_expenses_trip_key_idx
   on public.budget_expenses (trip_key);
+
+alter table public.budget_expenses add column if not exists saved_by_user_id text;
+alter table public.budget_expenses add column if not exists saved_by_email text;
 
 alter table public.budget_expenses enable row level security;
 
@@ -81,11 +86,16 @@ create table if not exists public.trip_checklist_items (
   trip_key text not null,
   text text not null,
   completed boolean not null default false,
+  saved_by_user_id text,
+  saved_by_email text,
   updated_at timestamptz not null default now()
 );
 
 create index if not exists trip_checklist_items_trip_key_idx
   on public.trip_checklist_items (trip_key);
+
+alter table public.trip_checklist_items add column if not exists saved_by_user_id text;
+alter table public.trip_checklist_items add column if not exists saved_by_email text;
 
 alter table public.trip_checklist_items enable row level security;
 
@@ -113,8 +123,13 @@ create policy "Authenticated users can delete checklist items"
 create table if not exists public.trip_map_itineraries (
   trip_key text primary key,
   data jsonb not null,
+  saved_by_user_id text,
+  saved_by_email text,
   updated_at timestamptz not null default now()
 );
+
+alter table public.trip_map_itineraries add column if not exists saved_by_user_id text;
+alter table public.trip_map_itineraries add column if not exists saved_by_email text;
 
 alter table public.trip_map_itineraries enable row level security;
 
@@ -142,8 +157,13 @@ create policy "Authenticated users can delete map itineraries"
 create table if not exists public.trip_scratch_notes (
   trip_key text primary key,
   notes jsonb not null,
+  saved_by_user_id text,
+  saved_by_email text,
   updated_at timestamptz not null default now()
 );
+
+alter table public.trip_scratch_notes add column if not exists saved_by_user_id text;
+alter table public.trip_scratch_notes add column if not exists saved_by_email text;
 
 alter table public.trip_scratch_notes enable row level security;
 
@@ -172,5 +192,5 @@ create policy "Authenticated users can delete scratch notes"
 ## 4) Notes
 
 - The app uses `VITE_TRIP_KEY` so both travelers sync to the same trip record.
-- Budget, checklist, map, and scratch notes data still fall back to local storage if Supabase is not configured.
+- Budget, checklist, map, and scratch notes data are Supabase-backed only. If Supabase is not configured or the user is signed out, the app stays read-only.
 - If you add more trip sections later, reuse the same `trip_key` pattern.

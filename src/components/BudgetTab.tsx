@@ -8,6 +8,10 @@ interface BudgetTabProps {
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
   isSupabaseConnected?: boolean;
   canEdit?: boolean;
+  currentSavedBy?: {
+    userId: string;
+    email: string;
+  } | null;
 }
 
 const currencyLabels: Record<ExpenseCurrency, string> = {
@@ -16,7 +20,13 @@ const currencyLabels: Record<ExpenseCurrency, string> = {
   SGD: "SGD",
 };
 
-export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected = false, canEdit = false }: BudgetTabProps) {
+export default function BudgetTab({
+  expenses,
+  setExpenses,
+  isSupabaseConnected = false,
+  canEdit = false,
+  currentSavedBy = null,
+}: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
   const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>("RM");
@@ -33,6 +43,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
 
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
+  const formatSavedBy = (email?: string, userId?: string) => email || userId || "Unknown";
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +60,8 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
       paidWith,
       originalAmount: parsedAmount,
       originalCurrency: amountCurrency,
+      savedByUserId: currentSavedBy?.userId,
+      savedByEmail: currentSavedBy?.email,
     };
 
     setExpenses((prev) => [...prev, newExp]);
@@ -330,6 +343,12 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                         <span className={exp.paidWith === "Credit Card" ? "text-blue-500 font-mono" : "text-emerald-600 font-mono"}>
                           {exp.paidWith}
                         </span>
+                        {(exp.savedByEmail || exp.savedByUserId) && (
+                          <>
+                            <span>|</span>
+                            <span className="text-stone-500 font-mono">Saved by {formatSavedBy(exp.savedByEmail, exp.savedByUserId)}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

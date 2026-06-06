@@ -97,6 +97,18 @@ interface MapTabProps {
   canEdit?: boolean;
 }
 
+type SavedByInfo = {
+  userId: string;
+  email: string;
+};
+
+type SupabaseMapRow = {
+  trip_key: string;
+  data: MapItineraryData;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
+};
+
 export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => buildEmptyMapItinerary());
@@ -123,6 +135,12 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   const searchAbortRef = useRef<AbortController | null>(null);
   const mapSignatureRef = useRef<string>("");
   const mapLoadedRef = useRef<boolean>(!hasSupabaseConfig);
+  const currentSavedBy: SavedByInfo | null = session?.user
+    ? {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+      }
+    : null;
 
   const activeDay = useMemo(
     () => itineraryData.days.find((day) => day.day === selectedDay) ?? itineraryData.days[0] ?? null,
@@ -165,7 +183,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
     const loadRemoteMap = async () => {
       const { data, error } = await supabase
         .from(supabaseMapTable)
-        .select("trip_key, data")
+        .select("trip_key, data, saved_by_user_id, saved_by_email")
         .eq("trip_key", tripKey)
         .maybeSingle();
 
@@ -245,9 +263,13 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
     if (currentSignature === mapSignatureRef.current) return;
 
     const timeout = window.setTimeout(async () => {
-      const { error } = await supabase
-        .from(supabaseMapTable)
-        .upsert({ trip_key: tripKey, data: itineraryData }, { onConflict: "trip_key" });
+      const payload: SupabaseMapRow = {
+        trip_key: tripKey,
+        data: itineraryData,
+        saved_by_user_id: currentSavedBy?.userId ?? null,
+        saved_by_email: currentSavedBy?.email ?? null,
+      };
+      const { error } = await supabase.from(supabaseMapTable).upsert(payload, { onConflict: "trip_key" });
 
       if (error) {
         console.warn("Supabase map sync failed:", error.message);
@@ -412,7 +434,14 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
         return {
           ...day,
           destinations: day.destinations.map((destination) =>
-            destination.id === destinationId ? { ...destination, ...patch } : destination,
+            destination.id === destinationId
+              ? {
+                  ...destination,
+                  ...patch,
+                  savedByUserId: currentSavedBy?.userId ?? destination.savedByUserId,
+                  savedByEmail: currentSavedBy?.email ?? destination.savedByEmail,
+                }
+              : destination,
           ),
         };
       }),
@@ -465,6 +494,8 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
       notes: draft.notes.trim(),
       lat: coordinates.lat,
       lng: coordinates.lng,
+      savedByUserId: currentSavedBy?.userId,
+      savedByEmail: currentSavedBy?.email,
     };
 
     setItineraryData((prev) => ({
@@ -700,6 +731,11 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
                         <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
                           {destination.lat.toFixed(4)}, {destination.lng.toFixed(4)}
                         </span>
+                        {(destination.savedByEmail || destination.savedByUserId) && (
+                          <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
+                            Saved by {destination.savedByEmail || destination.savedByUserId}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </button>

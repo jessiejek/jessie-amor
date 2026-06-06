@@ -11,6 +11,8 @@ export interface Expense {
   paidWith: PaymentMethod;
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
+  savedByUserId?: string;
+  savedByEmail?: string;
 }
 
 export type ItineraryItemType = "transport" | "accommodation" | "sightseeing" | "food" | "general";
@@ -54,10 +56,14 @@ export interface TravelNote {
   content: string;
   category: "Rule" | "Requirement" | "General";
   createdAt: string;
+  savedByUserId?: string;
+  savedByEmail?: string;
 }
 
 export interface ChecklistItem {
   id: string;
   text: string;
   completed: boolean;
+  savedByUserId?: string;
+  savedByEmail?: string;
 }

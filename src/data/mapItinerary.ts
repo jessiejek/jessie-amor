@@ -8,6 +8,8 @@ export interface MapDestination {
   lng: number;
   time: string;
   notes: string;
+  savedByUserId?: string;
+  savedByEmail?: string;
 }
 
 export interface MapDay {

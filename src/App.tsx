@@ -40,6 +40,8 @@ type SupabaseExpenseRow = {
   paid_with: Expense["paidWith"];
   original_amount: number | null;
   original_currency: Expense["originalCurrency"] | null;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
 };
 
 type SupabaseChecklistRow = {
@@ -47,14 +49,23 @@ type SupabaseChecklistRow = {
   trip_key: string;
   text: string;
   completed: boolean;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
 };
 
 type SupabaseNotesRow = {
   trip_key: string;
   notes: TravelNote[];
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
 };
 
-const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
+type SavedByInfo = {
+  userId: string;
+  email: string;
+};
+
+const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseExpenseRow => ({
   id: expense.id,
   trip_key: tripKey,
   day: expense.day,
@@ -64,6 +75,8 @@ const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
   paid_with: expense.paidWith,
   original_amount: expense.originalAmount ?? null,
   original_currency: expense.originalCurrency ?? null,
+  saved_by_user_id: savedBy?.userId ?? expense.savedByUserId ?? null,
+  saved_by_email: savedBy?.email ?? expense.savedByEmail ?? null,
 });
 
 const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
@@ -75,19 +88,25 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   paidWith: row.paid_with,
   originalAmount: row.original_amount ?? undefined,
   originalCurrency: row.original_currency ?? undefined,
+  savedByUserId: row.saved_by_user_id ?? undefined,
+  savedByEmail: row.saved_by_email ?? undefined,
 });
 
-const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
+const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): SupabaseChecklistRow => ({
   id: item.id,
   trip_key: tripKey,
   text: item.text,
   completed: item.completed,
+  saved_by_user_id: savedBy?.userId ?? item.savedByUserId ?? null,
+  saved_by_email: savedBy?.email ?? item.savedByEmail ?? null,
 });
 
   const rowToChecklist = (row: SupabaseChecklistRow): ChecklistItem => ({
     id: row.id,
     text: row.text,
     completed: Boolean(row.completed),
+    savedByUserId: row.saved_by_user_id ?? undefined,
+    savedByEmail: row.saved_by_email ?? undefined,
   });
 
   const mergeExpenseRow = (current: Expense[], row: SupabaseExpenseRow) => {
@@ -138,6 +157,12 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [notes, setNotes] = useState<TravelNote[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const currentSavedBy: SavedByInfo | null = session?.user
+    ? {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+      }
+    : null;
 
   useEffect(() => {
     if (!supabase) {
@@ -187,18 +212,18 @@ export default function App() {
       const [expenseResult, checklistResult, notesResult] = await Promise.all([
         supabase
           .from(supabaseExpenseTable)
-          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency")
+          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email")
           .eq("trip_key", tripKey)
           .order("day", { ascending: true })
           .order("item", { ascending: true }),
         supabase
           .from(supabaseChecklistTable)
-          .select("id, trip_key, text, completed")
+          .select("id, trip_key, text, completed, saved_by_user_id, saved_by_email")
           .eq("trip_key", tripKey)
           .order("id", { ascending: true }),
         supabase
           .from(supabaseNotesTable)
-          .select("trip_key, notes")
+          .select("trip_key, notes, saved_by_user_id, saved_by_email")
           .eq("trip_key", tripKey)
           .maybeSingle(),
       ]);
@@ -319,7 +344,8 @@ export default function App() {
   useEffect(() => {
     if (!supabase || !authReady || !session || !expensesLoaded) return;
 
-    const currentSignature = JSON.stringify(expenses);
+    const payload = expenses.map((expense) => expenseToRow(expense, currentSavedBy));
+    const currentSignature = JSON.stringify(payload);
     const currentIds = expenses.map((expense) => expense.id);
     const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
     if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) return;
@@ -327,7 +353,7 @@ export default function App() {
     const timeout = window.setTimeout(async () => {
       const { error: upsertError } = await supabase
         .from(supabaseExpenseTable)
-        .upsert(expenses.map(expenseToRow), { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" });
 
       if (upsertError) {
         console.warn("Supabase expense sync failed:", upsertError.message);
@@ -356,7 +382,8 @@ export default function App() {
   useEffect(() => {
     if (!supabase || !authReady || !session || !checklistLoaded) return;
 
-    const currentSignature = JSON.stringify(checklist);
+    const payload = checklist.map((item) => checklistToRow(item, currentSavedBy));
+    const currentSignature = JSON.stringify(payload);
     const currentIds = checklist.map((item) => item.id);
     const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
     if (currentSignature === checklistSignatureRef.current && removedIds.length === 0) return;
@@ -364,7 +391,7 @@ export default function App() {
     const timeout = window.setTimeout(async () => {
       const { error: upsertError } = await supabase
         .from(supabaseChecklistTable)
-        .upsert(checklist.map(checklistToRow), { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" });
 
       if (upsertError) {
         console.warn("Supabase checklist sync failed:", upsertError.message);
@@ -393,13 +420,23 @@ export default function App() {
   useEffect(() => {
     if (!supabase || !authReady || !session || !notesLoaded) return;
 
-    const currentSignature = JSON.stringify(notes);
+    const payload = {
+      trip_key: tripKey,
+      notes: notes.map((note) => ({
+        ...note,
+        savedByUserId: currentSavedBy?.userId ?? note.savedByUserId ?? undefined,
+        savedByEmail: currentSavedBy?.email ?? note.savedByEmail ?? undefined,
+      })),
+      saved_by_user_id: currentSavedBy?.userId ?? null,
+      saved_by_email: currentSavedBy?.email ?? null,
+    };
+    const currentSignature = JSON.stringify(payload);
     if (currentSignature === notesSignatureRef.current) return;
 
     const timeout = window.setTimeout(async () => {
       const { error } = await supabase
         .from(supabaseNotesTable)
-        .upsert({ trip_key: tripKey, notes }, { onConflict: "trip_key" });
+        .upsert(payload, { onConflict: "trip_key" });
 
       if (error) {
         console.warn("Supabase notes sync failed:", error.message);
@@ -579,6 +616,7 @@ export default function App() {
             setExpenses={setExpenses}
             isSupabaseConnected={Boolean(supabase && session)}
             canEdit={Boolean(session)}
+            currentSavedBy={currentSavedBy}
           />
         )}
         {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} />}
@@ -589,6 +627,7 @@ export default function App() {
             checklist={checklist}
             setChecklist={setChecklist}
             canEdit={Boolean(session)}
+            currentSavedBy={currentSavedBy}
           />
         )}
       </main>

@@ -8,14 +8,26 @@ interface NotesTabProps {
   checklist: ChecklistItem[];
   setChecklist: React.Dispatch<React.SetStateAction<ChecklistItem[]>>;
   canEdit?: boolean;
+  currentSavedBy?: {
+    userId: string;
+    email: string;
+  } | null;
 }
 
-export default function NotesTab({ notes, setNotes, checklist, setChecklist, canEdit = false }: NotesTabProps) {
+export default function NotesTab({
+  notes,
+  setNotes,
+  checklist,
+  setChecklist,
+  canEdit = false,
+  currentSavedBy = null,
+}: NotesTabProps) {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
   
   const [newCheckItem, setNewCheckItem] = useState("");
+  const formatSavedBy = (email?: string, userId?: string) => email || userId || "Unknown";
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +39,9 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist, can
       title: noteTitle,
       content: noteContent,
       category: noteCategory,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      savedByUserId: currentSavedBy?.userId,
+      savedByEmail: currentSavedBy?.email,
     };
 
     setNotes((prev) => [newNote, ...prev]);
@@ -43,7 +57,14 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist, can
   const handleToggleCheck = (id: string) => {
     if (!canEdit) return;
     const updated = checklist.map((item) => {
-      if (item.id === id) return { ...item, completed: !item.completed };
+      if (item.id === id) {
+        return {
+          ...item,
+          completed: !item.completed,
+          savedByUserId: currentSavedBy?.userId ?? item.savedByUserId,
+          savedByEmail: currentSavedBy?.email ?? item.savedByEmail,
+        };
+      }
       return item;
     });
     setChecklist(updated);
@@ -57,7 +78,9 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist, can
     const newItem: ChecklistItem = {
       id: "check-" + Date.now(),
       text: newCheckItem,
-      completed: false
+      completed: false,
+      savedByUserId: currentSavedBy?.userId,
+      savedByEmail: currentSavedBy?.email,
     };
 
     const updated = [...checklist, newItem];
@@ -132,6 +155,11 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist, can
                 }`}>
                   {item.text}
                 </span>
+                {(item.savedByEmail || item.savedByUserId) && (
+                  <span className="mt-0.5 text-[9px] font-mono uppercase tracking-wider text-stone-400">
+                    Saved by {formatSavedBy(item.savedByEmail, item.savedByUserId)}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -220,8 +248,11 @@ export default function NotesTab({ notes, setNotes, checklist, setChecklist, can
                   </p>
                 </div>
 
-                <div className="border-t border-stone-100 pt-2 text-[9px] font-mono text-stone-400 mt-2 flex justify-between items-center">
+                <div className="border-t border-stone-100 pt-2 text-[9px] font-mono text-stone-400 mt-2 flex flex-col gap-1">
                   <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
+                  {(note.savedByEmail || note.savedByUserId) && (
+                    <span>SAVED BY: {formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
+                  )}
                   <Bookmark size={10} className="text-[#88B04B]" />
                 </div>
               </div>
