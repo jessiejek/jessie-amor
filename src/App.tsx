@@ -461,8 +461,8 @@ export default function App() {
   const metadata = {
     title: "Jessie & Amor's Malaysia Singapore",
     description: itinerary.hero.subtitle,
-    sub: "2 people | Travelodge KL City Centre | RM1 = PHP 15.56",
-    rate: "RM 1 = PHP 15.56",
+    sub: "2 people | Travelodge KL City Centre | RM1 = PHP 15.58 | RM1 = SGD 0.32",
+    rate: "RM 1 = PHP 15.58 | RM 1 = SGD 0.32",
   };
 
   const handleOpenGuide = (item: TimelineItemData) => {

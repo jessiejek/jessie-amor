@@ -1,8 +1,8 @@
 import { DayPlan, Expense } from "../types";
 
 export const exchangeRates = {
-  php: 15.56, // 1 RM = 15.56 PHP
-  sgd: 0.3226, // 1 RM = 0.3226 SGD
+  php: 15.5807, // 1 RM = 15.5807 PHP
+  sgd: 0.3228, // 1 RM = 0.3228 SGD
 } as const;
 
 export const exchangeRate = exchangeRates.php;

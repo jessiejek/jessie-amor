@@ -41,6 +41,7 @@ export default function BudgetTab({
     return value / exchangeRates.sgd;
   };
 
+  const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
   const formatSavedBy = (email?: string, userId?: string) => email || userId || "Unknown";
@@ -125,7 +126,7 @@ export default function BudgetTab({
             <span className="text-[10px] font-mono tracking-widest text-stone-400 uppercase block">TOTAL CASH OUTFLOW (Cash / Debit)</span>
             <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">RM {cashSpent.toFixed(2)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              {formatPhp(cashSpent)} | {formatSgd(cashSpent)}
+              {formatPhp(cashSpent)} | {formatRm(cashSpent)} | {formatSgd(cashSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-stone-100 text-stone-600">
@@ -138,7 +139,7 @@ export default function BudgetTab({
             <span className="text-[10px] font-mono tracking-widest text-blue-500 uppercase block">CREDIT CARD SPENDS</span>
             <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">RM {cardSpent.toFixed(2)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              {formatPhp(cardSpent)} | {formatSgd(cardSpent)}
+              {formatPhp(cardSpent)} | {formatRm(cardSpent)} | {formatSgd(cardSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-blue-50 text-blue-600">

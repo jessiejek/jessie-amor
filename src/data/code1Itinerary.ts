@@ -678,7 +678,7 @@ const currentItinerary = {
     eyebrow: 'Travel Itinerary',
     title: "Jessie & Amor's Malaysia · Singapore",
     subtitle: 'Trip Itinerary',
-    meta: ['2 people', 'Travelodge KL City Centre', 'RM1 ≈ PHP 15.56'],
+    meta: ['2 people', 'Travelodge KL City Centre', 'RM1 ~ PHP 15.58'],
     note: [
       text('⚠️ Airport Grab on July 12 & July 15 is paid by credit card and is '),
       strong('not'),
