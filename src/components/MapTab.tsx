@@ -1,365 +1,622 @@
-import React, { useState } from "react";
-import { MapPin, Navigation, Landmark, Bus, Train, ShoppingBag, Coffee } from "lucide-react";
-import { DayPlan } from "../types";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
+import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
+import {
+  loadMapItinerary,
+  resolveCoordinatesFromName,
+  saveMapItinerary,
+  type MapDestination,
+  type MapItineraryData,
+} from "../data/mapItinerary";
 
-interface MapPoint {
-  id: string;
+type DraftState = {
   name: string;
-  latStr: string;
-  lngStr: string;
-  day: number;
-  category: "Transport" | "Hotel" | "Sightseeing" | "Food";
-  originalTime: string;
-  coordX: number; // custom SVG bounds (0 - 100)
-  coordY: number; // custom SVG bounds (0 - 100)
-  desc: string;
-  budget: string;
-  duration?: string;
-  photoUrl?: string;
-}
+  time: string;
+  notes: string;
+  lat: string;
+  lng: string;
+};
 
-const mapPoints: MapPoint[] = [
-  {
-    id: "p1",
-    name: "Kuala Lumpur International Airport (KLIA)",
-    latStr: "2.7456° N",
-    lngStr: "101.7072° E",
-    day: 12,
-    category: "Transport",
-    originalTime: "01:30 AM",
-    coordX: 30,
-    coordY: 90,
-    desc: "Main primary aviation gateway into Malaysia. Clean, modern, high-speed rail lines to KL Sentral, and easy Grab rides.",
-    budget: "Credit Card (Excluded from cash)",
-    photoUrl: "/src/assets/images/kl_skyline_1780754501759.png"
-  },
-  {
-    id: "p2",
-    name: "Travelodge KL City Centre",
-    latStr: "3.1432° N",
-    lngStr: "101.6983° E",
-    day: 12,
-    category: "Hotel",
-    originalTime: "03:00 AM",
-    coordX: 47,
-    coordY: 60,
-    desc: "Your base stay. Highly rated budget friendly metropolitan hotel located right in the middle of Chinatown / Central Market lines.",
-    budget: "Pre-paid Credit Card"
-  },
-  {
-    id: "p3",
-    name: "Chinatown & Petaling Street",
-    latStr: "3.1436° N",
-    lngStr: "101.6981° E",
-    day: 12,
-    category: "Sightseeing",
-    originalTime: "08:00 AM",
-    coordX: 48,
-    coordY: 57,
-    desc: "Historic marketplace with endless souvenir stalls, traditional herbal drink stands, and majestic red Chinese lanterns line.",
-    budget: "RM 20–30"
-  },
-  {
-    id: "p4",
-    name: "Batu Caves Sub-shrine",
-    latStr: "3.2379° N",
-    lngStr: "101.6840° E",
-    day: 13,
-    category: "Sightseeing",
-    originalTime: "09:30 AM",
-    coordX: 30,
-    coordY: 15,
-    desc: "Ancient limestone temple hill featuring its giant golden Lord Murugan statue and 272 vibrant color-ascending staircase.",
-    budget: "Free Entry",
-    photoUrl: "/src/assets/images/batu_caves_1780754522244.png"
-  },
-  {
-    id: "p5",
-    name: "Petronas Twin Towers & Suria KLCC",
-    latStr: "3.1578° N",
-    lngStr: "101.7119° E",
-    day: 13,
-    category: "Sightseeing",
-    originalTime: "02:30 PM",
-    coordX: 68,
-    coordY: 42,
-    desc: "Sleek metallic skyscrapers representing modern Malaysia's skyline. Houses Suria shopping mall, and adjacent pools & parks.",
-    budget: "Free (Sightseeing) / RM 25 (Tea)"
-  },
-  {
-    id: "p6",
-    name: "Saloma Link Bridge",
-    latStr: "3.1598° N",
-    lngStr: "101.7067° E",
-    day: 13,
-    category: "Sightseeing",
-    originalTime: "08:00 PM",
-    coordX: 61,
-    coordY: 38,
-    desc: "Contemporary, shell-shaped bridge spanning Klang river connecting Kampong Bharu and KLCC. Stunning nighttime illuminate.",
-    budget: "Free Entry",
-    photoUrl: "/src/assets/images/saloma_bridge_1780754540468.png"
-  },
-  {
-    id: "p7",
-    name: "Dutch Square / Stadthuys, Malacca",
-    latStr: "2.1944° N",
-    lngStr: "102.2492° E",
-    day: 14,
-    category: "Sightseeing",
-    originalTime: "10:50 AM",
-    coordX: 85,
-    coordY: 82,
-    desc: "The historic terracotta reddish buildings, ancient Christ Church, and Queen Victoria fountain. Highly active UNESCO center.",
-    budget: "Free"
-  },
-  {
-    id: "p8",
-    name: "Jonker Street (Malacca)",
-    latStr: "2.1950° N",
-    lngStr: "102.2475° E",
-    day: 14,
-    category: "Food",
-    originalTime: "12:15 PM",
-    coordX: 82,
-    coordY: 79,
-    desc: "Peranakan heritage street filled with local crafts, historical shophouses, Gula Melaka cendol eateries and chicken rice ball spots.",
-    budget: "RM 20–40"
-  },
-  {
-    id: "p9",
-    name: "Kuala Lumpur Sentral (Transit)",
-    latStr: "3.1344° N",
-    lngStr: "101.6865° E",
-    day: 13,
-    category: "Transport",
-    originalTime: "08:30 AM",
-    coordX: 42,
-    coordY: 66,
-    desc: "The critical transportation nexus of KL. Central terminal for KTM Komuter, LRT, MRT and express monorail systems.",
-    budget: "RM 5.20"
-  }
-];
+type NominatimSuggestion = {
+  display_name: string;
+  lat: string;
+  lon: string;
+  place_id: number;
+};
 
-export default function MapTab() {
-  const [selectedPoint, setSelectedPoint] = useState<MapPoint>(mapPoints[1]); // defaults to hotel
-  const [activeRegion, setActiveRegion] = useState<"KL" | "MALACCA">("KL");
+const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
 
-  const markersToShow = mapPoints.filter((p) => {
-    if (activeRegion === "KL") {
-      return p.name.indexOf("Malacca") === -1 && p.name.indexOf("Dutch") === -1;
-    } else {
-      return p.name.indexOf("Malacca") !== -1 || p.name.indexOf("Dutch") !== -1 || p.name.indexOf("Sentral") !== -1;
+const timeOptions = (() => {
+  const options: string[] = [];
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (const minute of [0, 30]) {
+      const isPm = hour >= 12;
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      const displayMinute = minute.toString().padStart(2, "0");
+      const suffix = isPm ? "PM" : "AM";
+      options.push(`${displayHour}:${displayMinute} ${suffix}`);
     }
+  }
+  return options;
+})();
+
+const lookupPlaces = async (query: string, signal?: AbortSignal): Promise<NominatimSuggestion[]> => {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return [];
+
+  const url = `${NOMINATIM_BASE_URL}?q=${encodeURIComponent(trimmed)}&format=json&limit=5`;
+  const response = await fetch(url, {
+    signal,
+    headers: {
+      "User-Agent": "travel-itinerary-app",
+      "Accept-Language": "en",
+    } as HeadersInit,
   });
 
-  const getMarkerIcon = (cat: string) => {
-    switch (cat) {
-      case "Hotel":
-        return <Landmark size={14} className="text-amber-500" />;
-      case "Transport":
-        return <Train size={14} className="text-blue-500" />;
-      case "Food":
-        return <Coffee size={14} className="text-rose-500" />;
-      default:
-        return <MapPin size={14} className="text-emerald-500" />;
+  if (!response.ok) return [];
+  const payload = (await response.json()) as NominatimSuggestion[];
+  return Array.isArray(payload) ? payload : [];
+};
+
+const createMarkerIcon = (order: number, selected: boolean) =>
+  L.divIcon({
+    className: "",
+    html: `
+      <div class="${selected ? "scale-110 bg-[#0B3530] text-white ring-4 ring-[#88B04B]/30" : "bg-white text-[#0B3530] ring-2 ring-[#0B3530]/15"} flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform">
+        <span class="text-[11px] font-bold font-mono">${order}</span>
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -18],
+  });
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const renderPopup = (destination: MapDestination, order: number) => `
+  <div style="min-width: 180px; max-width: 220px;">
+    <div style="font-size: 11px; font-family: monospace; letter-spacing: 0.12em; color: #88B04B; text-transform: uppercase;">Stop ${order}</div>
+    <div style="font-weight: 700; color: #0B3530; margin-top: 4px;">${escapeHtml(destination.name)}</div>
+    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">${escapeHtml(destination.time)}</div>
+    <div style="font-size: 12px; color: #374151; line-height: 1.45; margin-top: 8px;">${escapeHtml(destination.notes)}</div>
+  </div>
+`;
+
+export default function MapTab() {
+  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => loadMapItinerary());
+  const [selectedDay, setSelectedDay] = useState<number>(() => loadMapItinerary().days[0]?.day ?? 12);
+  const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
+    () => loadMapItinerary().days[0]?.destinations[0]?.id ?? "",
+  );
+  const [draft, setDraft] = useState<DraftState>({
+    name: "",
+    time: "09:00 AM",
+    notes: "",
+    lat: "",
+    lng: "",
+  });
+  const [suggestions, setSuggestions] = useState<NominatimSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markerLayerRef = useRef<LayerGroup | null>(null);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
+  const markerRefs = useRef<Record<string, Marker>>({});
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  const activeDay = useMemo(
+    () => itineraryData.days.find((day) => day.day === selectedDay) ?? itineraryData.days[0] ?? null,
+    [itineraryData.days, selectedDay],
+  );
+
+  useEffect(() => {
+    saveMapItinerary(itineraryData);
+  }, [itineraryData]);
+
+  useEffect(() => {
+    if (!activeDay) return;
+
+    const stillExists = activeDay.destinations.some((destination) => destination.id === selectedDestinationId);
+    if (!stillExists) {
+      setSelectedDestinationId(activeDay.destinations[0]?.id ?? "");
     }
+  }, [activeDay, selectedDestinationId]);
+
+  useEffect(() => {
+    searchAbortRef.current?.abort();
+    const trimmed = draft.name.trim();
+    if (trimmed.length < 3) {
+      setSuggestions([]);
+      setIsSearching(false);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    const timeout = window.setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await lookupPlaces(trimmed, controller.signal);
+        if (controller.signal.aborted) return;
+        setSuggestions(results);
+        setActiveSuggestionIndex(results.length ? 0 : -1);
+      } catch {
+        if (controller.signal.aborted) return;
+        setSuggestions([]);
+      } finally {
+        if (!controller.signal.aborted) setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [draft.name]);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      preferCanvas: true,
+    }).setView([3.139, 101.6869], 12);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    mapRef.current = map;
+    markerLayerRef.current = L.layerGroup().addTo(map);
+
+    const timeout = window.setTimeout(() => map.invalidateSize(), 150);
+
+    return () => {
+      window.clearTimeout(timeout);
+      routeLayerRef.current?.remove();
+      markerLayerRef.current?.remove();
+      map.remove();
+      mapRef.current = null;
+      markerLayerRef.current = null;
+      routeLayerRef.current = null;
+      markerRefs.current = {};
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const markerLayer = markerLayerRef.current;
+    if (!map || !markerLayer || !activeDay) return;
+
+    markerLayer.clearLayers();
+    routeLayerRef.current?.remove();
+    routeLayerRef.current = null;
+    markerRefs.current = {};
+
+    const points: L.LatLngExpression[] = [];
+
+    activeDay.destinations.forEach((destination, index) => {
+      const isSelected = destination.id === selectedDestinationId;
+      const marker = L.marker([destination.lat, destination.lng], {
+        icon: createMarkerIcon(index + 1, isSelected),
+      });
+
+      marker.bindPopup(renderPopup(destination, index + 1), {
+        closeButton: false,
+        offset: L.point(0, -10),
+        className: "map-popup-shell",
+      });
+
+      marker.on("click", () => {
+        setSelectedDestinationId(destination.id);
+      });
+
+      marker.addTo(markerLayer);
+      markerRefs.current[destination.id] = marker;
+      points.push([destination.lat, destination.lng]);
+    });
+
+    if (points.length > 1) {
+      routeLayerRef.current = L.polyline(points, {
+        color: "#0B3530",
+        weight: 4,
+        opacity: 0.85,
+        dashArray: "8 10",
+      }).addTo(map);
+    }
+  }, [activeDay, selectedDestinationId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !activeDay) return;
+
+    const points = activeDay.destinations.map((destination) => [destination.lat, destination.lng] as L.LatLngTuple);
+    if (points.length === 0) return;
+
+    if (points.length === 1) {
+      map.setView(points[0], 14, { animate: true });
+    } else {
+      const bounds = L.latLngBounds(points);
+      map.fitBounds(bounds, { padding: [36, 36] });
+    }
+
+    window.setTimeout(() => map.invalidateSize(), 50);
+  }, [activeDay?.day, activeDay?.destinations.map((destination) => `${destination.id}:${destination.lat},${destination.lng}`).join("|")]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = selectedDestinationId ? markerRefs.current[selectedDestinationId] : null;
+    if (!map || !marker) return;
+
+    map.panTo(marker.getLatLng(), { animate: true, duration: 0.55 });
+    marker.openPopup();
+  }, [selectedDestinationId, selectedDay]);
+
+  const updateDestination = (destinationId: string, patch: Partial<MapDestination>) => {
+    setItineraryData((prev) => ({
+      ...prev,
+      updatedAt: new Date().toISOString(),
+      days: prev.days.map((day) => {
+        if (day.day !== selectedDay) return day;
+        return {
+          ...day,
+          destinations: day.destinations.map((destination) =>
+            destination.id === destinationId ? { ...destination, ...patch } : destination,
+          ),
+        };
+      }),
+    }));
   };
 
-  const getBgColor = (cat: string, isSel: boolean) => {
-    if (isSel) return "bg-[#0B3530] text-white border-2 border-[#88B04B] scale-125 shadow-md";
-    switch (cat) {
-      case "Hotel":
-        return "bg-amber-100 hover:bg-amber-200 border border-amber-300";
-      case "Transport":
-        return "bg-blue-100 hover:bg-blue-200 border border-blue-300";
-      case "Food":
-        return "bg-rose-100 hover:bg-rose-200 border border-rose-300";
-      default:
-        return "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300";
-    }
+  const selectSuggestion = (suggestion: NominatimSuggestion) => {
+    setDraft((prev) => ({
+      ...prev,
+      name: suggestion.display_name,
+      lat: suggestion.lat,
+      lng: suggestion.lon,
+    }));
+    setSuggestions([]);
+    setActiveSuggestionIndex(-1);
   };
+
+  const geocodeDestination = async (name: string) => {
+    const query = name.trim();
+    if (!query) return resolveCoordinatesFromName(name);
+
+    try {
+      const results = await lookupPlaces(query);
+      const topResult = results[0];
+      if (topResult) {
+        return { lat: Number(topResult.lat), lng: Number(topResult.lon) };
+      }
+    } catch {
+      // fall back to local coordinate hints below
+    }
+
+    return resolveCoordinatesFromName(name);
+  };
+
+  const addDestination = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!activeDay || !draft.name.trim()) return;
+
+    const trimmedName = draft.name.trim();
+    const manualLat = Number.parseFloat(draft.lat);
+    const manualLng = Number.parseFloat(draft.lng);
+    const hasManualCoords = Number.isFinite(manualLat) && Number.isFinite(manualLng);
+    const coordinates = hasManualCoords ? { lat: manualLat, lng: manualLng } : await geocodeDestination(trimmedName);
+
+    const newDestination: MapDestination = {
+      id: `dest-${selectedDay}-${Date.now()}`,
+      name: trimmedName,
+      time: draft.time.trim() || "09:00 AM",
+      notes: draft.notes.trim(),
+      lat: coordinates.lat,
+      lng: coordinates.lng,
+    };
+
+    setItineraryData((prev) => ({
+      ...prev,
+      updatedAt: new Date().toISOString(),
+      days: prev.days.map((day) =>
+        day.day === selectedDay
+          ? { ...day, destinations: [...day.destinations, newDestination] }
+          : day,
+      ),
+    }));
+
+    setSelectedDestinationId(newDestination.id);
+    setDraft({
+      name: "",
+      time: "09:00 AM",
+      notes: "",
+      lat: "",
+      lng: "",
+    });
+    setSuggestions([]);
+    setIsSearching(false);
+    setActiveSuggestionIndex(-1);
+  };
+
+  const deleteDestination = (destinationId: string) => {
+    setItineraryData((prev) => ({
+      ...prev,
+      updatedAt: new Date().toISOString(),
+      days: prev.days.map((day) =>
+        day.day === selectedDay
+          ? { ...day, destinations: day.destinations.filter((destination) => destination.id !== destinationId) }
+          : day,
+      ),
+    }));
+  };
+
+  const focusDestination = (destinationId: string) => {
+    setSelectedDestinationId(destinationId);
+  };
+
+  if (!activeDay) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">
+          No itinerary map data available yet.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Map Canvas Card */}
-        <div className="flex-1 bg-white rounded-2xl border border-stone-200 shadow-sm p-5 relative overflow-hidden min-h-[480px] flex flex-col justify-between">
-          
-          {/* Header Region Swappers */}
-          <div className="flex justify-between items-center z-10 relative">
-            <div>
-              <h3 className="text-base font-serif font-bold text-[#0B3530]">Interactive Travel Map</h3>
-              <p className="text-[11px] text-stone-400 font-sans">Click on plotted coordinate points to review travel tips</p>
-            </div>
-            
-            <div className="flex gap-1.5 bg-stone-100 p-1 rounded-lg">
-              <button
-                onClick={() => {
-                  setActiveRegion("KL");
-                  setSelectedPoint(mapPoints[1]);
-                }}
-                className={`px-3 py-1 text-xs font-medium font-sans rounded-md transition-all ${
-                  activeRegion === "KL" ? "bg-[#0B3530] text-white shadow-xs" : "text-stone-500 hover:text-stone-800"
-                }`}
-              >
-                Kuala Lumpur
-              </button>
-              <button
-                onClick={() => {
-                  setActiveRegion("MALACCA");
-                  setSelectedPoint(mapPoints[6]); // Melaka
-                }}
-                className={`px-3 py-1 text-xs font-medium font-sans rounded-md transition-all ${
-                  activeRegion === "MALACCA" ? "bg-[#0B3530] text-white shadow-xs" : "text-stone-500 hover:text-stone-800"
-                }`}
-              >
-                Malacca Excursion
-              </button>
-            </div>
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
+            <Route size={14} />
+            Leaflet itinerary map
           </div>
+          <h3 className="text-lg md:text-xl font-serif font-bold text-[#0B3530]">{activeDay.title}</h3>
+          <p className="text-xs text-stone-500">
+            Tap a destination in the list to pan the map and open its popup. Changes save to localStorage immediately.
+          </p>
+        </div>
 
-          {/* Map Vector Graphic with dynamic Plots */}
-          <div className="relative w-full aspect-video border border-stone-100 rounded-xl my-4 bg-[#EDF3EF]/60 p-4 overflow-hidden flex items-center justify-center">
-            
-            {/* Grid background lines to look blueprint style */}
-            <svg className="absolute inset-0 w-full h-full text-emerald-800/5 stroke-dasharray-[2_4]" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="1" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-              
-              {/* Plotting path connection for the visual trail */}
-              {activeRegion === "KL" ? (
-                // Airport -> Sentral -> Hotel/Chinatown -> Saloma -> Twin Towers -> Batu Caves
-                <path
-                  d="M 230 400 Q 280 340 330 300 T 360 260 T 470 170 T 520 120"
-                  fill="none"
-                  stroke="#88B04B"
-                  strokeWidth="3"
-                  className="stroke-dasharray-[4_4]"
-                />
-              ) : (
-                // Sentral -> Malacca route line
-                <path
-                  d="M 200 150 Q 400 250 600 350"
-                  fill="none"
-                  stroke="#88B04B"
-                  strokeWidth="3"
-                  className="stroke-dasharray-[4_4]"
-                />
-              )}
-            </svg>
-
-            {/* Simulated River / Transport Route overlays */}
-            <div className="absolute inset-x-0 h-4 bg-sky-200/40 rounded-full blur-xs top-[35%] skew-y-6"></div>
-            <div className="absolute inset-y-0 w-4 bg-emerald-500/5 rounded-full blur-xs left-[45%] -rotate-12"></div>
-
-            {/* Custom Overlay indicating Map state */}
-            <div className="absolute top-2 left-2 bg-[#0B3530]/10 text-[#0B3530] font-mono text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-wider">
-              {activeRegion === "KL" ? "Transit Corridor: KLIA - Sentral - Gombak" : "Federal Route 1 Outbound Corridor"}
-            </div>
-
-            {/* Interactive Plots mapping onto container bounds */}
-            {markersToShow.map((pt) => (
-              <div
-                key={pt.id}
-                className="absolute transition-all duration-300 cursor-pointer"
-                style={{
-                  left: `${pt.coordX}%`,
-                  top: `${pt.coordY}%`,
-                  transform: "translate(-50%, -50%)"
-                }}
-                onClick={() => setSelectedPoint(pt)}
+        <div className="flex flex-wrap gap-2">
+          {itineraryData.days.map((day) => (
+              <button
+                key={day.day}
+                type="button"
+                onClick={() => setSelectedDay(day.day)}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                  selectedDay === day.day
+                    ? "bg-[#0B3530] text-white"
+                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
               >
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${getBgColor(
-                    pt.category,
-                    selectedPoint.id === pt.id
-                  )}`}
-                >
-                  {getMarkerIcon(pt.category)}
-                </div>
-                {/* Micro Label text above marker */}
-                <span className="absolute left-1/2 -translate-x-1/2 -top-5 whitespace-nowrap text-[9px] font-sans font-bold text-stone-700 bg-white/90 px-1 py-0.5 rounded shadow-2xs border border-stone-100 pointer-events-none">
-                  {pt.originalTime}
-                </span>
-              </div>
+                {day.label}
+              </button>
             ))}
-          </div>
-
-          {/* Compass / Metric Footer */}
-          <div className="flex justify-between items-center border-t border-stone-100 pt-3 text-[10px] font-mono text-stone-400">
-            <span className="flex items-center gap-1">
-              <Navigation size={12} className="text-[#88B04B]" />
-              WGS84 COORDINATES PLOTTED
-            </span>
-            <span>ACTIVE MAP CONTROLLER v12.1</span>
-          </div>
         </div>
+      </div>
 
-        {/* Details Panel Sidecard */}
-        <div className="w-full lg:w-[380px] bg-white rounded-2xl border border-stone-200 shadow-sm p-5 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex justify-between items-baseline">
-              <span className="px-2 py-0.5 rounded-md bg-[#88B04B]/15 text-[#0B3530] text-[10px] uppercase font-mono font-bold tracking-wider">
-                DAY {selectedPoint.day} DESTINATION
-              </span>
-              <span className="text-xs font-mono text-stone-400">{selectedPoint.originalTime}</span>
-            </div>
-
-            {/* Dynamic visual preview if we have some images available */}
-            <div className="rounded-xl overflow-hidden aspect-video bg-stone-100 relative border border-stone-200/50">
-              <img
-                src={selectedPoint.photoUrl || "https://picsum.photos/seed/" + selectedPoint.id + "/400/225"}
-                alt={selectedPoint.name}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent"></div>
-              <div className="absolute bottom-3 left-3 text-white">
-                <p className="text-[10px] font-mono tracking-widest uppercase text-[#88B04B]">{selectedPoint.category}</p>
-                <p className="text-xs font-sans font-medium text-stone-200">{selectedPoint.latStr} • {selectedPoint.lngStr}</p>
-              </div>
-            </div>
-
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        <section className="min-h-[460px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
             <div>
-              <h4 className="text-base font-serif font-bold text-[#0B3530] leading-tight mb-1">
-                {selectedPoint.name}
-              </h4>
-              <p className="text-xs text-stone-500 font-sans leading-relaxed">
-                {selectedPoint.desc}
+              <h4 className="text-sm font-semibold text-[#0B3530]">Map panel</h4>
+              <p className="text-[11px] text-stone-400">OpenStreetMap tiles, numbered markers, and route line by day.</p>
+            </div>
+            <div className="rounded-full bg-stone-100 px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-stone-500">
+              {activeDay.label} | {activeDay.destinations.length} stops
+            </div>
+          </div>
+          <div ref={mapContainerRef} className="h-[460px] md:h-[560px] w-full" />
+        </section>
+
+        <section className="rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <div className="border-b border-stone-100 px-4 py-3">
+            <h4 className="text-sm font-semibold text-[#0B3530]">Destination list</h4>
+            <p className="text-[11px] text-stone-400">Inline edit, add, or remove stops for {activeDay.label}.</p>
+          </div>
+
+          <div className="max-h-[640px] overflow-y-auto p-4 space-y-4">
+            <form onSubmit={addDestination} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
+                <Plus size={14} />
+                Add destination
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="relative space-y-1 sm:col-span-2">
+                  <span className="text-[11px] font-semibold text-stone-600">Name</span>
+                  <input
+                    value={draft.name}
+                    onChange={(event) => {
+                      setDraft((prev) => ({ ...prev, name: event.target.value, lat: "", lng: "" }));
+                    }}
+                    onKeyDown={(event) => {
+                      if (!suggestions.length) return;
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setActiveSuggestionIndex((current) => (current + 1) % suggestions.length);
+                      }
+                      if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        setActiveSuggestionIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
+                      }
+                      if (event.key === "Enter" && activeSuggestionIndex >= 0) {
+                        event.preventDefault();
+                        selectSuggestion(suggestions[activeSuggestionIndex]);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                    placeholder="Central Market Kuala Lumpur"
+                    autoComplete="off"
+                  />
+                  {(isSearching || suggestions.length > 0) && (
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
+                      {isSearching && (
+                        <div className="px-3 py-2 text-[11px] text-stone-500">Searching places...</div>
+                      )}
+                      {!isSearching &&
+                        suggestions.map((suggestion, index) => (
+                          <button
+                            key={`${suggestion.place_id}-${suggestion.display_name}`}
+                            type="button"
+                            onClick={() => selectSuggestion(suggestion)}
+                            className={`block w-full px-3 py-2 text-left text-xs transition-colors ${
+                              index === activeSuggestionIndex ? "bg-[#0B3530] text-white" : "hover:bg-stone-50 text-stone-700"
+                            }`}
+                          >
+                            {suggestion.display_name}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </label>
+                <label className="space-y-1 sm:col-span-2">
+                  <span className="text-[11px] font-semibold text-stone-600">Time</span>
+                  <select
+                    value={draft.time}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, time: event.target.value }))}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                  >
+                    {timeOptions.map((timeOption) => (
+                      <option key={timeOption} value={timeOption}>
+                        {timeOption}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="space-y-1 block">
+                <span className="text-[11px] font-semibold text-stone-600">Notes</span>
+                <textarea
+                  value={draft.notes}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530] min-h-[84px] resize-none"
+                  placeholder="Short notes for the popup"
+                />
+              </label>
+              <input type="hidden" value={draft.lat} readOnly />
+              <input type="hidden" value={draft.lng} readOnly />
+              <button
+                type="submit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B3530] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#18534C]"
+              >
+                <Plus size={14} />
+                Add stop
+              </button>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">
+                Coordinates are resolved from the place name automatically.
               </p>
-            </div>
+            </form>
+
+            {activeDay.destinations.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 p-5 text-center text-xs text-stone-500">
+                No destinations yet for {activeDay.label}. Add the first stop above.
+              </div>
+            ) : activeDay.destinations.map((destination, index) => {
+              const isActive = destination.id === selectedDestinationId;
+              return (
+                <article
+                  key={destination.id}
+                  className={`rounded-2xl border p-4 transition-all ${
+                    isActive ? "border-[#0B3530] bg-[#0B3530]/5 shadow-xs" : "border-stone-200 bg-white"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => focusDestination(destination.id)}
+                    className="mb-3 flex w-full items-start gap-3 text-left"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0B3530] text-xs font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#88B04B]">
+                        Stop {index + 1}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-stone-800">{destination.name}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
+                        <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">{destination.time}</span>
+                        <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
+                          {destination.lat.toFixed(4)}, {destination.lng.toFixed(4)}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="space-y-1">
+                        <span className="text-[11px] font-semibold text-stone-600">Name</span>
+                        <input
+                          value={destination.name}
+                          onChange={(event) => updateDestination(destination.id, { name: event.target.value })}
+                          onFocus={() => focusDestination(destination.id)}
+                          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[11px] font-semibold text-stone-600">Time</span>
+                        <input
+                          value={destination.time}
+                          onChange={(event) => updateDestination(destination.id, { time: event.target.value })}
+                          onFocus={() => focusDestination(destination.id)}
+                          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                        />
+                      </label>
+                    </div>
+
+                    <label className="space-y-1 block">
+                      <span className="text-[11px] font-semibold text-stone-600">Notes</span>
+                      <textarea
+                        value={destination.notes}
+                        onChange={(event) => updateDestination(destination.id, { notes: event.target.value })}
+                        onFocus={() => focusDestination(destination.id)}
+                        className="w-full min-h-[96px] resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                      />
+                    </label>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => focusDestination(destination.id)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+                      >
+                        <LocateFixed size={12} />
+                        Pan map
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteDestination(destination.id)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-100"
+                      >
+                        <Trash2 size={12} />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
-          <div className="border-t border-stone-100 pt-4 mt-4 space-y-3">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-stone-400 font-sans">Projected Cost:</span>
-              <span className="font-mono font-bold text-[#0B3530] bg-[#88B04B]/10 px-2 py-0.5 rounded">
-                {selectedPoint.budget}
-              </span>
-            </div>
-            
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-stone-400 font-sans">Location Code:</span>
-              <span className="font-mono text-stone-500">
-                MY_{selectedPoint.category.toUpperCase()}_{selectedPoint.id.toUpperCase()}
-              </span>
-            </div>
-
-            <button
-              onClick={() => {
-                alert(`Routing data exported for: ${selectedPoint.name}. Lat/Lng coordinates mapped successfully.`);
-              }}
-              className="w-full text-center py-2 bg-[#0B3530] text-[#88B04B] hover:text-white rounded-lg text-xs font-bold font-sans transition-colors cursor-pointer border-none"
-            >
-              Export Gps Navigation Rules
-            </button>
+          <div className="border-t border-stone-100 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.25em] text-stone-400">
+            Saved locally for now. Ready to swap this data layer to Supabase later.
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

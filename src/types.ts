@@ -55,3 +55,9 @@ export interface TravelNote {
   category: "Rule" | "Requirement" | "General";
   createdAt: string;
 }
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}

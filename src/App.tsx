@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { CreditCard, Compass, Ticket, Utensils } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
   selectedItinerary,
@@ -7,8 +8,14 @@ import {
   type TimelineItemData,
 } from "./data/code1Itinerary";
 import { defaultExpenses, initialNotes } from "./data/itinerary";
-import { Expense, TravelNote } from "./types";
-import { hasSupabaseConfig, supabase, supabaseExpenseTable } from "./lib/supabase";
+import { Expense, TravelNote, ChecklistItem } from "./types";
+import {
+  hasSupabaseConfig,
+  supabase,
+  supabaseExpenseTable,
+  supabaseChecklistTable,
+  tripKey,
+} from "./lib/supabase";
 
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
@@ -21,23 +28,37 @@ import Legend from "./components/Legend";
 import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
+import AuthPanel from "./components/AuthPanel";
 
 type SupabaseExpenseRow = {
   id: string;
+  trip_key: string;
   day: number;
   category: Expense["category"];
   item: string;
   amount: number;
   paid_with: Expense["paidWith"];
+  original_amount: number | null;
+  original_currency: Expense["originalCurrency"] | null;
+};
+
+type SupabaseChecklistRow = {
+  id: string;
+  trip_key: string;
+  text: string;
+  completed: boolean;
 };
 
 const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
   id: expense.id,
+  trip_key: tripKey,
   day: expense.day,
   category: expense.category,
   item: expense.item,
   amount: expense.amount,
   paid_with: expense.paidWith,
+  original_amount: expense.originalAmount ?? null,
+  original_currency: expense.originalCurrency ?? null,
 });
 
 const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
@@ -47,6 +68,21 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   item: row.item,
   amount: Number(row.amount),
   paidWith: row.paid_with,
+  originalAmount: row.original_amount ?? undefined,
+  originalCurrency: row.original_currency ?? undefined,
+});
+
+const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
+  id: item.id,
+  trip_key: tripKey,
+  text: item.text,
+  completed: item.completed,
+});
+
+const rowToChecklist = (row: SupabaseChecklistRow): ChecklistItem => ({
+  id: row.id,
+  text: row.text,
+  completed: Boolean(row.completed),
 });
 
 export default function App() {
@@ -62,10 +98,15 @@ export default function App() {
     if (typeof window === "undefined") return "/";
     return routeFromPath(window.location.pathname);
   });
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState<boolean>(!supabase);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
+  const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const expenseSignatureRef = useRef<string>("");
+  const checklistSignatureRef = useRef<string>("");
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const cached = localStorage.getItem("travel_budget_expenses");
@@ -77,6 +118,20 @@ export default function App() {
     return cached ? JSON.parse(cached) : initialNotes;
   });
 
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
+    const cached = localStorage.getItem("travel_checklist_items");
+    return cached
+      ? JSON.parse(cached)
+      : [
+          { id: "c-1", text: "Buy Touch 'n Go cards at KL Sentral Station", completed: true },
+          { id: "c-2", text: "Pre-book Malacca Sunday buses (use BusOnlineTicket.com)", completed: false },
+          { id: "c-3", text: "Ensure Grab app has valid credit card loaded", completed: true },
+          { id: "c-4", text: "Pre-pack proper outfit (no shorts) for Batu Caves steps", completed: false },
+          { id: "c-5", text: "Download offline Kuala Lumpur map on Google Maps", completed: true },
+          { id: "c-6", text: "Try authentic Melaka Nyonya laksa on Jonker Walk", completed: false },
+        ];
+  });
+
   useEffect(() => {
     localStorage.setItem("travel_budget_expenses", JSON.stringify(expenses));
   }, [expenses]);
@@ -86,30 +141,72 @@ export default function App() {
   }, [notes]);
 
   useEffect(() => {
+    localStorage.setItem("travel_checklist_items", JSON.stringify(checklist));
+  }, [checklist]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true);
+      return;
+    }
+
+    let mounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setSession(data.session);
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAuthReady(true);
+      });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session) {
+      setExpensesLoaded(true);
+      setChecklistLoaded(true);
+      return;
+    }
+
     let cancelled = false;
 
-    const loadExpenses = async () => {
-      if (!supabase) {
-        setExpensesLoaded(true);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from(supabaseExpenseTable)
-        .select("id, day, category, item, amount, paid_with")
-        .order("day", { ascending: true })
-        .order("item", { ascending: true });
+    const loadSyncedData = async () => {
+      const [expenseResult, checklistResult] = await Promise.all([
+        supabase
+          .from(supabaseExpenseTable)
+          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency")
+          .eq("trip_key", tripKey)
+          .order("day", { ascending: true })
+          .order("item", { ascending: true }),
+        supabase
+          .from(supabaseChecklistTable)
+          .select("id, trip_key, text, completed")
+          .eq("trip_key", tripKey)
+          .order("id", { ascending: true }),
+      ]);
 
       if (cancelled) return;
 
-      if (error) {
-        console.warn("Supabase expense load failed:", error.message);
-        setExpensesLoaded(true);
-        return;
-      }
+      const { data: expenseData, error: expenseError } = expenseResult;
+      const { data: checklistData, error: checklistError } = checklistResult;
 
-      if (data && data.length > 0) {
-        const remoteExpenses = data.map((row) => rowToExpense(row as SupabaseExpenseRow));
+      if (expenseError) {
+        console.warn("Supabase expense load failed:", expenseError.message);
+      } else if (expenseData && expenseData.length > 0) {
+        const remoteExpenses = expenseData.map((row) => rowToExpense(row as SupabaseExpenseRow));
         expenseSignatureRef.current = JSON.stringify(remoteExpenses);
         setExpenses(remoteExpenses);
       } else {
@@ -123,18 +220,36 @@ export default function App() {
         }
       }
 
+      if (checklistError) {
+        console.warn("Supabase checklist load failed:", checklistError.message);
+      } else if (checklistData && checklistData.length > 0) {
+        const remoteChecklist = checklistData.map((row) => rowToChecklist(row as SupabaseChecklistRow));
+        checklistSignatureRef.current = JSON.stringify(remoteChecklist);
+        setChecklist(remoteChecklist);
+      } else {
+        const localSignature = JSON.stringify(checklist);
+        const payload = checklist.map(checklistToRow);
+        const { error: seedError } = await supabase.from(supabaseChecklistTable).upsert(payload, { onConflict: "id" });
+        if (seedError) {
+          console.warn("Supabase checklist seed failed:", seedError.message);
+        } else {
+          checklistSignatureRef.current = localSignature;
+        }
+      }
+
       setExpensesLoaded(true);
+      setChecklistLoaded(true);
     };
 
-    loadExpenses();
+    loadSyncedData();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authReady, session]);
 
   useEffect(() => {
-    if (!supabase || !expensesLoaded) return;
+    if (!supabase || !authReady || !session || !expensesLoaded) return;
 
     const currentSignature = JSON.stringify(expenses);
     if (currentSignature === expenseSignatureRef.current) return;
@@ -153,7 +268,29 @@ export default function App() {
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [expenses, expensesLoaded]);
+  }, [expenses, expensesLoaded, authReady, session]);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session || !checklistLoaded) return;
+
+    const currentSignature = JSON.stringify(checklist);
+    if (currentSignature === checklistSignatureRef.current) return;
+
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase
+        .from(supabaseChecklistTable)
+        .upsert(checklist.map(checklistToRow), { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase checklist sync failed:", error.message);
+        return;
+      }
+
+      checklistSignatureRef.current = currentSignature;
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [checklist, checklistLoaded, authReady, session]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -165,14 +302,38 @@ export default function App() {
   }, []);
 
   const metadata = {
-    title: "Jessie & Amor's Malaysia · Singapore",
+    title: "Jessie & Amor's Malaysia Singapore",
     description: itinerary.hero.subtitle,
-    sub: "2 people • Travelodge KL City Centre • RM1 ≈ PHP 15.56",
+    sub: "2 people | Travelodge KL City Centre | RM1 = PHP 15.56",
     rate: "RM 1 = PHP 15.56",
   };
 
   const handleOpenGuide = (item: TimelineItemData) => {
     setSelectedGuide(buildGuideForItem(item));
+  };
+
+  const handleSignIn = async (provider: "google" | "facebook") => {
+    if (!supabase) return;
+
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      console.warn("Supabase sign-in failed:", error.message);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.warn("Supabase sign-out failed:", error.message);
+    }
   };
 
   const navigateTo = (path: string) => {
@@ -184,20 +345,26 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
-      <Navigation activeTab={activeRoute} setActiveTab={navigateTo} metadata={metadata} />
+      <Navigation
+        activeTab={activeRoute}
+        setActiveTab={navigateTo}
+        metadata={metadata}
+        session={session}
+        onOpenAuth={() => setShowAuthModal(true)}
+      />
 
       <main className="flex-1">
         {activeRoute === "/" && (
           <div className="animate-in fade-in duration-300">
             <Hero hero={itinerary.hero} />
+            <Legend items={itinerary.legend} />
+            <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
             <BudgetSummaryHeader
               cards={itinerary.budgetSummary}
               expenses={expenses}
               showLiveSpends={showLiveSpends}
               setShowLiveSpends={setShowLiveSpends}
             />
-            <Legend items={itinerary.legend} />
-            <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
             <AlertBox alert={itinerary.alert} />
 
             <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
@@ -205,7 +372,7 @@ export default function App() {
                 <div>
                   <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
                   <p className="mt-1 text-xs font-sans text-stone-500">
-                    Code 1’s itinerary reminders, folded into Code 2’s visual system.
+                    Code 1's itinerary reminders, folded into Code 2's visual system.
                   </p>
                 </div>
               </div>
@@ -290,12 +457,23 @@ export default function App() {
           <BudgetTab
             expenses={expenses}
             setExpenses={setExpenses}
-            isSupabaseConnected={Boolean(supabase)}
+            isSupabaseConnected={Boolean(supabase && session)}
           />
         )}
         {activeRoute === "/map" && <MapTab />}
-        {activeRoute === "/notes" && <NotesTab notes={notes} setNotes={setNotes} />}
+        {activeRoute === "/notes" && <NotesTab notes={notes} setNotes={setNotes} checklist={checklist} setChecklist={setChecklist} />}
       </main>
+
+      <AuthPanel
+        open={showAuthModal}
+        title={session ? "Manage your account" : "Sign in to sync your trip"}
+        description={session ? "Your cloud sync is active for budget and checklist data." : "Choose Google or Facebook to enable shared budget and checklist sync."}
+        session={session}
+        loading={!authReady}
+        onClose={() => setShowAuthModal(false)}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+      />
 
       <footer className="bg-[#041D1A] text-stone-400 py-14 px-4 md:px-8 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -332,7 +510,7 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[10px] font-mono text-stone-500">
-            <span>© 2026 TravelLogix. All rights reserved.</span>
+            <span>(c) 2026 TravelLogix. All rights reserved.</span>
           <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
             <span className="hover:text-stone-400">Privacy</span>
             <span className="hover:text-stone-400">Support</span>
@@ -345,3 +523,4 @@ export default function App() {
     </div>
   );
 }
+

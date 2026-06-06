@@ -30,19 +30,8 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
     return value / exchangeRates.sgd;
   };
 
-  const formatMoney = (value: number, currency: ExpenseCurrency) => {
-    switch (currency) {
-      case "PHP":
-        return `PHP ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-      case "SGD":
-        return `S$ ${value.toFixed(2)}`;
-      default:
-        return `RM ${value.toFixed(2)}`;
-    }
-  };
-
-  const formatPhp = (amountValue: number) => `₱ ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
-  const formatSgd = (amountValue: number) => `S$ ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
+  const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
+  const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,9 +107,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-mono tracking-widest text-stone-400 uppercase block">TOTAL CASH OUTFLOW (Cash / Debit)</span>
-            <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">
-              RM {cashSpent.toFixed(2)}
-            </h4>
+            <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">RM {cashSpent.toFixed(2)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
               {formatPhp(cashSpent)} | {formatSgd(cashSpent)}
             </span>
@@ -133,9 +120,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-mono tracking-widest text-blue-500 uppercase block">CREDIT CARD SPENDS</span>
-            <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">
-              RM {cardSpent.toFixed(2)}
-            </h4>
+            <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">RM {cardSpent.toFixed(2)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
               {formatPhp(cardSpent)} | {formatSgd(cardSpent)}
             </span>
@@ -149,7 +134,9 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
       {isOverBudget && (
         <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex gap-2 items-center">
           <AlertTriangle size={16} />
-          <span>Careful, you have exceeded the recommended cash allowance of <strong>RM 1,000</strong>! Review card transactions or minimize shopping outflows.</span>
+          <span>
+            Careful, you have exceeded the recommended cash allowance of <strong>RM 1,000</strong>! Review card transactions or minimize shopping outflows.
+          </span>
         </div>
       )}
 
@@ -200,16 +187,18 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Travel Day</label>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">Date</label>
                 <select
                   value={day}
                   onChange={(e) => setDay(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
-                  <option value={12}>July 12 (Day 12)</option>
-                  <option value={13}>July 13 (Day 13)</option>
-                  <option value={14}>July 14 (Day 14)</option>
-                  <option value={15}>July 15 (Day 15)</option>
+                  <option value={11}>July 11</option>
+                  <option value={12}>July 12</option>
+                  <option value={13}>July 13</option>
+                  <option value={14}>July 14</option>
+                  <option value={15}>July 15</option>
+                  <option value={16}>July 16</option>
                 </select>
               </div>
 
@@ -320,9 +309,9 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                       <div className="font-semibold text-stone-800">{exp.item}</div>
                       <div className="flex items-center gap-2 text-[10px] text-stone-400 font-sans mt-0.5 flex-wrap">
                         <span>Day {exp.day}</span>
-                        <span>•</span>
+                        <span>|</span>
                         <span>{exp.category}</span>
-                        <span>•</span>
+                        <span>|</span>
                         <span className={exp.paidWith === "Credit Card" ? "text-blue-500 font-mono" : "text-emerald-600 font-mono"}>
                           {exp.paidWith}
                         </span>
@@ -337,13 +326,10 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                           ? `${currencyLabels[exp.originalCurrency]} ${exp.originalAmount.toFixed(2)}`
                           : `RM ${exp.amount.toFixed(2)}`}
                       </div>
-                      <div className="text-[9px] text-stone-400 font-mono">
-                        RM {exp.amount.toFixed(2)} | {formatPhp(exp.amount)} | {formatSgd(exp.amount)}
-                      </div>
                     </div>
                     <button
                       onClick={() => deleteExpense(exp.id)}
-                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                       title="Delete expense"
                     >
                       <Trash size={14} />

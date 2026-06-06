@@ -1,33 +1,15 @@
 import React, { useState } from "react";
 import { Copy, Plus, Trash2, CheckCircle2, Bookmark, Lightbulb, ClipboardList, PenTool } from "lucide-react";
-import { TravelNote } from "../types";
+import { ChecklistItem, TravelNote } from "../types";
 
 interface NotesTabProps {
   notes: TravelNote[];
   setNotes: React.Dispatch<React.SetStateAction<TravelNote[]>>;
+  checklist: ChecklistItem[];
+  setChecklist: React.Dispatch<React.SetStateAction<ChecklistItem[]>>;
 }
 
-interface ChecklistItem {
-  id: string;
-  text: string;
-  completed: boolean;
-}
-
-const initialChecklist: ChecklistItem[] = [
-  { id: "c-1", text: "Buy Touch 'n Go cards at KL Sentral Station", completed: true },
-  { id: "c-2", text: "Pre-book Malacca Sunday buses (use BusOnlineTicket.com)", completed: false },
-  { id: "c-3", text: "Ensure Grab app has valid credit card loaded", completed: true },
-  { id: "c-4", text: "Pre-pack proper outfit (no shorts) for Batu Caves steps", completed: false },
-  { id: "c-5", text: "Download offline Kuala Lumpur map on Google Maps", completed: true },
-  { id: "c-6", text: "Try authentic Melaka Nyonya laksa on Jonker Walk", completed: false }
-];
-
-export default function NotesTab({ notes, setNotes }: NotesTabProps) {
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
-    const cached = localStorage.getItem("travel_checklist_items");
-    return cached ? JSON.parse(cached) : initialChecklist;
-  });
-
+export default function NotesTab({ notes, setNotes, checklist, setChecklist }: NotesTabProps) {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
@@ -61,7 +43,6 @@ export default function NotesTab({ notes, setNotes }: NotesTabProps) {
       return item;
     });
     setChecklist(updated);
-    localStorage.setItem("travel_checklist_items", JSON.stringify(updated));
   };
 
   const handleAddCheckItem = (e: React.FormEvent) => {
@@ -76,7 +57,6 @@ export default function NotesTab({ notes, setNotes }: NotesTabProps) {
 
     const updated = [...checklist, newItem];
     setChecklist(updated);
-    localStorage.setItem("travel_checklist_items", JSON.stringify(updated));
     setNewCheckItem("");
   };
 

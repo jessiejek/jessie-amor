@@ -30,8 +30,8 @@ export default function BudgetSummaryHeader({
     .filter((expense) => expense.paidWith === "Credit Card")
     .reduce((sum, expense) => sum + expense.amount, 0);
 
-  const toPhp = (amount: number) => `₱ ${Math.round(amount * exchangeRates.php).toLocaleString()}`;
-  const toSgd = (amount: number) => `S$ ${(amount * exchangeRates.sgd).toFixed(2)}`;
+  const toPhp = (amount: number) => `PHP ${Math.round(amount * exchangeRates.php).toLocaleString()}`;
+  const toSgd = (amount: number) => `SGD ${(amount * exchangeRates.sgd).toFixed(2)}`;
 
   const parseRmRange = (value: string) => {
     const matches = value.match(/\d+(?:\.\d+)?/g);
@@ -56,7 +56,7 @@ export default function BudgetSummaryHeader({
         ? rmRange.min === rmRange.max
           ? toSgd(rmRange.min)
           : `${toSgd(rmRange.min)} - ${toSgd(rmRange.max)}`
-        : "S$ —";
+        : "SGD N/A";
 
     return (
       <div
@@ -80,7 +80,7 @@ export default function BudgetSummaryHeader({
         </h3>
         <div className={`mt-1 space-y-0.5 text-[11px] font-mono ${card.featured ? "text-[#88B04B]" : "text-stone-400"}`}>
           <p>{phpLabel}</p>
-          <p>{sgdLabel}</p>
+            <p>{sgdLabel}</p>
         </div>
       </div>
     );

@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { Share2, Download, Printer, Copy, Check, Info, Heart } from "lucide-react";
+import { Share2, Download, Printer, Copy, Check, Info, LogIn } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 
 interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  session: Session | null;
+  onOpenAuth: () => void;
   metadata: {
     title: string;
     description: string;
@@ -12,7 +15,7 @@ interface NavigationProps {
   };
 }
 
-export default function Navigation({ activeTab, setActiveTab, metadata }: NavigationProps) {
+export default function Navigation({ activeTab, setActiveTab, session, onOpenAuth, metadata }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -61,12 +64,20 @@ export default function Navigation({ activeTab, setActiveTab, metadata }: Naviga
               </h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-300 mt-1 font-sans">
                 <span>{metadata.sub}</span>
-                <span className="text-stone-400">â€¢</span>
+                <span className="text-stone-400">|</span>
                 <span className="font-mono text-stone-200">{metadata.rate}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2 border-l border-[#18534C] pl-0 md:pl-4">
+              <button
+                onClick={onOpenAuth}
+                className="inline-flex items-center gap-2 rounded-full border border-[#18534C] bg-[#18534C] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1f6158]"
+                title={session ? "Manage account" : "Login"}
+              >
+                <LogIn size={14} />
+                {session ? "Account" : "Login"}
+              </button>
               <button
                 onClick={() => setShowShareModal(true)}
                 className="p-1.5 rounded-full hover:bg-[#18534C] text-stone-300 hover:text-white transition-colors"
@@ -119,7 +130,7 @@ export default function Navigation({ activeTab, setActiveTab, metadata }: Naviga
               onClick={() => setShowShareModal(false)}
               className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 font-sans"
             >
-              âœ•
+              X
             </button>
             <h3 className="text-lg font-serif font-bold text-[#0B3530] mb-2">Share Travel Itinerary</h3>
             <p className="text-xs text-stone-500 mb-4 font-sans">
@@ -171,7 +182,7 @@ export default function Navigation({ activeTab, setActiveTab, metadata }: Naviga
               onClick={() => setShowDownloadModal(false)}
               className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 font-sans"
             >
-              âœ•
+              X
             </button>
             <h3 className="text-lg font-serif font-bold text-[#0B3530] mb-2">Export Trip Data</h3>
             <p className="text-xs text-stone-500 mb-4 font-sans">
