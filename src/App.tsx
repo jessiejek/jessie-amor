@@ -107,6 +107,8 @@ export default function App() {
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const expenseSignatureRef = useRef<string>("");
   const checklistSignatureRef = useRef<string>("");
+  const expenseIdsRef = useRef<string[]>([]);
+  const checklistIdsRef = useRef<string[]>([]);
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const cached = localStorage.getItem("travel_budget_expenses");
@@ -208,6 +210,7 @@ export default function App() {
       } else if (expenseData && expenseData.length > 0) {
         const remoteExpenses = expenseData.map((row) => rowToExpense(row as SupabaseExpenseRow));
         expenseSignatureRef.current = JSON.stringify(remoteExpenses);
+        expenseIdsRef.current = remoteExpenses.map((expense) => expense.id);
         setExpenses(remoteExpenses);
       } else {
         const localSignature = JSON.stringify(expenses);
@@ -217,6 +220,7 @@ export default function App() {
           console.warn("Supabase expense seed failed:", seedError.message);
         } else {
           expenseSignatureRef.current = localSignature;
+          expenseIdsRef.current = expenses.map((expense) => expense.id);
         }
       }
 
@@ -225,6 +229,7 @@ export default function App() {
       } else if (checklistData && checklistData.length > 0) {
         const remoteChecklist = checklistData.map((row) => rowToChecklist(row as SupabaseChecklistRow));
         checklistSignatureRef.current = JSON.stringify(remoteChecklist);
+        checklistIdsRef.current = remoteChecklist.map((item) => item.id);
         setChecklist(remoteChecklist);
       } else {
         const localSignature = JSON.stringify(checklist);
@@ -234,6 +239,7 @@ export default function App() {
           console.warn("Supabase checklist seed failed:", seedError.message);
         } else {
           checklistSignatureRef.current = localSignature;
+          checklistIdsRef.current = checklist.map((item) => item.id);
         }
       }
 
@@ -252,19 +258,34 @@ export default function App() {
     if (!supabase || !authReady || !session || !expensesLoaded) return;
 
     const currentSignature = JSON.stringify(expenses);
-    if (currentSignature === expenseSignatureRef.current) return;
+    const currentIds = expenses.map((expense) => expense.id);
+    const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
+    if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) return;
 
     const timeout = window.setTimeout(async () => {
-      const { error } = await supabase
+      const { error: upsertError } = await supabase
         .from(supabaseExpenseTable)
         .upsert(expenses.map(expenseToRow), { onConflict: "id" });
 
-      if (error) {
-        console.warn("Supabase expense sync failed:", error.message);
+      if (upsertError) {
+        console.warn("Supabase expense sync failed:", upsertError.message);
         return;
       }
 
+      if (removedIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from(supabaseExpenseTable)
+          .delete()
+          .in("id", removedIds);
+
+        if (deleteError) {
+          console.warn("Supabase expense delete failed:", deleteError.message);
+          return;
+        }
+      }
+
       expenseSignatureRef.current = currentSignature;
+      expenseIdsRef.current = currentIds;
     }, 300);
 
     return () => window.clearTimeout(timeout);
@@ -274,19 +295,34 @@ export default function App() {
     if (!supabase || !authReady || !session || !checklistLoaded) return;
 
     const currentSignature = JSON.stringify(checklist);
-    if (currentSignature === checklistSignatureRef.current) return;
+    const currentIds = checklist.map((item) => item.id);
+    const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
+    if (currentSignature === checklistSignatureRef.current && removedIds.length === 0) return;
 
     const timeout = window.setTimeout(async () => {
-      const { error } = await supabase
+      const { error: upsertError } = await supabase
         .from(supabaseChecklistTable)
         .upsert(checklist.map(checklistToRow), { onConflict: "id" });
 
-      if (error) {
-        console.warn("Supabase checklist sync failed:", error.message);
+      if (upsertError) {
+        console.warn("Supabase checklist sync failed:", upsertError.message);
         return;
       }
 
+      if (removedIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from(supabaseChecklistTable)
+          .delete()
+          .in("id", removedIds);
+
+        if (deleteError) {
+          console.warn("Supabase checklist delete failed:", deleteError.message);
+          return;
+        }
+      }
+
       checklistSignatureRef.current = currentSignature;
+      checklistIdsRef.current = currentIds;
     }, 300);
 
     return () => window.clearTimeout(timeout);
