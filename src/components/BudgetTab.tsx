@@ -154,21 +154,21 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
 
           <form onSubmit={addExpense} className="space-y-4 font-sans">
             <div>
-              <label className="text-xs font-semibold text-stone-600 block mb-1">Item Title</label>
+              <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Item Title</label>
               <input
                 type="text"
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
                 placeholder="e.g. Kaya Toast, Metro Pass"
                 disabled={!canEdit}
-                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530]"
                 required
               />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Price</label>
+                <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Price</label>
                 <input
                   type="number"
                   step="0.01"
@@ -176,18 +176,18 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                   onChange={(e) => setAmountText(e.target.value)}
                   placeholder="0.00"
                   disabled={!canEdit}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530]"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Currency</label>
-                  <select
+                <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Currency</label>
+                <select
                   value={amountCurrency}
                   onChange={(e) => setAmountCurrency(e.target.value as ExpenseCurrency)}
                   disabled={!canEdit}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
                   <option value="RM">RM</option>
                   <option value="PHP">PHP</option>
@@ -198,12 +198,12 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Date</label>
+                <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Date</label>
                 <select
                   value={day}
                   onChange={(e) => setDay(parseInt(e.target.value))}
                   disabled={!canEdit}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
                   <option value={11}>July 11</option>
                   <option value={12}>July 12</option>
@@ -215,12 +215,12 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Payment Type</label>
+                <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Payment Type</label>
                 <select
                   value={paidWith}
                   onChange={(e) => setPaidWith(e.target.value as PaymentMethod)}
                   disabled={!canEdit}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
                   <option value="Cash">Cash</option>
                   <option value="Debit">Debit</option>
@@ -230,12 +230,12 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-stone-600 block mb-1">Category</label>
+              <label className="text-sm md:text-xs font-semibold text-stone-600 block mb-1">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
                 disabled={!canEdit}
-                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm md:text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
               >
                 <option value="Food">Food</option>
                 <option value="Transport">Transport</option>
@@ -248,20 +248,20 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
             <button
               type="submit"
               disabled={!canEdit}
-              className="w-full py-2 px-4 rounded-lg bg-[#0B3530] text-white hover:bg-[#18534C] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs mt-2"
+              className="w-full py-3 px-4 rounded-lg bg-[#0B3530] text-white hover:bg-[#18534C] text-sm md:text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs mt-2"
             >
               <PlusCircle size={15} /> Add Expense Detail
             </button>
           </form>
 
           <div className="mt-6 border-t border-stone-100 pt-5">
-            <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-3">Spends by Category</h4>
+            <h4 className="text-sm md:text-xs font-bold text-stone-700 uppercase tracking-wider mb-3">Spends by Category</h4>
             <div className="space-y-3">
               {categoryTotals.map((cat) => {
                 const percentage = (cat.amount / maxCatTotal) * 100;
                 return (
                   <div key={cat.name} className="space-y-1">
-                    <div className="flex justify-between items-center text-[11px]">
+                    <div className="flex justify-between items-center text-sm md:text-[11px]">
                       <span className="font-sans font-medium text-stone-600">{cat.name}</span>
                       <span className="font-mono text-stone-800 font-bold">RM {cat.amount.toFixed(1)}</span>
                     </div>
@@ -285,7 +285,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
           <div className="flex justify-between items-center border-b border-stone-100 pb-3 mb-4">
             <div>
               <h3 className="text-base font-serif font-bold text-[#0B3530]">Transaction Registry</h3>
-              <p className="text-[11px] text-stone-400 font-sans">Chronological list of all recorded travel cash outflows</p>
+              <p className="text-sm md:text-[11px] text-stone-400 font-sans">Chronological list of all recorded travel cash outflows</p>
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -293,7 +293,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-2 py-1 border border-stone-200 rounded text-[11px] outline-none text-stone-600 font-sans bg-[#FFFFFF]"
+                className="px-2 py-1 border border-stone-200 rounded text-sm md:text-[11px] outline-none text-stone-600 font-sans bg-[#FFFFFF]"
               >
                 <option value="All">All Categories</option>
                 <option value="Transport">Transport Only</option>
@@ -313,16 +313,16 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
               filteredExpenses.map((exp) => (
                 <div
                   key={exp.id}
-                  className="flex justify-between items-center p-3 rounded-lg border border-stone-100 bg-[#FBFBFB] hover:border-stone-200/80 transition-all text-xs font-sans group"
-                >
+                className="flex justify-between items-center p-3 rounded-lg border border-stone-100 bg-[#FBFBFB] hover:border-stone-200/80 transition-all text-sm md:text-xs font-sans group"
+              >
                   <div className="flex items-center gap-2.5">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: getCategoryColor(exp.category) }}
                     />
                     <div>
-                      <div className="font-semibold text-stone-800">{exp.item}</div>
-                      <div className="flex items-center gap-2 text-[10px] text-stone-400 font-sans mt-0.5 flex-wrap">
+                      <div className="font-semibold text-stone-800 text-sm md:text-xs">{exp.item}</div>
+                      <div className="flex items-center gap-2 text-[11px] md:text-[10px] text-stone-400 font-sans mt-0.5 flex-wrap">
                         <span>Day {exp.day}</span>
                         <span>|</span>
                         <span>{exp.category}</span>
@@ -336,7 +336,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="font-mono font-bold text-stone-800">
+                      <div className="font-mono font-bold text-stone-800 text-sm md:text-xs">
                         {exp.originalCurrency && exp.originalAmount != null
                           ? `${currencyLabels[exp.originalCurrency]} ${exp.originalAmount.toFixed(2)}`
                           : `RM ${exp.amount.toFixed(2)}`}
@@ -356,8 +356,8 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
             )}
           </div>
 
-          <div className="border-t border-stone-100 pt-3 text-[10px] font-mono text-stone-400 text-center uppercase tracking-widest">
-            {isSupabaseConnected ? "SUPABASE SYNC ACTIVE" : "LOCAL STORAGE MODE ACTIVE"}
+          <div className="border-t border-stone-100 pt-3 text-[11px] md:text-[10px] font-mono text-stone-400 text-center uppercase tracking-widest">
+            {isSupabaseConnected ? "SUPABASE SYNC ACTIVE" : "PREVIEW MODE ACTIVE"}
           </div>
         </div>
       </div>

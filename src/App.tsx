@@ -31,6 +31,15 @@ import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
 
+const defaultChecklistItems: ChecklistItem[] = [
+  { id: "c-1", text: "Buy Touch 'n Go cards at KL Sentral Station", completed: true },
+  { id: "c-2", text: "Pre-book Malacca Sunday buses (use BusOnlineTicket.com)", completed: false },
+  { id: "c-3", text: "Ensure Grab app has valid credit card loaded", completed: true },
+  { id: "c-4", text: "Pre-pack proper outfit (no shorts) for Batu Caves steps", completed: false },
+  { id: "c-5", text: "Download offline Kuala Lumpur map on Google Maps", completed: true },
+  { id: "c-6", text: "Try authentic Melaka Nyonya laksa on Jonker Walk", completed: false },
+];
+
 type SupabaseExpenseRow = {
   id: string;
   trip_key: string;
@@ -118,41 +127,9 @@ export default function App() {
   const expenseIdsRef = useRef<string[]>([]);
   const checklistIdsRef = useRef<string[]>([]);
 
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const cached = localStorage.getItem("travel_budget_expenses");
-    return cached ? JSON.parse(cached) : defaultExpenses;
-  });
-
-  const [notes, setNotes] = useState<TravelNote[]>(() => {
-    const cached = localStorage.getItem("travel_scratch_notes");
-    return cached ? JSON.parse(cached) : initialNotes;
-  });
-
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
-    const cached = localStorage.getItem("travel_checklist_items");
-    return cached
-      ? JSON.parse(cached)
-      : [
-          { id: "c-1", text: "Buy Touch 'n Go cards at KL Sentral Station", completed: true },
-          { id: "c-2", text: "Pre-book Malacca Sunday buses (use BusOnlineTicket.com)", completed: false },
-          { id: "c-3", text: "Ensure Grab app has valid credit card loaded", completed: true },
-          { id: "c-4", text: "Pre-pack proper outfit (no shorts) for Batu Caves steps", completed: false },
-          { id: "c-5", text: "Download offline Kuala Lumpur map on Google Maps", completed: true },
-          { id: "c-6", text: "Try authentic Melaka Nyonya laksa on Jonker Walk", completed: false },
-        ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem("travel_budget_expenses", JSON.stringify(expenses));
-  }, [expenses]);
-
-  useEffect(() => {
-    localStorage.setItem("travel_scratch_notes", JSON.stringify(notes));
-  }, [notes]);
-
-  useEffect(() => {
-    localStorage.setItem("travel_checklist_items", JSON.stringify(checklist));
-  }, [checklist]);
+  const [expenses, setExpenses] = useState<Expense[]>(() => defaultExpenses);
+  const [notes, setNotes] = useState<TravelNote[]>(() => initialNotes);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => defaultChecklistItems);
 
   useEffect(() => {
     if (!supabase) {
@@ -193,6 +170,7 @@ export default function App() {
     }
 
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadSyncedData = async () => {
       const [expenseResult, checklistResult, notesResult] = await Promise.all([
@@ -228,14 +206,16 @@ export default function App() {
         expenseIdsRef.current = remoteExpenses.map((expense) => expense.id);
         setExpenses(remoteExpenses);
       } else {
-        const localSignature = JSON.stringify(expenses);
-        const payload = expenses.map(expenseToRow);
+        const fallbackExpenses = defaultExpenses;
+        const fallbackSignature = JSON.stringify(fallbackExpenses);
+        const payload = fallbackExpenses.map(expenseToRow);
         const { error: seedError } = await supabase.from(supabaseExpenseTable).upsert(payload, { onConflict: "id" });
         if (seedError) {
           console.warn("Supabase expense seed failed:", seedError.message);
         } else {
-          expenseSignatureRef.current = localSignature;
-          expenseIdsRef.current = expenses.map((expense) => expense.id);
+          expenseSignatureRef.current = fallbackSignature;
+          expenseIdsRef.current = fallbackExpenses.map((expense) => expense.id);
+          setExpenses(fallbackExpenses);
         }
       }
 
@@ -247,14 +227,16 @@ export default function App() {
         checklistIdsRef.current = remoteChecklist.map((item) => item.id);
         setChecklist(remoteChecklist);
       } else {
-        const localSignature = JSON.stringify(checklist);
-        const payload = checklist.map(checklistToRow);
+        const fallbackChecklist = defaultChecklistItems;
+        const fallbackSignature = JSON.stringify(fallbackChecklist);
+        const payload = fallbackChecklist.map(checklistToRow);
         const { error: seedError } = await supabase.from(supabaseChecklistTable).upsert(payload, { onConflict: "id" });
         if (seedError) {
           console.warn("Supabase checklist seed failed:", seedError.message);
         } else {
-          checklistSignatureRef.current = localSignature;
-          checklistIdsRef.current = checklist.map((item) => item.id);
+          checklistSignatureRef.current = fallbackSignature;
+          checklistIdsRef.current = fallbackChecklist.map((item) => item.id);
+          setChecklist(fallbackChecklist);
         }
       }
 
@@ -265,13 +247,15 @@ export default function App() {
         notesSignatureRef.current = JSON.stringify(remoteNotes);
         setNotes(remoteNotes);
       } else {
-        const localSignature = JSON.stringify(notes);
-        const payload = { trip_key: tripKey, notes };
+        const fallbackNotes = initialNotes;
+        const fallbackSignature = JSON.stringify(fallbackNotes);
+        const payload = { trip_key: tripKey, notes: fallbackNotes };
         const { error: seedError } = await supabase.from(supabaseNotesTable).upsert(payload, { onConflict: "trip_key" });
         if (seedError) {
           console.warn("Supabase notes seed failed:", seedError.message);
         } else {
-          notesSignatureRef.current = localSignature;
+          notesSignatureRef.current = fallbackSignature;
+          setNotes(fallbackNotes);
         }
       }
 
@@ -280,10 +264,43 @@ export default function App() {
       setNotesLoaded(true);
     };
 
-    loadSyncedData();
+    const bootstrap = async () => {
+      await loadSyncedData();
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`trip-sync-${tripKey}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: supabaseExpenseTable, filter: `trip_key=eq.${tripKey}` },
+          () => {
+            void loadSyncedData();
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: supabaseChecklistTable, filter: `trip_key=eq.${tripKey}` },
+          () => {
+            void loadSyncedData();
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: supabaseNotesTable, filter: `trip_key=eq.${tripKey}` },
+          () => {
+            void loadSyncedData();
+          },
+        )
+        .subscribe();
+    };
+
+    void bootstrap();
 
     return () => {
       cancelled = true;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [authReady, session]);
 
@@ -573,6 +590,7 @@ export default function App() {
         onClose={() => setShowAuthModal(false)}
         onSignIn={handleSignIn}
         onSignOut={handleSignOut}
+        isConfigured={hasSupabaseConfig}
       />
 
       <footer className="bg-[#041D1A] text-stone-400 py-14 px-4 md:px-8 border-t border-[#0B3530] no-print">

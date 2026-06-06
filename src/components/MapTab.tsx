@@ -5,9 +5,9 @@ import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
-  loadMapItinerary,
+  buildInitialMapItinerary,
   resolveCoordinatesFromName,
-  saveMapItinerary,
+  normalizeMapItinerary,
   type MapDestination,
   type MapItineraryData,
 } from "../data/mapItinerary";
@@ -99,10 +99,10 @@ interface MapTabProps {
 
 export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
-  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => loadMapItinerary());
-  const [selectedDay, setSelectedDay] = useState<number>(() => loadMapItinerary().days[0]?.day ?? 12);
+  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => buildInitialMapItinerary());
+  const [selectedDay, setSelectedDay] = useState<number>(() => buildInitialMapItinerary().days[0]?.day ?? 12);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
-    () => loadMapItinerary().days[0]?.destinations[0]?.id ?? "",
+    () => buildInitialMapItinerary().days[0]?.destinations[0]?.id ?? "",
   );
   const [draft, setDraft] = useState<DraftState>({
     name: "",
@@ -130,10 +130,6 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   );
 
   useEffect(() => {
-    saveMapItinerary(itineraryData);
-  }, [itineraryData]);
-
-  useEffect(() => {
     if (!supabase) {
       setSession(null);
       return;
@@ -159,10 +155,12 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   useEffect(() => {
     if (!supabase || !session) {
       mapLoadedRef.current = true;
+      setItineraryData(buildInitialMapItinerary());
       return;
     }
 
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadRemoteMap = async () => {
       const { data, error } = await supabase
@@ -181,33 +179,64 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
 
       const remoteData = data?.data as MapItineraryData | undefined;
       if (remoteData?.days?.length) {
-        const normalized = { ...remoteData, version: 1, updatedAt: remoteData.updatedAt || new Date().toISOString() };
+        const normalized = normalizeMapItinerary(remoteData);
         mapSignatureRef.current = JSON.stringify(normalized);
         setItineraryData(normalized);
       } else {
-        const localSignature = JSON.stringify(itineraryData);
+        const fallback = buildInitialMapItinerary();
+        const fallbackSignature = JSON.stringify(fallback);
         const { error: seedError } = await supabase
           .from(supabaseMapTable)
-          .upsert({ trip_key: tripKey, data: itineraryData }, { onConflict: "trip_key" });
+          .upsert({ trip_key: tripKey, data: fallback }, { onConflict: "trip_key" });
         if (seedError) {
           console.warn("Supabase map seed failed:", seedError.message);
         } else {
-          mapSignatureRef.current = localSignature;
+          mapSignatureRef.current = fallbackSignature;
+          setItineraryData(fallback);
         }
       }
 
       mapLoadedRef.current = true;
     };
 
-    loadRemoteMap();
+    const bootstrap = async () => {
+      await loadRemoteMap();
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`trip-map-sync-${tripKey}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: supabaseMapTable,
+            filter: `trip_key=eq.${tripKey}`,
+          },
+          () => {
+            void loadRemoteMap();
+          },
+        )
+        .subscribe();
+    };
+
+    void bootstrap();
 
     return () => {
       cancelled = true;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [session]);
 
   useEffect(() => {
-    if (!supabase || !session || !mapLoadedRef.current) return;
+    if (!supabase || !session) {
+      mapLoadedRef.current = true;
+      return;
+    }
+
+    if (!mapLoadedRef.current) return;
 
     const currentSignature = JSON.stringify(itineraryData);
     if (currentSignature === mapSignatureRef.current) return;
@@ -493,9 +522,9 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
             <Route size={14} />
             Leaflet itinerary map
           </div>
-          <h3 className="text-lg md:text-xl font-serif font-bold text-[#0B3530]">{activeDay.title}</h3>
+            <h3 className="text-lg md:text-xl font-serif font-bold text-[#0B3530]">{activeDay.title}</h3>
           <p className="text-xs text-stone-500">
-            Tap a destination in the list to pan the map and open its popup. Changes save to localStorage immediately.
+            Tap a destination in the list to pan the map and open its popup. Changes sync to Supabase immediately.
           </p>
         </div>
 
@@ -624,8 +653,6 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
                   placeholder="Short notes for the popup"
                 />
               </label>
-              <input type="hidden" value={draft.lat} readOnly />
-              <input type="hidden" value={draft.lng} readOnly />
               <button
                 type="submit"
                 disabled={!canEdit}
@@ -736,7 +763,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
           </div>
 
           <div className="border-t border-stone-100 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.25em] text-stone-400">
-            Saved locally for now. Ready to swap this data layer to Supabase later.
+            Supabase-backed map data with live cross-tab updates.
           </div>
         </section>
       </div>

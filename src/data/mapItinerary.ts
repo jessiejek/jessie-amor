@@ -23,8 +23,6 @@ export interface MapItineraryData {
   days: MapDay[];
 }
 
-const STORAGE_KEY = "travel_map_itinerary_v1";
-
 type Coordinates = { lat: number; lng: number };
 
 const asciiText = (value: string) =>
@@ -127,7 +125,7 @@ const toNumber = (value: unknown, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const normalizeData = (raw: unknown): MapItineraryData => {
+export const normalizeMapItinerary = (raw: unknown): MapItineraryData => {
   if (!hasValidDays(raw)) return buildInitialMapItinerary();
 
   const days = raw.days
@@ -179,22 +177,3 @@ const normalizeData = (raw: unknown): MapItineraryData => {
     days: orderedDays,
   };
 };
-
-export const loadMapItinerary = (): MapItineraryData => {
-  if (typeof window === "undefined") return buildInitialMapItinerary();
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return buildInitialMapItinerary();
-    return normalizeData(JSON.parse(raw));
-  } catch {
-    return buildInitialMapItinerary();
-  }
-};
-
-export const saveMapItinerary = (data: MapItineraryData) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, updatedAt: new Date().toISOString() }));
-};
-
-export const getMapStorageKey = () => STORAGE_KEY;

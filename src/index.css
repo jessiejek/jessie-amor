@@ -20,6 +20,15 @@
   animation: spin-slow 15s linear infinite;
 }
 
+/* Prevent iOS Safari from zooming form controls on focus */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom print styles */
 @media print {
   .no-print {
@@ -35,4 +44,3 @@
     padding: 0 !important;
   }
 }
-

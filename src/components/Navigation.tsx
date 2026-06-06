@@ -216,7 +216,7 @@ export default function Navigation({ activeTab, setActiveTab, session, onOpenAut
             <div className="mt-4 bg-[#88B04B]/10 p-3 rounded-lg flex gap-2">
               <Info size={16} className="text-[#0B3530] shrink-0 mt-0.5" />
               <p className="text-[11px] text-[#0b3530] font-sans leading-normal">
-                <strong>Dynamic Storage Note:</strong> Any customizations made to the budget charts or travel notes are stored locally inside your browser and can be exported at any time.
+                <strong>Cloud Sync Note:</strong> Any customizations made to the budget charts, map stops, or travel notes are stored in Supabase and stay in sync across open sessions.
               </p>
             </div>
           </div>

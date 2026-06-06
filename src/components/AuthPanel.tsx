@@ -13,6 +13,7 @@ interface AuthPanelProps {
   onClose: () => void;
   onSignIn: (provider: ProviderId) => void;
   onSignOut: () => void;
+  isConfigured?: boolean;
 }
 
 const providers: Array<{
@@ -34,6 +35,7 @@ export default function AuthPanel({
   onClose,
   onSignIn,
   onSignOut,
+  isConfigured = true,
 }: AuthPanelProps) {
   useEffect(() => {
     if (!open) return;
@@ -50,16 +52,16 @@ export default function AuthPanel({
 
   return (
     <div
-      className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs no-print"
+      className="fixed inset-0 z-[5000] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xs no-print sm:items-center"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200"
+        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200 touch-manipulation"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-800"
+          className="absolute right-4 top-4 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-800 touch-manipulation"
           aria-label="Close login modal"
         >
           X
@@ -78,13 +80,23 @@ export default function AuthPanel({
             </p>
           </div>
 
+          {!isConfigured && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold text-amber-900">Login is not configured on this deployment yet.</p>
+              <p className="mt-1 text-[11px] text-amber-800">
+                The app needs Supabase environment variables in Vercel before Google/Facebook sign-in can work.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {providers.map((provider) => (
               <button
                 key={provider.id}
                 onClick={() => onSignIn(provider.id)}
-                disabled={loading}
-                className="rounded-xl border border-stone-200 bg-white p-4 text-left transition-all hover:border-[#0B3530] hover:shadow-xs disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={loading || !isConfigured}
+                className="min-h-20 rounded-xl border border-stone-200 bg-white p-4 text-left transition-all hover:border-[#0B3530] hover:shadow-xs disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-sm font-bold text-[#88B04B]">
@@ -119,8 +131,9 @@ export default function AuthPanel({
 
             <button
               onClick={onSignOut}
-              disabled={!session}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 transition-all hover:border-rose-300 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
+              disabled={!session || !isConfigured}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 transition-all hover:border-rose-300 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
             >
               <LogOut size={14} />
               Sign out
