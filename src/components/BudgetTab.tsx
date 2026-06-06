@@ -277,7 +277,7 @@ export default function BudgetTab({
                   <div key={cat.name} className="space-y-1">
                     <div className="flex justify-between items-center text-sm md:text-[11px]">
                       <span className="font-sans font-medium text-stone-600">{cat.name}</span>
-                      <span className="font-mono text-stone-800 font-bold">RM {cat.amount.toFixed(1)}</span>
+                      <span className="font-mono text-stone-800 font-bold">{formatPhp(cat.amount)}</span>
                     </div>
                     <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
                       <div
