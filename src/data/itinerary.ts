@@ -1,6 +1,6 @@
 import { DayPlan, Expense } from "../types";
 
-export const exchangeRate = 13.56; // 1 RM = 13.56 PHP
+export const exchangeRate = 15.56; // 1 RM = 15.56 PHP
 
 export const defaultDayPlans: DayPlan[] = [
   {

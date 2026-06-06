@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { CreditCard, Compass, Ticket, Utensils, HelpCircle, Navigation as NavIcon, Heart, Notebook } from "lucide-react";
-import { defaultDayPlans, defaultExpenses, initialNotes } from "./data/itinerary";
+import React, { useEffect, useState } from "react";
+import { CreditCard, Compass, Ticket, Utensils } from "lucide-react";
+import {
+  buildGuideForItem,
+  selectedItinerary,
+  type DestinationGuide,
+  type TimelineItemData,
+} from "./data/code1Itinerary";
+import { defaultExpenses, initialNotes } from "./data/itinerary";
 import { Expense, TravelNote } from "./types";
 
 import Navigation from "./components/Navigation";
@@ -10,12 +16,27 @@ import DailyItineraryView from "./components/DailyItineraryView";
 import BudgetTab from "./components/BudgetTab";
 import MapTab from "./components/MapTab";
 import NotesTab from "./components/NotesTab";
+import Legend from "./components/Legend";
+import AlertBox from "./components/AlertBox";
+import TipCard from "./components/TipCard";
+import DestinationInfoModal from "./components/DestinationInfoModal";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>("Itinerary");
-  const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
+  const itinerary = selectedItinerary;
+  const routeFromPath = (pathname: string) => {
+    if (pathname === "/budget") return "/budget";
+    if (pathname === "/map") return "/map";
+    if (pathname === "/notes") return "/notes";
+    return "/";
+  };
 
-  // Load state from localStorage on init
+  const [activeRoute, setActiveRoute] = useState<string>(() => {
+    if (typeof window === "undefined") return "/";
+    return routeFromPath(window.location.pathname);
+  });
+  const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
+  const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
+
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const cached = localStorage.getItem("travel_budget_expenses");
     return cached ? JSON.parse(cached) : defaultExpenses;
@@ -26,7 +47,6 @@ export default function App() {
     return cached ? JSON.parse(cached) : initialNotes;
   });
 
-  // Save states to localStorage on change
   useEffect(() => {
     localStorage.setItem("travel_budget_expenses", JSON.stringify(expenses));
   }, [expenses]);
@@ -35,38 +55,67 @@ export default function App() {
     localStorage.setItem("travel_scratch_notes", JSON.stringify(notes));
   }, [notes]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveRoute(routeFromPath(window.location.pathname));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const metadata = {
     title: "Jessie and Amor's Malaysia Singapore Trip",
-    description: "Custom corporate and historical travel itinerary layout",
-    sub: "2 people • Travelodge KL City Centre • RM1 ≈ PHP 13.56",
-    rate: "RM 1 = PHP 13.56"
+    description: itinerary.hero.subtitle,
+    sub: "2 people • Travelodge KL City Centre • RM1 ≈ PHP 15.56",
+    rate: "RM 1 = PHP 15.56",
+  };
+
+  const handleOpenGuide = (item: TimelineItemData) => {
+    setSelectedGuide(buildGuideForItem(item));
+  };
+
+  const navigateTo = (path: string) => {
+    if (path === activeRoute) return;
+    window.history.pushState({}, "", path);
+    setActiveRoute(routeFromPath(path));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-850 flex flex-col justify-between selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
-      
-      {/* Top Navbar Header */}
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} metadata={metadata} />
+    <div className="flex min-h-screen flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
+      <Navigation activeTab={activeRoute} setActiveTab={navigateTo} metadata={metadata} />
 
-      {/* Main Panel Content Routing */}
       <main className="flex-1">
-        {activeTab === "Itinerary" && (
+        {activeRoute === "/" && (
           <div className="animate-in fade-in duration-300">
-            {/* 1. Hero banner */}
-            <Hero />
-
-            {/* 2. Budget Executive Overview Cards */}
+            <Hero hero={itinerary.hero} />
             <BudgetSummaryHeader
-              dayPlans={defaultDayPlans}
+              cards={itinerary.budgetSummary}
               expenses={expenses}
               showLiveSpends={showLiveSpends}
               setShowLiveSpends={setShowLiveSpends}
             />
+            <Legend items={itinerary.legend} />
+            <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
+            <AlertBox alert={itinerary.alert} />
 
-            {/* 3. Detailed Day Checks list */}
-            <DailyItineraryView dayPlans={defaultDayPlans} />
+            <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
+                  <p className="mt-1 text-xs font-sans text-stone-500">
+                    Code 1’s itinerary reminders, folded into Code 2’s visual system.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {itinerary.tips.map((tip) => (
+                  <TipCard key={tip.icon + tip.description.map((segment) => ("value" in segment ? segment.value : segment.label)).join("")} tip={tip} />
+                ))}
+              </div>
+            </section>
 
-            {/* 4. Pro-Traveler Insights (Grid matching screenshot) */}
             <section className="bg-stone-100/50 border-t border-b border-stone-200/50 py-12 px-4 md:px-8 no-print">
               <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-10">
@@ -79,7 +128,6 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Insight 1 */}
                   <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
                     <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
                       <CreditCard size={20} />
@@ -90,7 +138,6 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Insight 2 */}
                   <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
                     <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
                       <Ticket size={20} />
@@ -101,7 +148,6 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Insight 3 */}
                   <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
                     <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
                       <Utensils size={20} />
@@ -115,22 +161,18 @@ export default function App() {
               </div>
             </section>
 
-            {/* 5. Explore KL Interactive Teaser map block */}
             <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 no-print">
               <div
-                onClick={() => setActiveTab("Map")}
-                className="relative overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center cursor-pointer group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
+                onClick={() => navigateTo("/map")}
+                className="relative cursor-pointer overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
               >
-                {/* Visual grid backdrop lines */}
                 <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
-                
-                {/* Mini coordinates floating circles */}
+
                 <div className="absolute top-[20%] left-[30%] w-3 h-3 rounded-full bg-stone-300"></div>
                 <div className="absolute top-[50%] left-[70%] w-3 h-3 rounded-full bg-[#88B04B]/60"></div>
                 <div className="absolute top-[30%] left-[60%] w-3 h-3 rounded-full bg-[#0B3530]/40"></div>
                 <div className="absolute top-[70%] left-[25%] w-3 h-3 rounded-full bg-stone-400"></div>
 
-                {/* Card overlay */}
                 <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
                   <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
                   <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
@@ -144,20 +186,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === "Budget" && (
-          <BudgetTab expenses={expenses} setExpenses={setExpenses} />
-        )}
-
-        {activeTab === "Map" && (
-          <MapTab />
-        )}
-
-        {activeTab === "Notes" && (
-          <NotesTab notes={notes} setNotes={setNotes} />
-        )}
+        {activeRoute === "/budget" && <BudgetTab expenses={expenses} setExpenses={setExpenses} />}
+        {activeRoute === "/map" && <MapTab />}
+        {activeRoute === "/notes" && <NotesTab notes={notes} setNotes={setNotes} />}
       </main>
 
-      {/* Styled Footer */}
       <footer className="bg-[#041D1A] text-stone-400 py-14 px-4 md:px-8 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
@@ -166,7 +199,7 @@ export default function App() {
               Curating unforgettable Asian experiences.
             </h3>
             <p className="text-xs text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
-              Custom itinerary designed specifically for Jessie and Amor's 2024 journey.
+              {itinerary.footer}
             </p>
           </div>
 
@@ -174,10 +207,10 @@ export default function App() {
             <div>
               <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
               <ul className="space-y-2 text-xs font-sans">
-                <li><button onClick={() => setActiveTab("Itinerary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
-                <li><button onClick={() => setActiveTab("Budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
-                <li><button onClick={() => setActiveTab("Map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
-                <li><button onClick={() => setActiveTab("Notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
+                <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
+                <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
+                <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
+                <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
               </ul>
             </div>
 
@@ -201,6 +234,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <DestinationInfoModal guide={selectedGuide} onClose={() => setSelectedGuide(null)} />
     </div>
   );
 }

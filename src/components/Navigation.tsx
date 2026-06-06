@@ -37,6 +37,13 @@ export default function Navigation({ activeTab, setActiveTab, metadata }: Naviga
     downloadAnchor.remove();
   };
 
+  const tabs = [
+    { label: "Itinerary", path: "/" },
+    { label: "Budget", path: "/budget" },
+    { label: "Map", path: "/map" },
+    { label: "Notes", path: "/notes" },
+  ];
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-[#0B3530] text-stone-100 px-4 md:px-8 py-4 shadow-md no-print">
@@ -62,17 +69,17 @@ export default function Navigation({ activeTab, setActiveTab, metadata }: Naviga
           {/* Navigation Links and Utility Icons */}
           <div className="flex flex-wrap items-center gap-4 md:gap-6 self-stretch md:self-auto justify-between md:justify-end">
             <nav className="flex items-center gap-1 md:gap-2">
-              {["Itinerary", "Budget", "Map", "Notes"].map((tab) => (
+              {tabs.map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  key={tab.label}
+                  onClick={() => setActiveTab(tab.path)}
                   className={`px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
-                    activeTab === tab
+                    activeTab === tab.path
                       ? "bg-[#18534C] text-white border-b-2 border-[#88B04B]"
                       : "text-stone-300 hover:text-white hover:bg-[#18534C]/50"
                   }`}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </nav>
