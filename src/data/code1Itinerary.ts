@@ -676,8 +676,8 @@ const FOOD_GUIDES_BY_KEY: Record<FoodGuideKey, FoodGuide> = {
 const currentItinerary = {
   hero: {
     eyebrow: 'Travel Itinerary',
-    title: 'Jessie and Amor',
-    subtitle: 'Malaysia Singapore Trip',
+    title: "Jessie & Amor's Malaysia · Singapore",
+    subtitle: 'Trip Itinerary',
     meta: ['2 people', 'Travelodge KL City Centre', 'RM1 ≈ PHP 15.56'],
     note: [
       text('⚠️ Airport Grab on July 12 & July 15 is paid by credit card and is '),
@@ -1447,7 +1447,7 @@ const currentItinerary = {
       ],
     },
   ] satisfies TipCardData[],
-  footer: 'Jessie and Amor · Malaysia Singapore Trip · RM 600–903 estimated total',
+  footer: "Jessie & Amor's Malaysia · Singapore · RM 600–903 estimated total",
 };
 
 export const destinationGuides: Record<string, DestinationGuide> = {

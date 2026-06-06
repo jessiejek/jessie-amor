@@ -1,5 +1,6 @@
 export type ExpenseCategory = "Transport" | "Accommodation" | "Food" | "Sightseeing" | "Other";
-export type PaymentMethod = "Cash" | "Credit Card";
+export type PaymentMethod = "Cash" | "Debit" | "Credit Card";
+export type ExpenseCurrency = "RM" | "PHP" | "SGD";
 
 export interface Expense {
   id: string;
@@ -8,6 +9,8 @@ export interface Expense {
   item: string;
   amount: number;
   paidWith: PaymentMethod;
+  originalAmount?: number;
+  originalCurrency?: ExpenseCurrency;
 }
 
 export type ItineraryItemType = "transport" | "accommodation" | "sightseeing" | "food" | "general";

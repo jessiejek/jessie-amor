@@ -1,64 +1,92 @@
 import React, { useState } from "react";
-import { Plus, Trash, AlertTriangle, PiggyBank, CreditCard, DollarSign, ListFilter, PlusCircle } from "lucide-react";
-import { Expense, ExpenseCategory, PaymentMethod } from "../types";
-import { exchangeRate } from "../data/itinerary";
+import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash } from "lucide-react";
+import { exchangeRates } from "../data/itinerary";
+import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
 
 interface BudgetTabProps {
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
+  isSupabaseConnected?: boolean;
 }
 
-export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
-  // Expense inputs
+const currencyLabels: Record<ExpenseCurrency, string> = {
+  RM: "RM",
+  PHP: "PHP",
+  SGD: "SGD",
+};
+
+export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected = false }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amountText, setAmountText] = useState("");
+  const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>("RM");
   const [day, setDay] = useState<number>(12);
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
   const [filterCategory, setFilterCategory] = useState<string>("All");
 
+  const convertToRm = (value: number, currency: ExpenseCurrency) => {
+    if (currency === "RM") return value;
+    if (currency === "PHP") return value / exchangeRates.php;
+    return value / exchangeRates.sgd;
+  };
+
+  const formatMoney = (value: number, currency: ExpenseCurrency) => {
+    switch (currency) {
+      case "PHP":
+        return `PHP ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+      case "SGD":
+        return `S$ ${value.toFixed(2)}`;
+      default:
+        return `RM ${value.toFixed(2)}`;
+    }
+  };
+
+  const formatPhp = (amountValue: number) => `₱ ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
+  const formatSgd = (amountValue: number) => `S$ ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
+
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!desc.trim() || !amount || isNaN(parseFloat(amount))) return;
+    const parsedAmount = parseFloat(amountText);
+    if (!desc.trim() || !amountText || isNaN(parsedAmount)) return;
 
     const newExp: Expense = {
       id: "exp-" + Date.now(),
       day,
       category,
       item: desc,
-      amount: parseFloat(amount),
-      paidWith
+      amount: convertToRm(parsedAmount, amountCurrency),
+      paidWith,
+      originalAmount: parsedAmount,
+      originalCurrency: amountCurrency,
     };
 
     setExpenses((prev) => [...prev, newExp]);
     setDesc("");
-    setAmount("");
+    setAmountText("");
+    setAmountCurrency("RM");
   };
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((exp) => exp.id !== id));
   };
 
-  // Math variables
   const cashSpent = expenses
-    .filter((e) => e.paidWith === "Cash")
+    .filter((e) => e.paidWith === "Cash" || e.paidWith === "Debit")
     .reduce((sum, e) => sum + e.amount, 0);
 
   const cardSpent = expenses
     .filter((e) => e.paidWith === "Credit Card")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const totalBudget = 1000; // RM recommended cash budget
+  const totalBudget = 1000;
   const cashRemaining = totalBudget - cashSpent;
   const isOverBudget = cashRemaining < 0;
 
-  // Filter lists
   const filteredExpenses = expenses.filter((e) => {
     if (filterCategory === "All") return true;
     return e.category === filterCategory;
   });
 
-  // Calculate percentages by category for the SVG charting
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];
   const categoryTotals = cats.map((cat) => {
     const totalForCat = expenses
@@ -72,47 +100,29 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
   const getCategoryColor = (cat: ExpenseCategory) => {
     switch (cat) {
       case "Food":
-        return "#E05A47"; // Warm Red
+        return "#E05A47";
       case "Transport":
-        return "#478BE0"; // Blue
+        return "#478BE0";
       case "Accommodation":
-        return "#E09C47"; // Golden Amber
+        return "#E09C47";
       case "Sightseeing":
-        return "#18534C"; // Dark Slate Teal
+        return "#18534C";
       default:
-        return "#7F8C8D"; // Grey
+        return "#7F8C8D";
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
-      {/* Upper Executive Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        {/* Cash Balance Display */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[10px] font-mono tracking-widest text-[#88B04B] uppercase block">RECOMMENDED CASH REMAINING</span>
-            <h4 className={`text-2xl font-serif font-bold mt-1 ${isOverBudget ? "text-rose-600" : "text-[#0B3530]"}`}>
-              RM {cashRemaining.toFixed(2)}
-            </h4>
-            <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              ≈ ₱ {(cashRemaining * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} PHP
-            </span>
-          </div>
-          <div className={`p-3 rounded-full ${isOverBudget ? "bg-rose-50 text-rose-600" : "bg-[#EDF3EF] text-[#0B3530]"}`}>
-            <PiggyBank size={24} />
-          </div>
-        </div>
-
-        {/* Total Cash Spent */}
-        <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
-          <div>
-            <span className="text-[10px] font-mono tracking-widest text-stone-400 uppercase block">TOTAL CASH OUTFLOW</span>
+            <span className="text-[10px] font-mono tracking-widest text-stone-400 uppercase block">TOTAL CASH OUTFLOW (Cash / Debit)</span>
             <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">
               RM {cashSpent.toFixed(2)}
             </h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              ≈ ₱ {(cashSpent * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} PHP
+              {formatPhp(cashSpent)} | {formatSgd(cashSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-stone-100 text-stone-600">
@@ -120,15 +130,14 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
           </div>
         </div>
 
-        {/* Credit Card Excluded */}
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[10px] font-mono tracking-widest text-blue-500 uppercase block">CREDIT CARD SPENDS (EXCLUDED)</span>
+            <span className="text-[10px] font-mono tracking-widest text-blue-500 uppercase block">CREDIT CARD SPENDS</span>
             <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">
               RM {cardSpent.toFixed(2)}
             </h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              Excludes from the RM 1,000 cash pool
+              {formatPhp(cardSpent)} | {formatSgd(cardSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-blue-50 text-blue-600">
@@ -137,7 +146,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
         </div>
       </div>
 
-      {/* Progress alert bar wrapper */}
       {isOverBudget && (
         <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex gap-2 items-center">
           <AlertTriangle size={16} />
@@ -145,13 +153,10 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
         </div>
       )}
 
-      {/* Main Budget Panel Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Core Left Input Form */}
         <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs h-fit">
           <h3 className="text-base font-serif font-bold text-[#0B3530] border-b border-stone-100 pb-3 mb-4">Add Custom Spend</h3>
-          
+
           <form onSubmit={addExpense} className="space-y-4 font-sans">
             <div>
               <label className="text-xs font-semibold text-stone-600 block mb-1">Item Title</label>
@@ -165,20 +170,35 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Price (RM)</label>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className="text-xs font-semibold text-stone-600 block mb-1">Price</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amountText}
+                  onChange={(e) => setAmountText(e.target.value)}
                   placeholder="0.00"
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
                   required
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">Currency</label>
+                <select
+                  value={amountCurrency}
+                  onChange={(e) => setAmountCurrency(e.target.value as ExpenseCurrency)}
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                >
+                  <option value="RM">RM</option>
+                  <option value="PHP">PHP</option>
+                  <option value="SGD">SGD</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-stone-600 block mb-1">Travel Day</label>
                 <select
@@ -192,23 +212,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
                   <option value={15}>July 15 (Day 15)</option>
                 </select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
-                >
-                  <option value="Food">Food</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Accommodation">Accommodation</option>
-                  <option value="Sightseeing">Sightseeing</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
 
               <div>
                 <label className="text-xs font-semibold text-stone-600 block mb-1">Payment Type</label>
@@ -217,10 +220,26 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
                   onChange={(e) => setPaidWith(e.target.value as PaymentMethod)}
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
-                  <option value="Cash">Cash Account</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Debit">Debit</option>
                   <option value="Credit Card">Credit Card</option>
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-stone-600 block mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+              >
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Accommodation">Accommodation</option>
+                <option value="Sightseeing">Sightseeing</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             <button
@@ -231,7 +250,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
             </button>
           </form>
 
-          {/* Budget Visual Chart */}
           <div className="mt-6 border-t border-stone-100 pt-5">
             <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-3">Spends by Category</h4>
             <div className="space-y-3">
@@ -248,9 +266,9 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${percentage}%`,
-                          backgroundColor: getCategoryColor(cat.name as ExpenseCategory)
+                          backgroundColor: getCategoryColor(cat.name as ExpenseCategory),
                         }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 );
@@ -259,7 +277,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
           </div>
         </div>
 
-        {/* Right Expenses Registry Table */}
         <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs lg:col-span-2 flex flex-col h-[520px]">
           <div className="flex justify-between items-center border-b border-stone-100 pb-3 mb-4">
             <div>
@@ -267,7 +284,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
               <p className="text-[11px] text-stone-400 font-sans">Chronological list of all recorded travel cash outflows</p>
             </div>
 
-            {/* Filter buttons */}
             <div className="flex items-center gap-1.5">
               <ListFilter size={12} className="text-stone-400" />
               <select
@@ -284,7 +300,6 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
             </div>
           </div>
 
-          {/* Table list */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-2">
             {filteredExpenses.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -297,14 +312,13 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
                   className="flex justify-between items-center p-3 rounded-lg border border-stone-100 bg-[#FBFBFB] hover:border-stone-200/80 transition-all text-xs font-sans group"
                 >
                   <div className="flex items-center gap-2.5">
-                    {/* Circle Color Tag */}
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: getCategoryColor(exp.category) }}
-                    ></span>
+                    />
                     <div>
                       <div className="font-semibold text-stone-800">{exp.item}</div>
-                      <div className="flex items-center gap-2 text-[10px] text-stone-400 font-sans mt-0.5">
+                      <div className="flex items-center gap-2 text-[10px] text-stone-400 font-sans mt-0.5 flex-wrap">
                         <span>Day {exp.day}</span>
                         <span>•</span>
                         <span>{exp.category}</span>
@@ -318,8 +332,14 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="font-mono font-bold text-stone-800">RM {exp.amount.toFixed(2)}</div>
-                      <div className="text-[9px] text-stone-400 font-mono">≈ ₱ {(exp.amount * exchangeRate).toFixed(0)}</div>
+                      <div className="font-mono font-bold text-stone-800">
+                        {exp.originalCurrency && exp.originalAmount != null
+                          ? `${currencyLabels[exp.originalCurrency]} ${exp.originalAmount.toFixed(2)}`
+                          : `RM ${exp.amount.toFixed(2)}`}
+                      </div>
+                      <div className="text-[9px] text-stone-400 font-mono">
+                        RM {exp.amount.toFixed(2)} | {formatPhp(exp.amount)} | {formatSgd(exp.amount)}
+                      </div>
                     </div>
                     <button
                       onClick={() => deleteExpense(exp.id)}
@@ -335,10 +355,9 @@ export default function BudgetTab({ expenses, setExpenses }: BudgetTabProps) {
           </div>
 
           <div className="border-t border-stone-100 pt-3 text-[10px] font-mono text-stone-400 text-center uppercase tracking-widest">
-            REGISTRY SYNCHRONIZED SECURELY
+            {isSupabaseConnected ? "SUPABASE SYNC ACTIVE" : "LOCAL STORAGE MODE ACTIVE"}
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { CreditCard, Compass, Ticket, Utensils } from "lucide-react";
 import {
   buildGuideForItem,
@@ -8,6 +8,7 @@ import {
 } from "./data/code1Itinerary";
 import { defaultExpenses, initialNotes } from "./data/itinerary";
 import { Expense, TravelNote } from "./types";
+import { hasSupabaseConfig, supabase, supabaseExpenseTable } from "./lib/supabase";
 
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
@@ -20,6 +21,33 @@ import Legend from "./components/Legend";
 import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
+
+type SupabaseExpenseRow = {
+  id: string;
+  day: number;
+  category: Expense["category"];
+  item: string;
+  amount: number;
+  paid_with: Expense["paidWith"];
+};
+
+const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
+  id: expense.id,
+  day: expense.day,
+  category: expense.category,
+  item: expense.item,
+  amount: expense.amount,
+  paid_with: expense.paidWith,
+});
+
+const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
+  id: row.id,
+  day: row.day,
+  category: row.category,
+  item: row.item,
+  amount: Number(row.amount),
+  paidWith: row.paid_with,
+});
 
 export default function App() {
   const itinerary = selectedItinerary;
@@ -36,6 +64,8 @@ export default function App() {
   });
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
+  const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
+  const expenseSignatureRef = useRef<string>("");
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const cached = localStorage.getItem("travel_budget_expenses");
@@ -56,6 +86,76 @@ export default function App() {
   }, [notes]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadExpenses = async () => {
+      if (!supabase) {
+        setExpensesLoaded(true);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from(supabaseExpenseTable)
+        .select("id, day, category, item, amount, paid_with")
+        .order("day", { ascending: true })
+        .order("item", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Supabase expense load failed:", error.message);
+        setExpensesLoaded(true);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const remoteExpenses = data.map((row) => rowToExpense(row as SupabaseExpenseRow));
+        expenseSignatureRef.current = JSON.stringify(remoteExpenses);
+        setExpenses(remoteExpenses);
+      } else {
+        const localSignature = JSON.stringify(expenses);
+        const payload = expenses.map(expenseToRow);
+        const { error: seedError } = await supabase.from(supabaseExpenseTable).upsert(payload, { onConflict: "id" });
+        if (seedError) {
+          console.warn("Supabase expense seed failed:", seedError.message);
+        } else {
+          expenseSignatureRef.current = localSignature;
+        }
+      }
+
+      setExpensesLoaded(true);
+    };
+
+    loadExpenses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !expensesLoaded) return;
+
+    const currentSignature = JSON.stringify(expenses);
+    if (currentSignature === expenseSignatureRef.current) return;
+
+    const timeout = window.setTimeout(async () => {
+      const { error } = await supabase
+        .from(supabaseExpenseTable)
+        .upsert(expenses.map(expenseToRow), { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase expense sync failed:", error.message);
+        return;
+      }
+
+      expenseSignatureRef.current = currentSignature;
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [expenses, expensesLoaded]);
+
+  useEffect(() => {
     const handlePopState = () => {
       setActiveRoute(routeFromPath(window.location.pathname));
     };
@@ -65,7 +165,7 @@ export default function App() {
   }, []);
 
   const metadata = {
-    title: "Jessie and Amor's Malaysia Singapore Trip",
+    title: "Jessie & Amor's Malaysia · Singapore",
     description: itinerary.hero.subtitle,
     sub: "2 people • Travelodge KL City Centre • RM1 ≈ PHP 15.56",
     rate: "RM 1 = PHP 15.56",
@@ -186,7 +286,13 @@ export default function App() {
           </div>
         )}
 
-        {activeRoute === "/budget" && <BudgetTab expenses={expenses} setExpenses={setExpenses} />}
+        {activeRoute === "/budget" && (
+          <BudgetTab
+            expenses={expenses}
+            setExpenses={setExpenses}
+            isSupabaseConnected={Boolean(supabase)}
+          />
+        )}
         {activeRoute === "/map" && <MapTab />}
         {activeRoute === "/notes" && <NotesTab notes={notes} setNotes={setNotes} />}
       </main>
@@ -226,7 +332,7 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[10px] font-mono text-stone-500">
-          <span>© 2024 TravelLogix. All rights reserved.</span>
+            <span>© 2026 TravelLogix. All rights reserved.</span>
           <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
             <span className="hover:text-stone-400">Privacy</span>
             <span className="hover:text-stone-400">Support</span>
