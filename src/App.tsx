@@ -380,7 +380,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
+    <div className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
       <Navigation
         activeTab={activeRoute}
         setActiveTab={navigateTo}
@@ -389,7 +389,7 @@ export default function App() {
         onOpenAuth={() => setShowAuthModal(true)}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
         {activeRoute === "/" && (
           <div className="animate-in fade-in duration-300">
             <Hero hero={itinerary.hero} />

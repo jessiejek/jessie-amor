@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Jessie and Amor Malaysia Singapore">
+  <rect width="512" height="512" rx="112" fill="#0B3530"/>
+  <circle cx="168" cy="164" r="36" fill="#88B04B" opacity="0.95"/>
+  <circle cx="336" cy="176" r="28" fill="#E09C47" opacity="0.95"/>
+  <circle cx="338" cy="334" r="40" fill="#88B04B" opacity="0.8"/>
+  <path d="M122 338C159 280 198 248 255 240C302 234 338 212 390 160" stroke="#F4F1E8" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M124 338C160 278 203 250 255 242C306 234 344 206 386 158" stroke="#E05A47" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 18"/>
+  <path d="M252 150C219 150 192 177 192 210C192 256 252 330 252 330C252 330 312 256 312 210C312 177 285 150 252 150Z" fill="#F4F1E8"/>
+  <circle cx="252" cy="212" r="34" fill="#0B3530"/>
+  <circle cx="252" cy="212" r="14" fill="#88B04B"/>
+  <path d="M154 374H358" stroke="#F4F1E8" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+</svg>
