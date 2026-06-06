@@ -124,9 +124,9 @@ export default function BudgetTab({
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-mono tracking-widest text-stone-400 uppercase block">TOTAL CASH OUTFLOW (Cash / Debit)</span>
-            <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">RM {cashSpent.toFixed(2)}</h4>
+            <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">{formatPhp(cashSpent)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              {formatPhp(cashSpent)} | {formatRm(cashSpent)} | {formatSgd(cashSpent)}
+              {formatRm(cashSpent)} | {formatSgd(cashSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-stone-100 text-stone-600">
@@ -137,9 +137,9 @@ export default function BudgetTab({
         <div className="bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-mono tracking-widest text-blue-500 uppercase block">CREDIT CARD SPENDS</span>
-            <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">RM {cardSpent.toFixed(2)}</h4>
+            <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">{formatPhp(cardSpent)}</h4>
             <span className="text-[11px] text-stone-400 font-sans block mt-0.5">
-              {formatPhp(cardSpent)} | {formatRm(cardSpent)} | {formatSgd(cardSpent)}
+              {formatRm(cardSpent)} | {formatSgd(cardSpent)}
             </span>
           </div>
           <div className="p-3 rounded-full bg-blue-50 text-blue-600">

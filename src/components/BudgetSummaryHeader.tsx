@@ -46,11 +46,8 @@ export default function BudgetSummaryHeader({
     const isDayCard = index < 4;
     const dayNum = 12 + index;
     const liveTotal = isDayCard ? getDayTotal(dayNum) : null;
-    const amountLabel = showLiveSpends && isDayCard ? formatRm(liveTotal!) : card.amount;
-    const rmRange = parseRmRange(card.amount);
-    const phpLabel = showLiveSpends && isDayCard
-      ? toPhp(liveTotal!)
-      : card.php;
+  const rmRange = parseRmRange(card.amount);
+    const phpLabel = showLiveSpends && isDayCard ? toPhp(liveTotal!) : card.php;
     const rmLabel = showLiveSpends && isDayCard ? formatRm(liveTotal!) : card.amount;
     const sgdLabel = showLiveSpends && isDayCard
       ? toSgd(liveTotal!)
@@ -78,11 +75,11 @@ export default function BudgetSummaryHeader({
           {card.label}
         </span>
         <h3 className={`text-xl font-bold font-serif ${card.featured ? "text-white" : "text-stone-800"}`}>
-          {amountLabel}
+          {phpLabel}
         </h3>
         <div className={`mt-1 text-[11px] font-mono ${card.featured ? "text-[#88B04B]" : "text-stone-400"}`}>
           <p>
-            {phpLabel} <span className="mx-1">|</span> {rmLabel} <span className="mx-1">|</span> {sgdLabel}
+            {rmLabel} <span className="mx-1">|</span> {sgdLabel}
           </p>
         </div>
       </div>
@@ -110,12 +107,12 @@ export default function BudgetSummaryHeader({
             <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400">
               Estimated total
             </span>
-            <span className="text-lg font-serif font-bold text-[#0B3530]">RM 600 - 903</span>
+            <span className="text-lg font-serif font-bold text-[#0B3530]">
+              PHP {Math.round(600 * exchangeRates.php).toLocaleString()} - {Math.round(903 * exchangeRates.php).toLocaleString()}
+            </span>
           </div>
           <div className="mt-0.5 text-[10px] font-mono leading-none text-stone-400">
-            {toPhp(600)} | RM 600.00 | {toSgd(600)}
-            <span className="mx-1">|</span>
-            {toPhp(903)} | RM 903.00 | {toSgd(903)}
+            RM 600.00 | {toSgd(600)} <span className="mx-1">|</span> RM 903.00 | {toSgd(903)}
           </div>
         </div>
       </div>
@@ -129,11 +126,10 @@ export default function BudgetSummaryHeader({
           <span className="block mb-1 text-[9px] font-mono font-bold uppercase tracking-widest text-[#88B04B]">
             TOTAL CASH OUTFLOW (Cash / Debit)
           </span>
-          <h3 className="text-xl font-bold font-serif text-white">RM {totalCashActual.toFixed(2)}</h3>
+          <h3 className="text-xl font-bold font-serif text-white">{toPhp(totalCashActual)}</h3>
           <div className="mt-1 text-[11px] font-mono text-[#88B04B]">
             <p>
-              {toPhp(totalCashActual)} <span className="mx-1">|</span> RM {totalCashActual.toFixed(2)}{" "}
-              <span className="mx-1">|</span> {toSgd(totalCashActual)}
+              RM {totalCashActual.toFixed(2)} <span className="mx-1">|</span> {toSgd(totalCashActual)}
             </p>
           </div>
         </div>
@@ -142,11 +138,10 @@ export default function BudgetSummaryHeader({
           <span className="block mb-1 text-[9px] font-mono font-bold uppercase tracking-widest text-[#88B04B]/90">
             CREDIT CARD SPENDS
           </span>
-          <h3 className="text-xl font-bold font-serif text-stone-800">RM {totalCardActual.toFixed(2)}</h3>
+          <h3 className="text-xl font-bold font-serif text-stone-800">{toPhp(totalCardActual)}</h3>
           <div className="mt-1 text-[11px] font-mono text-stone-400">
             <p>
-              {toPhp(totalCardActual)} <span className="mx-1">|</span> RM {totalCardActual.toFixed(2)}{" "}
-              <span className="mx-1">|</span> {toSgd(totalCardActual)}
+              RM {totalCardActual.toFixed(2)} <span className="mx-1">|</span> {toSgd(totalCardActual)}
             </p>
           </div>
         </div>
