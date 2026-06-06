@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash } from "lucide-react";
-import { exchangeRates } from "../data/itinerary";
+import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
 
 interface BudgetTabProps {
@@ -8,6 +8,7 @@ interface BudgetTabProps {
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
   isSupabaseConnected?: boolean;
   canEdit?: boolean;
+  exchangeRates: ExchangeRates;
   currentSavedBy?: {
     userId: string;
     email: string;
@@ -25,6 +26,7 @@ export default function BudgetTab({
   setExpenses,
   isSupabaseConnected = false,
   canEdit = false,
+  exchangeRates,
   currentSavedBy = null,
 }: BudgetTabProps) {
   const [desc, setDesc] = useState("");

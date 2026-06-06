@@ -1,7 +1,7 @@
 import React from "react";
 import { Info } from "lucide-react";
 import type { BudgetCard } from "../data/code1Itinerary";
-import { exchangeRates } from "../data/itinerary";
+import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense } from "../types";
 
 interface BudgetSummaryHeaderProps {
@@ -9,6 +9,7 @@ interface BudgetSummaryHeaderProps {
   expenses: Expense[];
   showLiveSpends: boolean;
   setShowLiveSpends: (val: boolean) => void;
+  exchangeRates: ExchangeRates;
 }
 
 export default function BudgetSummaryHeader({
@@ -16,6 +17,7 @@ export default function BudgetSummaryHeader({
   expenses,
   showLiveSpends,
   setShowLiveSpends,
+  exchangeRates,
 }: BudgetSummaryHeaderProps) {
   const getDayTotal = (dayNum: number) =>
     expenses

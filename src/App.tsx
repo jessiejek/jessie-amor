@@ -29,6 +29,7 @@ import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
+import { formatLiveRateLabel, useLiveExchangeRates } from "./lib/exchangeRates";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -129,6 +130,7 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
 
 export default function App() {
   const itinerary = selectedItinerary;
+  const exchangeRates = useLiveExchangeRates();
   const routeFromPath = (pathname: string) => {
     if (pathname === "/budget") return "/budget";
     if (pathname === "/map") return "/map";
@@ -461,8 +463,8 @@ export default function App() {
   const metadata = {
     title: "Jessie & Amor's Malaysia Singapore",
     description: itinerary.hero.subtitle,
-    sub: "2 people | Travelodge KL City Centre | RM1 = PHP 15.58 | RM1 = SGD 0.32",
-    rate: "RM 1 = PHP 15.58 | RM 1 = SGD 0.32",
+    sub: `2 people | Travelodge KL City Centre | ${formatLiveRateLabel(exchangeRates)}`,
+    rate: formatLiveRateLabel(exchangeRates),
   };
 
   const handleOpenGuide = (item: TimelineItemData) => {
@@ -521,6 +523,7 @@ export default function App() {
               expenses={expenses}
               showLiveSpends={showLiveSpends}
               setShowLiveSpends={setShowLiveSpends}
+              exchangeRates={exchangeRates}
             />
             <AlertBox alert={itinerary.alert} />
 
@@ -616,6 +619,7 @@ export default function App() {
             setExpenses={setExpenses}
             isSupabaseConnected={Boolean(supabase && session)}
             canEdit={Boolean(session)}
+            exchangeRates={exchangeRates}
             currentSavedBy={currentSavedBy}
           />
         )}
