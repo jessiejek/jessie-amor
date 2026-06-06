@@ -1,0 +1,6 @@
+{
+  "name": "Malaysia Singapore Trip Itinerary",
+  "description": "An interactive, beautifully designed travel itinerary dashboard for Jessie and Amor's trip to Malaysia and Singapore, featuring detailed daily schedules, budget analysis, location map, notes, and pro-traveler insights.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
