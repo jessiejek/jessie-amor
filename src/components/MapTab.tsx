@@ -5,7 +5,7 @@ import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
-  buildInitialMapItinerary,
+  buildEmptyMapItinerary,
   resolveCoordinatesFromName,
   normalizeMapItinerary,
   type MapDestination,
@@ -99,10 +99,10 @@ interface MapTabProps {
 
 export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
-  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => buildInitialMapItinerary());
-  const [selectedDay, setSelectedDay] = useState<number>(() => buildInitialMapItinerary().days[0]?.day ?? 12);
+  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => buildEmptyMapItinerary());
+  const [selectedDay, setSelectedDay] = useState<number>(() => buildEmptyMapItinerary().days[0]?.day ?? 11);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
-    () => buildInitialMapItinerary().days[0]?.destinations[0]?.id ?? "",
+    () => buildEmptyMapItinerary().days[0]?.destinations[0]?.id ?? "",
   );
   const [draft, setDraft] = useState<DraftState>({
     name: "",
@@ -155,7 +155,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   useEffect(() => {
     if (!supabase || !session) {
       mapLoadedRef.current = true;
-      setItineraryData(buildInitialMapItinerary());
+      setItineraryData(buildEmptyMapItinerary());
       return;
     }
 
@@ -183,17 +183,9 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
         mapSignatureRef.current = JSON.stringify(normalized);
         setItineraryData(normalized);
       } else {
-        const fallback = buildInitialMapItinerary();
-        const fallbackSignature = JSON.stringify(fallback);
-        const { error: seedError } = await supabase
-          .from(supabaseMapTable)
-          .upsert({ trip_key: tripKey, data: fallback }, { onConflict: "trip_key" });
-        if (seedError) {
-          console.warn("Supabase map seed failed:", seedError.message);
-        } else {
-          mapSignatureRef.current = fallbackSignature;
-          setItineraryData(fallback);
-        }
+        const empty = buildEmptyMapItinerary();
+        mapSignatureRef.current = JSON.stringify(empty);
+        setItineraryData(empty);
       }
 
       mapLoadedRef.current = true;
@@ -213,8 +205,19 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
             table: supabaseMapTable,
             filter: `trip_key=eq.${tripKey}`,
           },
-          () => {
-            void loadRemoteMap();
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              const empty = buildEmptyMapItinerary();
+              mapSignatureRef.current = JSON.stringify(empty);
+              setItineraryData(empty);
+              return;
+            }
+
+            const nextData = payload.new?.data as MapItineraryData | undefined;
+            if (!nextData?.days?.length) return;
+            const normalized = normalizeMapItinerary(nextData);
+            mapSignatureRef.current = JSON.stringify(normalized);
+            setItineraryData(normalized);
           },
         )
         .subscribe();

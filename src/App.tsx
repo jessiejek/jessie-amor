@@ -7,7 +7,6 @@ import {
   type DestinationGuide,
   type TimelineItemData,
 } from "./data/code1Itinerary";
-import { defaultExpenses, initialNotes } from "./data/itinerary";
 import { Expense, TravelNote, ChecklistItem } from "./types";
 import {
   hasSupabaseConfig,
@@ -30,15 +29,6 @@ import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
-
-const defaultChecklistItems: ChecklistItem[] = [
-  { id: "c-1", text: "Buy Touch 'n Go cards at KL Sentral Station", completed: true },
-  { id: "c-2", text: "Pre-book Malacca Sunday buses (use BusOnlineTicket.com)", completed: false },
-  { id: "c-3", text: "Ensure Grab app has valid credit card loaded", completed: true },
-  { id: "c-4", text: "Pre-pack proper outfit (no shorts) for Batu Caves steps", completed: false },
-  { id: "c-5", text: "Download offline Kuala Lumpur map on Google Maps", completed: true },
-  { id: "c-6", text: "Try authentic Melaka Nyonya laksa on Jonker Walk", completed: false },
-];
 
 type SupabaseExpenseRow = {
   id: string;
@@ -94,11 +84,29 @@ const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
   completed: item.completed,
 });
 
-const rowToChecklist = (row: SupabaseChecklistRow): ChecklistItem => ({
-  id: row.id,
-  text: row.text,
-  completed: Boolean(row.completed),
-});
+  const rowToChecklist = (row: SupabaseChecklistRow): ChecklistItem => ({
+    id: row.id,
+    text: row.text,
+    completed: Boolean(row.completed),
+  });
+
+  const mergeExpenseRow = (current: Expense[], row: SupabaseExpenseRow) => {
+    const next = rowToExpense(row);
+    const index = current.findIndex((expense) => expense.id === next.id);
+    if (index === -1) return [...current, next];
+    const copy = [...current];
+    copy[index] = next;
+    return copy;
+  };
+
+  const mergeChecklistRow = (current: ChecklistItem[], row: SupabaseChecklistRow) => {
+    const next = rowToChecklist(row);
+    const index = current.findIndex((item) => item.id === next.id);
+    if (index === -1) return [...current, next];
+    const copy = [...current];
+    copy[index] = next;
+    return copy;
+  };
 
 export default function App() {
   const itinerary = selectedItinerary;
@@ -127,9 +135,9 @@ export default function App() {
   const expenseIdsRef = useRef<string[]>([]);
   const checklistIdsRef = useRef<string[]>([]);
 
-  const [expenses, setExpenses] = useState<Expense[]>(() => defaultExpenses);
-  const [notes, setNotes] = useState<TravelNote[]>(() => initialNotes);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => defaultChecklistItems);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [notes, setNotes] = useState<TravelNote[]>([]);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
 
   useEffect(() => {
     if (!supabase) {
@@ -163,6 +171,9 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase || !authReady || !session) {
+      setExpenses([]);
+      setChecklist([]);
+      setNotes([]);
       setExpensesLoaded(true);
       setChecklistLoaded(true);
       setNotesLoaded(true);
@@ -206,17 +217,9 @@ export default function App() {
         expenseIdsRef.current = remoteExpenses.map((expense) => expense.id);
         setExpenses(remoteExpenses);
       } else {
-        const fallbackExpenses = defaultExpenses;
-        const fallbackSignature = JSON.stringify(fallbackExpenses);
-        const payload = fallbackExpenses.map(expenseToRow);
-        const { error: seedError } = await supabase.from(supabaseExpenseTable).upsert(payload, { onConflict: "id" });
-        if (seedError) {
-          console.warn("Supabase expense seed failed:", seedError.message);
-        } else {
-          expenseSignatureRef.current = fallbackSignature;
-          expenseIdsRef.current = fallbackExpenses.map((expense) => expense.id);
-          setExpenses(fallbackExpenses);
-        }
+        expenseSignatureRef.current = "[]";
+        expenseIdsRef.current = [];
+        setExpenses([]);
       }
 
       if (checklistError) {
@@ -227,17 +230,9 @@ export default function App() {
         checklistIdsRef.current = remoteChecklist.map((item) => item.id);
         setChecklist(remoteChecklist);
       } else {
-        const fallbackChecklist = defaultChecklistItems;
-        const fallbackSignature = JSON.stringify(fallbackChecklist);
-        const payload = fallbackChecklist.map(checklistToRow);
-        const { error: seedError } = await supabase.from(supabaseChecklistTable).upsert(payload, { onConflict: "id" });
-        if (seedError) {
-          console.warn("Supabase checklist seed failed:", seedError.message);
-        } else {
-          checklistSignatureRef.current = fallbackSignature;
-          checklistIdsRef.current = fallbackChecklist.map((item) => item.id);
-          setChecklist(fallbackChecklist);
-        }
+        checklistSignatureRef.current = "[]";
+        checklistIdsRef.current = [];
+        setChecklist([]);
       }
 
       if (notesError) {
@@ -247,16 +242,8 @@ export default function App() {
         notesSignatureRef.current = JSON.stringify(remoteNotes);
         setNotes(remoteNotes);
       } else {
-        const fallbackNotes = initialNotes;
-        const fallbackSignature = JSON.stringify(fallbackNotes);
-        const payload = { trip_key: tripKey, notes: fallbackNotes };
-        const { error: seedError } = await supabase.from(supabaseNotesTable).upsert(payload, { onConflict: "trip_key" });
-        if (seedError) {
-          console.warn("Supabase notes seed failed:", seedError.message);
-        } else {
-          notesSignatureRef.current = fallbackSignature;
-          setNotes(fallbackNotes);
-        }
+        notesSignatureRef.current = "[]";
+        setNotes([]);
       }
 
       setExpensesLoaded(true);
@@ -273,22 +260,47 @@ export default function App() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseExpenseTable, filter: `trip_key=eq.${tripKey}` },
-          () => {
-            void loadSyncedData();
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              const deletedId = String(payload.old?.id ?? "");
+              if (!deletedId) return;
+              setExpenses((current) => current.filter((expense) => expense.id !== deletedId));
+              return;
+            }
+
+            const row = payload.new as SupabaseExpenseRow;
+            if (!row) return;
+            setExpenses((current) => mergeExpenseRow(current, row));
           },
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseChecklistTable, filter: `trip_key=eq.${tripKey}` },
-          () => {
-            void loadSyncedData();
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              const deletedId = String(payload.old?.id ?? "");
+              if (!deletedId) return;
+              setChecklist((current) => current.filter((item) => item.id !== deletedId));
+              return;
+            }
+
+            const row = payload.new as SupabaseChecklistRow;
+            if (!row) return;
+            setChecklist((current) => mergeChecklistRow(current, row));
           },
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseNotesTable, filter: `trip_key=eq.${tripKey}` },
-          () => {
-            void loadSyncedData();
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              setNotes([]);
+              return;
+            }
+
+            const row = payload.new as SupabaseNotesRow | undefined;
+            if (!row || !Array.isArray(row.notes)) return;
+            setNotes(row.notes);
           },
         )
         .subscribe();

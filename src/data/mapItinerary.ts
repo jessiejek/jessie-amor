@@ -113,6 +113,20 @@ export const buildInitialMapItinerary = (): MapItineraryData => ({
   ],
 });
 
+export const buildEmptyMapItinerary = (): MapItineraryData => ({
+  version: 1,
+  updatedAt: new Date().toISOString(),
+  days: Array.from({ length: 6 }, (_, index) => {
+    const day = index + 11;
+    return {
+      day,
+      label: `July ${day}`,
+      title: day === 11 ? "Arrival day" : day === 16 ? "Departure day" : `July ${day}`,
+      destinations: [],
+    };
+  }),
+});
+
 const hasValidDays = (value: unknown): value is MapItineraryData =>
   Boolean(
     value &&
