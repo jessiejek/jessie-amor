@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { CreditCard, Compass, Printer, RefreshCw, Share2, Ticket, Utensils, LogOut } from "lucide-react";
+import { CreditCard, Compass, Loader2, Printer, RefreshCw, Share2, Ticket, Utensils, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -183,6 +183,7 @@ export default function App() {
     : null;
   const pullProgress = Math.min(1, pullDistance / PULL_REFRESH_TRIGGER);
   const pullCanRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
+  const pullUiScale = 0.96 + pullProgress * 0.04;
 
   useEffect(() => {
     if (!supabase) {
@@ -684,31 +685,27 @@ export default function App() {
             pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
           }`}
           style={{
-            transform: `translateX(-50%) translateY(${Math.max(10, pullDistance - 44)}px)`,
+            transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})`,
           }}
         >
-          <div className="flex items-center gap-2 rounded-full border border-[#88B04B]/25 bg-white/95 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.12)] backdrop-blur">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#0B3530]/10 bg-[#0B3530]/5">
-              <RefreshCw
-                size={14}
-                className={isRefreshing ? "animate-spin text-[#0B3530]" : "text-[#0B3530]"}
-                style={
-                  isRefreshing
-                    ? undefined
-                    : {
-                        transform: `rotate(${pullProgress * 180}deg)`,
-                      }
-                }
-              />
+          <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0A84FF]/10 text-[#0A84FF]">
+              {isRefreshing ? (
+                <Loader2 size={13} className="animate-spin" strokeWidth={2.2} />
+              ) : (
+                <RefreshCw
+                  size={13}
+                  strokeWidth={2.2}
+                  className="transition-transform duration-150"
+                  style={{
+                    transform: `rotate(${pullProgress * 180}deg)`,
+                  }}
+                />
+              )}
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#88B04B]">
-                {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release" : "Pull"}
-              </span>
-              <span className="text-[11px] font-semibold text-[#0B3530]">
-                {isRefreshing ? "Updating trip data" : "to refresh"}
-              </span>
-            </div>
+            <span className="text-[11px] font-medium tracking-[0.01em] text-stone-700">
+              {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}
+            </span>
           </div>
         </div>
         <Navigation
@@ -723,8 +720,8 @@ export default function App() {
         <main
           className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
           style={{
-            transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.38}px, 0)` : "translate3d(0, 0, 0)",
-            transition: isPullingRef.current ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+            transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
+            transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
             willChange: pullDistance > 0 ? "transform" : "auto",
           }}
         >
