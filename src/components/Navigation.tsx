@@ -115,13 +115,7 @@ export default function Navigation({
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (currentScrollY < 10) {
-        setShowCountdown(true);
-      } else if (currentScrollY > lastScrollY.current) {
-        setShowCountdown(false);
-      } else {
-        setShowCountdown(true);
-      }
+      setShowCountdown(currentScrollY < 10);
       lastScrollY.current = currentScrollY;
     };
 
