@@ -8,44 +8,44 @@ interface HeroProps {
 
 export default function Hero({ hero }: HeroProps) {
   return (
-    <div className="relative w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-2 no-print bg-stone-50">
-      <div className="group relative overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/6] bg-stone-200 shadow-lg">
+    <div className="hero-intro-section relative w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-2 no-print bg-stone-50">
+      <div className="hero-image-wrapper group relative overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/6] bg-stone-200 shadow-lg">
         <img
           src="/src/assets/images/kl_skyline_1780754501759.png"
           alt="Kuala Lumpur Skyline with Petronas Twin Towers"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.01]"
+          className="hero-image absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.01]"
           referrerPolicy="no-referrer"
         />
 
         <div className="absolute inset-0 bg-gradient-to-r from-stone-900/65 via-stone-800/35 to-transparent" />
+      </div>
 
-        <div className="absolute bottom-4 left-4 max-w-lg rounded-2xl border border-white/50 bg-white/95 p-6 shadow-xl backdrop-blur-md md:bottom-8 md:left-8 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <span className="mb-2 block text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#88B04B] md:text-xs">
-            {hero.eyebrow}
-          </span>
-          <h2 className="text-xl font-serif font-bold leading-tight tracking-tight text-[#0B3530] md:text-3xl">
-            {hero.title}
-            {hero.subtitle ? <span className="block text-[#18534C]">{hero.subtitle}</span> : null}
-          </h2>
-          <div className="mt-4 h-1 w-16 rounded-full bg-[#88B04B]" />
-          {hero.meta.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {hero.meta.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {hero.note.length > 0 ? (
-            <p className="mt-4 text-[11px] leading-relaxed text-stone-500 md:text-xs">
-              <RichText segments={hero.note} />
-            </p>
-          ) : null}
-        </div>
+      <div className="hero-info-card absolute bottom-4 left-4 max-w-lg rounded-2xl border border-white/50 bg-white/95 p-6 shadow-xl backdrop-blur-md md:bottom-8 md:left-8 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <span className="hero-eyebrow mb-2 block text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#88B04B] md:text-xs">
+          {hero.eyebrow}
+        </span>
+        <h2 className="hero-title text-xl font-serif font-bold leading-tight tracking-tight text-[#0B3530] md:text-3xl">
+          {hero.title}
+          {hero.subtitle ? <span className="block text-[#18534C]">{hero.subtitle}</span> : null}
+        </h2>
+        <div className="hero-underline mt-4 h-1 w-16 rounded-full bg-[#88B04B]" />
+        {hero.meta.length > 0 ? (
+          <div className="hero-meta mt-4 flex flex-wrap gap-2">
+            {hero.meta.map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {hero.note.length > 0 ? (
+          <p className="hero-note mt-4 text-[11px] leading-relaxed text-stone-500 md:text-xs">
+            <RichText segments={hero.note} />
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -593,10 +593,12 @@ export default function App() {
 
         <main className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0">
           {activeRoute === "/account" && mobileAccountCard}
-          {activeRoute === "/" && (
-            <div className="animate-in fade-in duration-300">
-            <Hero hero={itinerary.hero} />
-            <Legend items={itinerary.legend} />
+        {activeRoute === "/" && (
+          <div className="animate-in fade-in duration-300">
+            <div className="home-hero-section">
+              <Hero hero={itinerary.hero} />
+              <Legend items={itinerary.legend} />
+            </div>
             <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
             <BudgetSummaryHeader
               cards={itinerary.budgetSummary}

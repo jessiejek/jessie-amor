@@ -33,6 +33,100 @@ body {
 
 /* Prevent iOS Safari from zooming form controls on focus */
 @media (max-width: 768px) {
+  .home-hero-section {
+    position: relative !important;
+  }
+
+  .hero-intro-section {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .hero-image-wrapper {
+    height: 180px !important;
+    aspect-ratio: auto !important;
+    position: relative !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .hero-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .hero-info-card {
+    position: relative !important;
+    z-index: 2 !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    margin: -60px 12px 0 !important;
+    max-width: none !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.93) !important;
+  }
+
+  .hero-eyebrow {
+    font-size: 9px !important;
+    letter-spacing: 0.1em !important;
+    color: #0f6e56 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .hero-title {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    color: #0d2b1e !important;
+  }
+
+  .hero-title > span {
+    display: block !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #1d9e75 !important;
+  }
+
+  .hero-underline {
+    width: 28px !important;
+    height: 2px !important;
+    background: #1d9e75 !important;
+    border-radius: 2px !important;
+    margin-top: 8px !important;
+  }
+
+  .legend-pills-section {
+    margin-top: 0 !important;
+    padding: 10px 12px 0 !important;
+  }
+
+  .legend-pills-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    padding-top: 10px !important;
+    border-top: 0.5px solid rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .legend-pill {
+    gap: 4px !important;
+    font-size: 10px !important;
+    color: rgba(15, 23, 42, 0.65) !important;
+    padding: 4px 10px !important;
+  }
+
+  .legend-dot {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
   input,
   select,
   textarea {
