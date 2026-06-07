@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { CreditCard, Compass, Ticket, Utensils, LogOut, Share2, Printer } from "lucide-react";
+import { CreditCard, Compass, Printer, RefreshCw, Share2, Ticket, Utensils, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -137,6 +137,8 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
   };
 
 export default function App() {
+  const PULL_REFRESH_TRIGGER = 84;
+  const PULL_REFRESH_MAX = 108;
   const itinerary = selectedItinerary;
   const exchangeRates = useLiveExchangeRates();
   const routeFromPath = (pathname: string) => {
@@ -157,6 +159,8 @@ export default function App() {
   const [authError, setAuthError] = useState<string>("");
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
+  const [pullDistance, setPullDistance] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -165,6 +169,8 @@ export default function App() {
   const notesSignatureRef = useRef<string>("");
   const expenseIdsRef = useRef<string[]>([]);
   const checklistIdsRef = useRef<string[]>([]);
+  const pullStartYRef = useRef<number | null>(null);
+  const isPullingRef = useRef<boolean>(false);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [notes, setNotes] = useState<TravelNote[]>([]);
@@ -175,6 +181,8 @@ export default function App() {
         email: session.user.email ?? "",
       }
     : null;
+  const pullProgress = Math.min(1, pullDistance / PULL_REFRESH_TRIGGER);
+  const pullCanRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
 
   useEffect(() => {
     if (!supabase) {
@@ -555,6 +563,57 @@ export default function App() {
     window.print();
   };
 
+  const canUsePullRefresh = () =>
+    typeof window !== "undefined"
+    && window.innerWidth < 768
+    && window.scrollY <= 0
+    && !showAuthModal
+    && !isRefreshing;
+
+  const resetPullRefresh = () => {
+    pullStartYRef.current = null;
+    isPullingRef.current = false;
+    setPullDistance(0);
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1 || !canUsePullRefresh()) return;
+    pullStartYRef.current = event.touches[0].clientY;
+    isPullingRef.current = true;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isPullingRef.current || pullStartYRef.current == null) return;
+
+    const rawDistance = event.touches[0].clientY - pullStartYRef.current;
+    if (rawDistance <= 0) {
+      setPullDistance(0);
+      return;
+    }
+
+    const nextDistance = Math.min(PULL_REFRESH_MAX, rawDistance * 0.55);
+    if (nextDistance > 12) {
+      event.preventDefault();
+    }
+    setPullDistance(nextDistance);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isPullingRef.current) return;
+
+    const shouldRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
+    if (shouldRefresh) {
+      setIsRefreshing(true);
+      setPullDistance(PULL_REFRESH_TRIGGER);
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 180);
+      return;
+    }
+
+    resetPullRefresh();
+  };
+
   const mobileAccountCard = session ? (
     <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
           <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
@@ -613,7 +672,45 @@ export default function App() {
   );
 
   return (
-    <div className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
+    <div
+      className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+        <div
+          className={`pointer-events-none fixed left-1/2 top-0 z-[1600] -translate-x-1/2 transition-all duration-200 md:hidden ${
+            pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            transform: `translateX(-50%) translateY(${Math.max(10, pullDistance - 44)}px)`,
+          }}
+        >
+          <div className="flex items-center gap-2 rounded-full border border-[#88B04B]/25 bg-white/95 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.12)] backdrop-blur">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#0B3530]/10 bg-[#0B3530]/5">
+              <RefreshCw
+                size={14}
+                className={isRefreshing ? "animate-spin text-[#0B3530]" : "text-[#0B3530]"}
+                style={
+                  isRefreshing
+                    ? undefined
+                    : {
+                        transform: `rotate(${pullProgress * 180}deg)`,
+                      }
+                }
+              />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#88B04B]">
+                {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release" : "Pull"}
+              </span>
+              <span className="text-[11px] font-semibold text-[#0B3530]">
+                {isRefreshing ? "Updating trip data" : "to refresh"}
+              </span>
+            </div>
+          </div>
+        </div>
         <Navigation
           activeTab={activeRoute}
           setActiveTab={navigateTo}
@@ -623,7 +720,14 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        <main className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <main
+          className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
+          style={{
+            transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.38}px, 0)` : "translate3d(0, 0, 0)",
+            transition: isPullingRef.current ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+            willChange: pullDistance > 0 ? "transform" : "auto",
+          }}
+        >
           {activeRoute === "/account" && mobileAccountCard}
         {activeRoute === "/" && (
           <div className="animate-in fade-in duration-300">

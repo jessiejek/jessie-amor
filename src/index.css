@@ -17,6 +17,7 @@ body,
 
 body {
   overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
