@@ -212,6 +212,15 @@ textarea::placeholder {
   text-overflow: ellipsis;
 }
 
+.budget-transaction-time {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .budget-transaction-dot {
   color: #d1d5db;
   flex-shrink: 0;
@@ -702,6 +711,11 @@ textarea {
     font-size: 15px !important;
     line-height: 1.15 !important;
     margin-bottom: 4px !important;
+  }
+
+  .budget-page .budget-transaction-time {
+    font-size: 10px !important;
+    margin-top: 1px !important;
   }
 
   .budget-page .budget-transaction-right {

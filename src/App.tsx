@@ -43,6 +43,7 @@ type SupabaseExpenseRow = {
   original_currency: Expense["originalCurrency"] | null;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  created_at: string | null;
   updated_at: string;
 };
 
@@ -81,6 +82,7 @@ const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseEx
   original_currency: expense.originalCurrency ?? null,
   saved_by_user_id: savedBy?.userId ?? expense.savedByUserId ?? null,
   saved_by_email: savedBy?.email ?? expense.savedByEmail ?? null,
+  created_at: expense.createdAt ?? new Date().toISOString(),
   updated_at: new Date().toISOString(),
 });
 
@@ -95,6 +97,7 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   originalCurrency: row.original_currency ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
+  createdAt: row.created_at ?? row.updated_at,
 });
 
 const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): SupabaseChecklistRow => ({
@@ -221,7 +224,7 @@ export default function App() {
       const [expenseResult, checklistResult, notesResult] = await Promise.all([
         supabase
           .from(supabaseExpenseTable)
-          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email")
+          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email, created_at")
           .eq("trip_key", tripKey)
           .order("day", { ascending: true })
           .order("item", { ascending: true }),

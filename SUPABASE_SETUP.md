@@ -49,6 +49,7 @@ create table if not exists public.budget_expenses (
   original_currency text,
   saved_by_user_id text,
   saved_by_email text,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
@@ -57,6 +58,7 @@ create index if not exists budget_expenses_trip_key_idx
 
 alter table public.budget_expenses add column if not exists saved_by_user_id text;
 alter table public.budget_expenses add column if not exists saved_by_email text;
+alter table public.budget_expenses add column if not exists created_at timestamptz not null default now();
 
 alter table public.budget_expenses enable row level security;
 

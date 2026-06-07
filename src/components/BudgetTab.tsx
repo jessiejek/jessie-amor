@@ -8,6 +8,7 @@ type TransactionRow = {
   id: string;
   name: string;
   date: string;
+  time: string;
   category: string;
   method: string;
   user: string | null;
@@ -57,6 +58,46 @@ export default function BudgetTab({
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
 
+  const formatDisplayTime = (value?: string | null) => {
+    if (!value) return "Unknown time";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "Unknown time";
+    return parsed
+      .toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      .toLowerCase();
+  };
+
+  const mapRowToTransaction = (row: Record<string, unknown>): TransactionRow => ({
+    id: String(row.id ?? ""),
+    name: String(row.item ?? ""),
+    date: `July ${String(row.day ?? "")}`,
+    time: formatDisplayTime((row.created_at as string | undefined) ?? (row.updated_at as string | undefined)),
+    category: String(row.category ?? ""),
+    method: String(row.paid_with ?? ""),
+    user: (row.saved_by_email as string | undefined) || (row.saved_by_user_id as string | undefined) || null,
+    amount: Number(row.amount ?? 0),
+    created_at: (row.created_at as string | undefined) ?? (row.updated_at ? String(row.updated_at) : undefined),
+  });
+
+  const upsertTransaction = (current: TransactionRow[], next: TransactionRow) => {
+    const index = current.findIndex((item) => item.id === next.id);
+    if (index === -1) return [...current, next];
+    const copy = [...current];
+    copy[index] = next;
+    return copy;
+  };
+
+  const sortTransactions = (items: TransactionRow[]) =>
+    [...items].sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      const aDay = parseInt(a.date.split(" ")[1] || "0", 10);
+      const bDay = parseInt(b.date.split(" ")[1] || "0", 10);
+      if (aDay !== bDay) return bDay - aDay;
+      return b.id.localeCompare(a.id);
+    });
+
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEdit) return;
@@ -74,22 +115,26 @@ export default function BudgetTab({
       originalCurrency: amountCurrency,
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
+      createdAt: new Date().toISOString(),
     };
 
     setExpenses((prev) => [...prev, newExp]);
-    setTransactions((prev) => [
-      ...prev,
-      {
-        id: newExp.id,
-        name: newExp.item,
-        date: `July ${newExp.day}`,
-        category: newExp.category,
-        method: newExp.paidWith,
-        user: newExp.savedByEmail ?? newExp.savedByUserId ?? null,
-        amount: newExp.amount,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+    setTransactions((prev) =>
+      sortTransactions([
+        ...prev,
+        {
+          id: newExp.id,
+          name: newExp.item,
+          date: `July ${newExp.day}`,
+          time: formatDisplayTime(newExp.createdAt),
+          category: newExp.category,
+          method: newExp.paidWith,
+          user: newExp.savedByEmail ?? newExp.savedByUserId ?? null,
+          amount: newExp.amount,
+          created_at: newExp.createdAt,
+        },
+      ]),
+    );
     setDesc("");
     setAmountText("");
     setAmountCurrency("RM");
@@ -117,11 +162,6 @@ export default function BudgetTab({
   const totalBudget = 1000;
   const cashRemaining = totalBudget - cashSpent;
   const isOverBudget = cashRemaining < 0;
-
-  const filteredExpenses = expenses.filter((e) => {
-    if (filterCategory === "All") return true;
-    return e.category === filterCategory;
-  });
 
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];
   const categoryTotals = cats.map((cat) => {
@@ -171,8 +211,15 @@ export default function BudgetTab({
 
   useEffect(() => {
     let isMounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const loadTransactions = async () => {
+      if (!supabase) {
+        setTransactions([]);
+        setLoadingTransactions(false);
+        return;
+      }
+
       setLoadingTransactions(true);
       setTransactionsError("");
 
@@ -190,18 +237,8 @@ export default function BudgetTab({
         setTransactions([]);
         setTransactionsError(error.message);
       } else {
-        const mappedTransactions = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
-          id: String(row.id ?? ""),
-          name: String(row.item ?? ""),
-          date: `July ${String(row.day ?? "")}`,
-          category: String(row.category ?? ""),
-          method: String(row.paid_with ?? ""),
-          user: (row.saved_by_email as string | undefined) || (row.saved_by_user_id as string | undefined) || null,
-          amount: Number(row.amount ?? 0),
-          created_at: row.updated_at ? String(row.updated_at) : undefined,
-        }));
-
-        setTransactions(mappedTransactions);
+        const mappedTransactions = ((data ?? []) as Array<Record<string, unknown>>).map(mapRowToTransaction);
+        setTransactions(sortTransactions(mappedTransactions));
       }
 
       setLoadingTransactions(false);
@@ -209,19 +246,45 @@ export default function BudgetTab({
 
     loadTransactions();
 
+    if (supabase) {
+      channel = supabase
+        .channel(`budget-registry-${tripKey}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: supabaseExpenseTable, filter: `trip_key=eq.${tripKey}` },
+          (payload) => {
+            if (!isMounted) return;
+
+            if (payload.eventType === "DELETE") {
+              const deletedId = String(payload.old?.id ?? "");
+              if (!deletedId) return;
+              setTransactions((current) => current.filter((item) => item.id !== deletedId));
+              return;
+            }
+
+            const row = payload.new as Record<string, unknown> | undefined;
+            if (!row) return;
+            setTransactions((current) => sortTransactions(upsertTransaction(current, mapRowToTransaction(row))));
+          },
+        )
+        .subscribe();
+    }
+
     return () => {
       isMounted = false;
+      if (channel) {
+        void supabase?.removeChannel(channel);
+      }
     };
   }, []);
 
-  const groupedTransactions = useMemo(() => {
-    const sorted = [...transactions].sort((a, b) => {
-      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-      if (aTime !== bTime) return bTime - aTime;
-      return a.id.localeCompare(b.id);
-    });
+  const visibleTransactions = useMemo(() => {
+    if (filterCategory === "All") return transactions;
+    return transactions.filter((tx) => tx.category === filterCategory);
+  }, [filterCategory, transactions]);
 
+  const filteredGroupedTransactions = useMemo(() => {
+    const sorted = sortTransactions(visibleTransactions);
     const groups: Record<string, TransactionRow[]> = {};
     const orderedDates: string[] = [];
 
@@ -235,12 +298,9 @@ export default function BudgetTab({
     });
 
     return { groups, orderedDates };
-  }, [transactions]);
+  }, [visibleTransactions]);
 
-  const groupedTransactionDates = useMemo(
-    () => groupedTransactions.orderedDates,
-    [groupedTransactions],
-  );
+  const groupedTransactionDates = filteredGroupedTransactions.orderedDates;
 
   const registryDateChips = useMemo(() => {
     const dates = new Set<string>();
@@ -250,7 +310,7 @@ export default function BudgetTab({
     return Array.from(dates).sort((a, b) => {
       const aDay = parseInt(a.split(" ")[1] || "0", 10);
       const bDay = parseInt(b.split(" ")[1] || "0", 10);
-      return aDay - bDay;
+      return bDay - aDay;
     });
   }, [transactions]);
 
@@ -507,7 +567,7 @@ export default function BudgetTab({
                     <div className="budget-date-header">{dateKey.toUpperCase()}</div>
 
                     <div className="budget-date-list">
-                      {groupedTransactions.groups[dateKey].map((tx) => (
+                      {filteredGroupedTransactions.groups[dateKey].map((tx) => (
                         <article key={tx.id} className="budget-transaction-card">
                           <div className="budget-transaction-icon">
                             <i className="ti ti-tools-kitchen-2" aria-hidden="true" />
@@ -522,6 +582,7 @@ export default function BudgetTab({
                               <span className="budget-transaction-dot" aria-hidden="true">·</span>
                               <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
                             </div>
+                            <div className="budget-transaction-time">{tx.time}</div>
                             <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
                           </div>
 

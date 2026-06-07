@@ -13,6 +13,7 @@ export interface Expense {
   originalCurrency?: ExpenseCurrency;
   savedByUserId?: string;
   savedByEmail?: string;
+  createdAt?: string;
 }
 
 export type ItineraryItemType = "transport" | "accommodation" | "sightseeing" | "food" | "general";
