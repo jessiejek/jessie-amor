@@ -7,7 +7,8 @@ import {
   type DestinationGuide,
   type TimelineItemData,
 } from "./data/code1Itinerary";
-import { Expense, TravelNote, ChecklistItem } from "./types";
+import type { MapItineraryData } from "./data/mapItinerary";
+import { Expense, TravelNote, ChecklistItem, type SyncStatus } from "./types";
 import {
   hasSupabaseConfig,
   supabase,
@@ -16,6 +17,7 @@ import {
   supabaseNotesTable,
   tripKey,
 } from "./lib/supabase";
+import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
 
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
@@ -68,6 +70,23 @@ type SupabaseNotesRow = {
 type SavedByInfo = {
   userId: string;
   email: string;
+};
+
+const applySyncStatus = <T extends { syncStatus?: SyncStatus }>(items: T[], syncStatus: SyncStatus): T[] =>
+  items.map((item) => ({
+    ...item,
+    syncStatus: item.syncStatus ?? syncStatus,
+  }));
+
+const forceSyncStatus = <T extends { syncStatus?: SyncStatus }>(items: T[], syncStatus: SyncStatus): T[] =>
+  items.map((item) => ({
+    ...item,
+    syncStatus,
+  }));
+
+const stripNoteSyncStatus = (note: TravelNote) => {
+  const { syncStatus: _syncStatus, ...rest } = note;
+  return rest;
 };
 
 const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseExpenseRow => ({
@@ -136,6 +155,39 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
     return copy;
   };
 
+const expenseCacheKey = makeOfflineCacheKey(tripKey, "expenses");
+const checklistCacheKey = makeOfflineCacheKey(tripKey, "checklist");
+const notesCacheKey = makeOfflineCacheKey(tripKey, "notes");
+const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
+
+const expenseSignature = (expenses: Expense[], savedBy: SavedByInfo | null) =>
+  JSON.stringify(expenses.map((expense) => {
+    const { updated_at: _updatedAt, ...row } = expenseToRow(expense, savedBy);
+    return row;
+  }));
+
+const checklistSignature = (items: ChecklistItem[], savedBy: SavedByInfo | null) =>
+  JSON.stringify(items.map((item) => {
+    const { updated_at: _updatedAt, ...row } = checklistToRow(item, savedBy);
+    return row;
+  }));
+
+const notesPayload = (notes: TravelNote[], savedBy: SavedByInfo | null) => ({
+  trip_key: tripKey,
+  notes: notes.map((note) => {
+    const rest = stripNoteSyncStatus(note);
+    return {
+      ...rest,
+      savedByUserId: savedBy?.userId ?? note.savedByUserId ?? undefined,
+      savedByEmail: savedBy?.email ?? note.savedByEmail ?? undefined,
+    };
+  }),
+  saved_by_user_id: savedBy?.userId ?? null,
+  saved_by_email: savedBy?.email ?? null,
+});
+
+const notesSignature = (notes: TravelNote[], savedBy: SavedByInfo | null) => JSON.stringify(notesPayload(notes, savedBy));
+
 export default function App() {
   const PULL_REFRESH_TRIGGER = 84;
   const PULL_REFRESH_MAX = 108;
@@ -164,23 +216,71 @@ export default function App() {
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
-  const expenseSignatureRef = useRef<string>("");
-  const checklistSignatureRef = useRef<string>("");
-  const notesSignatureRef = useRef<string>("");
-  const expenseIdsRef = useRef<string[]>([]);
-  const checklistIdsRef = useRef<string[]>([]);
   const pullStartYRef = useRef<number | null>(null);
   const isPullingRef = useRef<boolean>(false);
-
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [notes, setNotes] = useState<TravelNote[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const isOnline = useOnlineStatus();
+  const [initialExpenseCache] = useState(() => readCachedDataset<Expense[]>(expenseCacheKey));
+  const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
+  const [initialNotesCache] = useState(() => readCachedDataset<TravelNote[]>(notesCacheKey));
+  const mapCache = useCachedDataset<MapItineraryData>(mapCacheKey);
+  const initialExpenseItems = applySyncStatus(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced");
+  const initialChecklistItems = applySyncStatus(initialChecklistCache?.data ?? [], initialChecklistCache?.dirty ? "pending" : "synced");
+  const initialNoteItems = applySyncStatus(initialNotesCache?.data ?? [], initialNotesCache?.dirty ? "pending" : "synced");
+  const [expenses, setExpenses] = useState<Expense[]>(() => initialExpenseItems);
+  const [notes, setNotes] = useState<TravelNote[]>(() => initialNoteItems);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => initialChecklistItems);
+  const expenseSignatureRef = useRef<string>(initialExpenseCache?.syncedSignature || expenseSignature(initialExpenseItems, null));
+  const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems, null));
+  const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems, null));
+  const expenseDirtyRef = useRef<boolean>(initialExpenseCache?.dirty ?? false);
+  const checklistDirtyRef = useRef<boolean>(initialChecklistCache?.dirty ?? false);
+  const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
+  const expenseIdsRef = useRef<string[]>(initialExpenseCache?.syncedIds ?? initialExpenseItems.map((expense) => expense.id));
+  const checklistIdsRef = useRef<string[]>(initialChecklistCache?.syncedIds ?? initialChecklistItems.map((item) => item.id));
   const currentSavedBy: SavedByInfo | null = session?.user
     ? {
         userId: session.user.id,
         email: session.user.email ?? "",
       }
     : null;
+  const saveExpenseSnapshot = (nextExpenses: Expense[], syncedSignature: string, dirty: boolean, syncedIds: string[] = expenseIdsRef.current) => {
+    expenseSignatureRef.current = syncedSignature;
+    expenseDirtyRef.current = dirty;
+    if (!dirty) {
+      expenseIdsRef.current = syncedIds;
+    }
+    writeCachedDataset(expenseCacheKey, {
+      data: nextExpenses,
+      syncedSignature,
+      dirty,
+      syncedIds,
+    });
+  };
+
+  const saveChecklistSnapshot = (nextChecklist: ChecklistItem[], syncedSignature: string, dirty: boolean, syncedIds: string[] = checklistIdsRef.current) => {
+    checklistSignatureRef.current = syncedSignature;
+    checklistDirtyRef.current = dirty;
+    if (!dirty) {
+      checklistIdsRef.current = syncedIds;
+    }
+    writeCachedDataset(checklistCacheKey, {
+      data: nextChecklist,
+      syncedSignature,
+      dirty,
+      syncedIds,
+    });
+  };
+
+  const saveNotesSnapshot = (nextNotes: TravelNote[], syncedSignature: string, dirty: boolean) => {
+    notesSignatureRef.current = syncedSignature;
+    notesDirtyRef.current = dirty;
+    writeCachedDataset(notesCacheKey, {
+      data: nextNotes,
+      syncedSignature,
+      dirty,
+    });
+  };
+
   const pullProgress = Math.min(1, pullDistance / PULL_REFRESH_TRIGGER);
   const pullCanRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
   const pullUiScale = 0.96 + pullProgress * 0.04;
@@ -217,9 +317,13 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase || !authReady) {
-      setExpenses([]);
-      setChecklist([]);
-      setNotes([]);
+      setExpensesLoaded(true);
+      setChecklistLoaded(true);
+      setNotesLoaded(true);
+      return;
+    }
+
+    if (!isOnline) {
       setExpensesLoaded(true);
       setChecklistLoaded(true);
       setNotesLoaded(true);
@@ -257,39 +361,34 @@ export default function App() {
 
       if (expenseError) {
         console.warn("Supabase expense load failed:", expenseError.message);
-      } else if (expenseData && expenseData.length > 0) {
-        const remoteExpenses = expenseData.map((row) => rowToExpense(row as SupabaseExpenseRow));
-        expenseSignatureRef.current = JSON.stringify(remoteExpenses);
-        expenseIdsRef.current = remoteExpenses.map((expense) => expense.id);
-        setExpenses(remoteExpenses);
-      } else {
-        expenseSignatureRef.current = "[]";
-        expenseIdsRef.current = [];
-        setExpenses([]);
+      } else if (!expenseDirtyRef.current) {
+        const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
+        const syncedExpenses = forceSyncStatus(remoteExpenses, "synced");
+        const remoteSignature = expenseSignature(syncedExpenses, currentSavedBy);
+        saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+        setExpenses(syncedExpenses);
       }
 
       if (checklistError) {
         console.warn("Supabase checklist load failed:", checklistError.message);
-      } else if (checklistData && checklistData.length > 0) {
-        const remoteChecklist = checklistData.map((row) => rowToChecklist(row as SupabaseChecklistRow));
-        checklistSignatureRef.current = JSON.stringify(remoteChecklist);
-        checklistIdsRef.current = remoteChecklist.map((item) => item.id);
-        setChecklist(remoteChecklist);
-      } else {
-        checklistSignatureRef.current = "[]";
-        checklistIdsRef.current = [];
-        setChecklist([]);
+      } else if (!checklistDirtyRef.current) {
+        const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
+        const syncedChecklist = forceSyncStatus(remoteChecklist, "synced");
+        const remoteSignature = checklistSignature(syncedChecklist, currentSavedBy);
+        saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
+        setChecklist(syncedChecklist);
       }
 
       if (notesError) {
         console.warn("Supabase notes load failed:", notesError.message);
-      } else if (notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes) && (notesData as SupabaseNotesRow).notes.length > 0) {
-        const remoteNotes = (notesData as SupabaseNotesRow).notes;
-        notesSignatureRef.current = JSON.stringify(remoteNotes);
-        setNotes(remoteNotes);
-      } else {
-        notesSignatureRef.current = "[]";
-        setNotes([]);
+      } else if (!notesDirtyRef.current) {
+        const remoteNotes = notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes)
+          ? (notesData as SupabaseNotesRow).notes
+          : [];
+        const syncedNotes = forceSyncStatus(remoteNotes, "synced");
+        const remoteSignature = notesSignature(syncedNotes, currentSavedBy);
+        saveNotesSnapshot(syncedNotes, remoteSignature, false);
+        setNotes(syncedNotes);
       }
 
       setExpensesLoaded(true);
@@ -307,46 +406,76 @@ export default function App() {
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseExpenseTable, filter: `trip_key=eq.${tripKey}` },
           (payload) => {
+            if (expenseDirtyRef.current) return;
+
             if (payload.eventType === "DELETE") {
               const deletedId = String(payload.old?.id ?? "");
               if (!deletedId) return;
-              setExpenses((current) => current.filter((expense) => expense.id !== deletedId));
+              setExpenses((current) => {
+                const next = forceSyncStatus(current.filter((expense) => expense.id !== deletedId), "synced");
+                const nextSignature = expenseSignature(next, currentSavedBy);
+                saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
+                return next;
+              });
               return;
             }
 
             const row = payload.new as SupabaseExpenseRow;
             if (!row) return;
-            setExpenses((current) => mergeExpenseRow(current, row));
+            setExpenses((current) => {
+              const next = forceSyncStatus(mergeExpenseRow(current, row), "synced");
+              const nextSignature = expenseSignature(next, currentSavedBy);
+              saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
+              return next;
+            });
           },
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseChecklistTable, filter: `trip_key=eq.${tripKey}` },
           (payload) => {
+            if (checklistDirtyRef.current) return;
+
             if (payload.eventType === "DELETE") {
               const deletedId = String(payload.old?.id ?? "");
               if (!deletedId) return;
-              setChecklist((current) => current.filter((item) => item.id !== deletedId));
+              setChecklist((current) => {
+                const next = forceSyncStatus(current.filter((item) => item.id !== deletedId), "synced");
+                const nextSignature = checklistSignature(next, currentSavedBy);
+                saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
+                return next;
+              });
               return;
             }
 
             const row = payload.new as SupabaseChecklistRow;
             if (!row) return;
-            setChecklist((current) => mergeChecklistRow(current, row));
+            setChecklist((current) => {
+              const next = forceSyncStatus(mergeChecklistRow(current, row), "synced");
+              const nextSignature = checklistSignature(next, currentSavedBy);
+              saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
+              return next;
+            });
           },
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: supabaseNotesTable, filter: `trip_key=eq.${tripKey}` },
           (payload) => {
+            if (notesDirtyRef.current) return;
+
             if (payload.eventType === "DELETE") {
-              setNotes([]);
+              const next: TravelNote[] = [];
+              saveNotesSnapshot(next, notesSignature(next, currentSavedBy), false);
+              setNotes(next);
               return;
             }
 
             const row = payload.new as SupabaseNotesRow | undefined;
             if (!row || !Array.isArray(row.notes)) return;
-            setNotes(row.notes);
+            const next = forceSyncStatus(row.notes, "synced");
+            saveNotesSnapshot(next, notesSignature(next, currentSavedBy), false);
+            setNotes(next);
           },
         )
         .subscribe();
@@ -360,18 +489,27 @@ export default function App() {
         void supabase.removeChannel(channel);
       }
     };
-  }, [authReady, session]);
+  }, [authReady, isOnline, session]);
 
   useEffect(() => {
-    if (!supabase || !authReady || !session || !expensesLoaded) return;
+    if (!expensesLoaded) return;
 
     const payload = expenses.map((expense) => expenseToRow(expense, currentSavedBy));
-    const currentSignature = JSON.stringify(
-      payload.map(({ updated_at: _updatedAt, ...row }) => row),
-    );
+    const currentSignature = expenseSignature(expenses, currentSavedBy);
     const currentIds = expenses.map((expense) => expense.id);
     const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
-    if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) return;
+    const hasPendingLocalChanges = currentSignature !== expenseSignatureRef.current || removedIds.length > 0 || expenseDirtyRef.current;
+
+    if (!hasPendingLocalChanges) return;
+
+    if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) {
+      saveExpenseSnapshot(expenses, currentSignature, false, currentIds);
+      return;
+    }
+
+    saveExpenseSnapshot(expenses, expenseSignatureRef.current, true, expenseIdsRef.current);
+
+    if (!supabase || !authReady || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
       const writePayload = payload.map((row) => ({
@@ -400,23 +538,33 @@ export default function App() {
         }
       }
 
-      expenseSignatureRef.current = currentSignature;
-      expenseIdsRef.current = currentIds;
+      const syncedExpenses = forceSyncStatus(expenses, "synced");
+      setExpenses(syncedExpenses);
+      saveExpenseSnapshot(syncedExpenses, currentSignature, false, currentIds);
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [expenses, expensesLoaded, authReady, session]);
+  }, [expenses, expensesLoaded, authReady, session, isOnline]);
 
   useEffect(() => {
-    if (!supabase || !authReady || !session || !checklistLoaded) return;
+    if (!checklistLoaded) return;
 
     const payload = checklist.map((item) => checklistToRow(item, currentSavedBy));
-    const currentSignature = JSON.stringify(
-      payload.map(({ updated_at: _updatedAt, ...row }) => row),
-    );
+    const currentSignature = checklistSignature(checklist, currentSavedBy);
     const currentIds = checklist.map((item) => item.id);
     const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
-    if (currentSignature === checklistSignatureRef.current && removedIds.length === 0) return;
+    const hasPendingLocalChanges = currentSignature !== checklistSignatureRef.current || removedIds.length > 0 || checklistDirtyRef.current;
+
+    if (!hasPendingLocalChanges) return;
+
+    if (currentSignature === checklistSignatureRef.current && removedIds.length === 0) {
+      saveChecklistSnapshot(checklist, currentSignature, false, currentIds);
+      return;
+    }
+
+    saveChecklistSnapshot(checklist, checklistSignatureRef.current, true, checklistIdsRef.current);
+
+    if (!supabase || !authReady || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
       const writePayload = payload.map((row) => ({
@@ -445,28 +593,31 @@ export default function App() {
         }
       }
 
-      checklistSignatureRef.current = currentSignature;
-      checklistIdsRef.current = currentIds;
+      const syncedChecklist = forceSyncStatus(checklist, "synced");
+      setChecklist(syncedChecklist);
+      saveChecklistSnapshot(syncedChecklist, currentSignature, false, currentIds);
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [checklist, checklistLoaded, authReady, session]);
+  }, [checklist, checklistLoaded, authReady, session, isOnline]);
 
   useEffect(() => {
-    if (!supabase || !authReady || !session || !notesLoaded) return;
+    if (!notesLoaded) return;
 
-    const payload = {
-      trip_key: tripKey,
-      notes: notes.map((note) => ({
-        ...note,
-        savedByUserId: currentSavedBy?.userId ?? note.savedByUserId ?? undefined,
-        savedByEmail: currentSavedBy?.email ?? note.savedByEmail ?? undefined,
-      })),
-      saved_by_user_id: currentSavedBy?.userId ?? null,
-      saved_by_email: currentSavedBy?.email ?? null,
-    };
-    const currentSignature = JSON.stringify(payload);
-    if (currentSignature === notesSignatureRef.current) return;
+    const payload = notesPayload(notes, currentSavedBy);
+    const currentSignature = notesSignature(notes, currentSavedBy);
+    const hasPendingLocalChanges = currentSignature !== notesSignatureRef.current || notesDirtyRef.current;
+
+    if (!hasPendingLocalChanges) return;
+
+    if (currentSignature === notesSignatureRef.current) {
+      saveNotesSnapshot(notes, currentSignature, false);
+      return;
+    }
+
+    saveNotesSnapshot(notes, notesSignatureRef.current, true);
+
+    if (!supabase || !authReady || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
       const writePayload = {
@@ -483,11 +634,13 @@ export default function App() {
         return;
       }
 
-      notesSignatureRef.current = currentSignature;
+      const syncedNotes = forceSyncStatus(notes, "synced");
+      setNotes(syncedNotes);
+      saveNotesSnapshot(syncedNotes, currentSignature, false);
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [notes, notesLoaded, authReady, session]);
+  }, [notes, notesLoaded, authReady, session, isOnline]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -502,6 +655,37 @@ export default function App() {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
+
+  const pendingExpenseCount = expenses.filter((expense) => expense.syncStatus === "pending").length;
+  const pendingChecklistCount = checklist.filter((item) => item.syncStatus === "pending").length;
+  const pendingNoteCount = notes.filter((note) => note.syncStatus === "pending").length;
+  const pendingMapItemCount =
+    mapCache?.data?.days?.reduce(
+      (count, day) => count + day.destinations.filter((destination) => destination.syncStatus === "pending").length,
+      0,
+    ) ?? 0;
+  const pendingMapCount = mapCache?.dirty ? Math.max(1, pendingMapItemCount) : pendingMapItemCount;
+  const pendingSyncCount = pendingExpenseCount + pendingChecklistCount + pendingNoteCount + pendingMapCount;
+  const syncBannerTitle = !isOnline
+    ? "Offline mode"
+    : pendingSyncCount > 0
+      ? `${pendingSyncCount} local change${pendingSyncCount === 1 ? "" : "s"} waiting to sync`
+      : "All changes synced";
+  const syncBannerBody = !isOnline
+    ? "Edits are being saved on this device and will upload when the connection returns."
+    : pendingSyncCount > 0
+      ? "Those entries are saved locally for now and will push to Supabase automatically once the app is online."
+      : "The visible data matches the latest Supabase sync.";
+  const syncBannerStats = pendingSyncCount > 0
+    ? [
+        pendingExpenseCount ? `${pendingExpenseCount} budget` : null,
+        pendingChecklistCount ? `${pendingChecklistCount} checklist` : null,
+        pendingNoteCount ? `${pendingNoteCount} notes` : null,
+        pendingMapCount ? `${pendingMapCount} map` : null,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(", ") + " waiting"
+    : "No local changes waiting";
 
   const handleOpenGuide = (item: TimelineItemData) => {
     setSelectedGuide(buildGuideForItem(item));
@@ -717,14 +901,33 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        <main
-          className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0 pt-[112px] md:pt-0"
-          style={{
-            transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
-            transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-            willChange: pullDistance > 0 ? "transform" : "auto",
-          }}
-        >
+        <div className="pt-[112px] md:pt-0">
+          <div className="no-print mx-auto w-full max-w-7xl px-4 pt-3 md:px-8">
+            <div className={`flex flex-col gap-1 rounded-2xl border px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between ${
+              isOnline
+                ? pendingSyncCount > 0
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-stone-200 bg-stone-100 text-stone-700"
+            }`}>
+              <div>
+                <div className="text-[11px] font-mono uppercase tracking-[0.28em]">{syncBannerTitle}</div>
+                <div className="mt-1 text-[13px]">{syncBannerBody}</div>
+              </div>
+              <div className="text-[11px] font-mono uppercase tracking-[0.22em] text-stone-500">
+                {syncBannerStats}
+              </div>
+            </div>
+          </div>
+
+          <main
+            className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
+            style={{
+              transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
+              transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
+              willChange: pullDistance > 0 ? "transform" : "auto",
+            }}
+          >
           {activeRoute === "/account" && mobileAccountCard}
         {activeRoute === "/" && (
           <div className="animate-in fade-in duration-300">
@@ -833,23 +1036,26 @@ export default function App() {
             expenses={expenses}
             setExpenses={setExpenses}
             isSupabaseConnected={Boolean(supabase && session)}
+            isOnline={isOnline}
             canEdit={Boolean(session)}
             exchangeRates={exchangeRates}
             currentSavedBy={currentSavedBy}
           />
         )}
-        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} />}
+        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} />}
         {activeRoute === "/notes" && (
           <NotesTab
             notes={notes}
             setNotes={setNotes}
             checklist={checklist}
             setChecklist={setChecklist}
+            isOnline={isOnline}
             canEdit={Boolean(session)}
             currentSavedBy={currentSavedBy}
           />
         )}
-      </main>
+          </main>
+        </div>
 
       <AuthPanel
         open={showAuthModal}

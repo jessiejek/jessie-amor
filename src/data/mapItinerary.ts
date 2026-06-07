@@ -1,5 +1,6 @@
 import { defaultDayPlans } from "./itinerary";
 import type { ItineraryItem } from "../types";
+import type { SyncStatus } from "../types";
 
 export interface MapDestination {
   id: string;
@@ -10,6 +11,7 @@ export interface MapDestination {
   notes: string;
   savedByUserId?: string;
   savedByEmail?: string;
+  syncStatus?: SyncStatus;
 }
 
 export interface MapDay {

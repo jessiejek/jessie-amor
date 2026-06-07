@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Copy, Plus, Trash2, CheckCircle2, Bookmark, Lightbulb, ClipboardList, PenTool } from "lucide-react";
-import { ChecklistItem, TravelNote } from "../types";
+import type { ChecklistItem, TravelNote, SyncStatus } from "../types";
 
 interface NotesTabProps {
   notes: TravelNote[];
   setNotes: React.Dispatch<React.SetStateAction<TravelNote[]>>;
   checklist: ChecklistItem[];
   setChecklist: React.Dispatch<React.SetStateAction<ChecklistItem[]>>;
+  isOnline?: boolean;
   canEdit?: boolean;
   currentSavedBy?: {
     userId: string;
@@ -19,6 +20,7 @@ export default function NotesTab({
   setNotes,
   checklist,
   setChecklist,
+  isOnline = true,
   canEdit = false,
   currentSavedBy = null,
 }: NotesTabProps) {
@@ -31,6 +33,12 @@ export default function NotesTab({
     if (email) return email.split("@")[0];
     if (userId) return userId.slice(0, 8);
     return "Unknown";
+  };
+
+  const getSyncPillClass = (value?: SyncStatus) => {
+    return value === "pending"
+      ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
+      : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
   };
 
   const handleAddNote = (e: React.FormEvent) => {
@@ -46,6 +54,7 @@ export default function NotesTab({
       createdAt: new Date().toISOString(),
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
+      syncStatus: "pending",
     };
 
     setNotes((prev) => [newNote, ...prev]);
@@ -67,6 +76,7 @@ export default function NotesTab({
           completed: !item.completed,
           savedByUserId: currentSavedBy?.userId ?? item.savedByUserId,
           savedByEmail: currentSavedBy?.email ?? item.savedByEmail,
+          syncStatus: "pending",
         };
       }
       return item;
@@ -90,6 +100,7 @@ export default function NotesTab({
       completed: false,
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
+      syncStatus: "pending",
     };
 
     const updated = [...checklist, newItem];
@@ -110,6 +121,12 @@ export default function NotesTab({
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
+      {!isOnline && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 shadow-xs">
+          Offline mode is active. Checklist and notes changes stay on this device and upload when the connection returns.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Checklist Column */}
@@ -171,9 +188,20 @@ export default function NotesTab({
                     {item.text}
                   </span>
                   {(item.savedByEmail || item.savedByUserId) && (
-                    <span className="mt-0.5 block text-[11px] font-mono uppercase tracking-wider text-stone-400">
-                      {formatSavedBy(item.savedByEmail, item.savedByUserId)}
-                    </span>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <span className="block text-[11px] font-mono uppercase tracking-wider text-stone-400">
+                        {formatSavedBy(item.savedByEmail, item.savedByUserId)}
+                      </span>
+                      {item.syncStatus === "pending" ? (
+                        <span className={getSyncPillClass(item.syncStatus)}>Local</span>
+                      ) : (
+                        <span
+                          className={getSyncPillClass(item.syncStatus)}
+                          title="Synced"
+                          aria-label="Synced"
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -280,6 +308,15 @@ export default function NotesTab({
                   <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
                   {(note.savedByEmail || note.savedByUserId) && (
                     <span className="text-[11px] uppercase tracking-wider">{formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
+                  )}
+                  {note.syncStatus === "pending" ? (
+                    <span className={getSyncPillClass(note.syncStatus)}>Local</span>
+                  ) : (
+                    <span
+                      className={getSyncPillClass(note.syncStatus)}
+                      title="Synced"
+                      aria-label="Synced"
+                    />
                   )}
                   <Bookmark size={10} className="text-[#88B04B]" />
                 </div>

@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AlertTriangle, BedDouble, BusFront, Camera, CreditCard, DollarSign, ListFilter, PlusCircle, Trash2, UtensilsCrossed, WalletCards } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
-import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
-import { supabase, supabaseExpenseTable, tripKey } from "../lib/supabase";
+import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus } from "../types";
 
 type TransactionRow = {
   id: string;
@@ -16,12 +15,14 @@ type TransactionRow = {
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
   created_at?: string;
+  syncStatus?: SyncStatus;
 };
 
 interface BudgetTabProps {
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
   isSupabaseConnected?: boolean;
+  isOnline?: boolean;
   canEdit?: boolean;
   exchangeRates: ExchangeRates;
   currentSavedBy?: {
@@ -34,6 +35,7 @@ export default function BudgetTab({
   expenses,
   setExpenses,
   isSupabaseConnected = false,
+  isOnline = true,
   canEdit = false,
   exchangeRates,
   currentSavedBy = null,
@@ -45,9 +47,6 @@ export default function BudgetTab({
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
   const [filterCategory, setFilterCategory] = useState<string>("All");
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
-  const [transactionsError, setTransactionsError] = useState("");
   const [selectedRegistryDate, setSelectedRegistryDate] = useState("All");
 
   const convertToRm = (value: number, currency: ExpenseCurrency) => {
@@ -76,27 +75,20 @@ export default function BudgetTab({
     return `-RM ${Math.abs(tx.amount).toFixed(2)}`;
   };
 
-  const mapRowToTransaction = (row: Record<string, unknown>): TransactionRow => ({
-    id: String(row.id ?? ""),
-    name: String(row.item ?? ""),
-    date: `July ${String(row.day ?? "")}`,
-    time: formatDisplayTime((row.created_at as string | undefined) ?? (row.updated_at as string | undefined)),
-    category: String(row.category ?? ""),
-    method: String(row.paid_with ?? ""),
-    user: (row.saved_by_email as string | undefined) || (row.saved_by_user_id as string | undefined) || null,
-    amount: Number(row.amount ?? 0),
-    originalAmount: row.original_amount == null ? undefined : Number(row.original_amount),
-    originalCurrency: (row.original_currency as ExpenseCurrency | undefined) ?? undefined,
-    created_at: (row.created_at as string | undefined) ?? (row.updated_at ? String(row.updated_at) : undefined),
+  const mapExpenseToTransaction = (expense: Expense): TransactionRow => ({
+    id: expense.id,
+    name: expense.item,
+    date: `July ${String(expense.day)}`,
+    time: formatDisplayTime(expense.createdAt),
+    category: expense.category,
+    method: expense.paidWith,
+    user: expense.savedByEmail ?? expense.savedByUserId ?? null,
+    amount: expense.amount,
+    originalAmount: expense.originalAmount,
+    originalCurrency: expense.originalCurrency,
+    created_at: expense.createdAt,
+    syncStatus: expense.syncStatus,
   });
-
-  const upsertTransaction = (current: TransactionRow[], next: TransactionRow) => {
-    const index = current.findIndex((item) => item.id === next.id);
-    if (index === -1) return [...current, next];
-    const copy = [...current];
-    copy[index] = next;
-    return copy;
-  };
 
   const sortTransactions = (items: TransactionRow[]) =>
     [...items].sort((a, b) => {
@@ -108,6 +100,8 @@ export default function BudgetTab({
       if (aDay !== bDay) return bDay - aDay;
       return b.id.localeCompare(a.id);
     });
+
+  const transactions = sortTransactions(expenses.map(mapExpenseToTransaction));
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,40 +121,17 @@ export default function BudgetTab({
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
       createdAt: new Date().toISOString(),
+      syncStatus: "pending",
     };
 
     setExpenses((prev) => [...prev, newExp]);
-    setTransactions((prev) =>
-      sortTransactions([
-        ...prev,
-        {
-          id: newExp.id,
-          name: newExp.item,
-          date: `July ${newExp.day}`,
-          time: formatDisplayTime(newExp.createdAt),
-          category: newExp.category,
-          method: newExp.paidWith,
-          user: newExp.savedByEmail ?? newExp.savedByUserId ?? null,
-          amount: newExp.amount,
-          originalAmount: newExp.originalAmount,
-          originalCurrency: newExp.originalCurrency,
-          created_at: newExp.createdAt,
-        },
-      ]),
-    );
     setDesc("");
     setAmountText("");
     setAmountCurrency("RM");
   };
 
-  const deleteTransaction = async (id: string) => {
+  const deleteTransaction = (id: string) => {
     if (!canEdit) return;
-    const { error } = await supabase.from(supabaseExpenseTable).delete().eq("trip_key", tripKey).eq("id", id);
-    if (error) {
-      setTransactionsError(error.message);
-      return;
-    }
-    setTransactions((prev) => prev.filter((item) => item.id !== id));
     setExpenses((prev) => prev.filter((exp) => exp.id !== id));
   };
 
@@ -222,6 +193,12 @@ export default function BudgetTab({
       : "budget-pill budget-pill-card";
   };
 
+  const getSyncPillClass = (value?: SyncStatus) => {
+    return value === "pending"
+      ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
+      : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
+  };
+
   const getCategoryIcon = (value: string) => {
     switch (value.toLowerCase()) {
       case "food":
@@ -236,75 +213,6 @@ export default function BudgetTab({
         return <WalletCards size={16} aria-hidden="true" />;
     }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    const loadTransactions = async () => {
-      if (!supabase) {
-        setTransactions([]);
-        setLoadingTransactions(false);
-        return;
-      }
-
-      setLoadingTransactions(true);
-      setTransactionsError("");
-
-      const { data, error } = await supabase
-        .from(supabaseExpenseTable)
-        .select("*")
-        .eq("trip_key", tripKey)
-        .order("updated_at", { ascending: false })
-        .order("day", { ascending: false })
-        .order("item", { ascending: true });
-
-      if (!isMounted) return;
-
-      if (error) {
-        setTransactions([]);
-        setTransactionsError(error.message);
-      } else {
-        const mappedTransactions = ((data ?? []) as Array<Record<string, unknown>>).map(mapRowToTransaction);
-        setTransactions(sortTransactions(mappedTransactions));
-      }
-
-      setLoadingTransactions(false);
-    };
-
-    loadTransactions();
-
-    if (supabase) {
-      channel = supabase
-        .channel(`budget-registry-${tripKey}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: supabaseExpenseTable, filter: `trip_key=eq.${tripKey}` },
-          (payload) => {
-            if (!isMounted) return;
-
-            if (payload.eventType === "DELETE") {
-              const deletedId = String(payload.old?.id ?? "");
-              if (!deletedId) return;
-              setTransactions((current) => current.filter((item) => item.id !== deletedId));
-              return;
-            }
-
-            const row = payload.new as Record<string, unknown> | undefined;
-            if (!row) return;
-            setTransactions((current) => sortTransactions(upsertTransaction(current, mapRowToTransaction(row))));
-          },
-        )
-        .subscribe();
-    }
-
-    return () => {
-      isMounted = false;
-      if (channel) {
-        void supabase?.removeChannel(channel);
-      }
-    };
-  }, []);
 
   const visibleTransactions = useMemo(() => {
     if (filterCategory === "All") return transactions;
@@ -537,11 +445,15 @@ export default function BudgetTab({
             <div className="budget-registry-header-copy">
               <h3 className="budget-registry-title">Transaction Registry</h3>
               <p className="budget-registry-description">Chronological list of all recorded travel cash outflows</p>
-              {!isSupabaseConnected && (
+              {!isOnline ? (
                 <p className="mt-2 text-[13px] text-amber-700">
-                  Cloud sync is offline right now, so this view is only showing the current local session state.
+                  Offline mode is active. New expenses stay on this device and will upload automatically when the connection returns.
                 </p>
-              )}
+              ) : !isSupabaseConnected ? (
+                <p className="mt-2 text-[13px] text-amber-700">
+                  Sign in to sync this registry to the shared trip record.
+                </p>
+              ) : null}
             </div>
 
             <div className="budget-registry-filter">
@@ -581,11 +493,7 @@ export default function BudgetTab({
           </div>
 
           <div className="budget-registry-list">
-            {loadingTransactions ? (
-              <p className="budget-registry-state">Loading...</p>
-            ) : transactionsError ? (
-              <p className="budget-registry-state">{transactionsError}</p>
-            ) : groupedTransactionDates.length === 0 ? (
+            {groupedTransactionDates.length === 0 ? (
               <p className="budget-registry-state">No transactions found.</p>
             ) : (
               groupedTransactionDates
@@ -611,7 +519,18 @@ export default function BudgetTab({
                                 <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
                                 <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
                               </div>
-                              <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
+                                {tx.syncStatus === "pending" ? (
+                                  <span className={getSyncPillClass(tx.syncStatus)}>Local</span>
+                                ) : (
+                                  <span
+                                    className={getSyncPillClass(tx.syncStatus)}
+                                    title="Synced"
+                                    aria-label="Synced"
+                                  />
+                                )}
+                              </div>
                             </div>
 
                             <div className="budget-transaction-bottom">

@@ -194,5 +194,5 @@ create policy "Authenticated users can delete scratch notes"
 ## 4) Notes
 
 - The app uses `VITE_TRIP_KEY` so both travelers sync to the same trip record.
-- Budget, checklist, map, and scratch notes data are Supabase-backed only. If Supabase is not configured or the user is signed out, the app stays read-only.
+- Budget, checklist, map, and scratch notes now cache locally in the browser. When a signed-in device is online, those changes sync to Supabase automatically.
 - If you add more trip sections later, reuse the same `trip_key` pattern.

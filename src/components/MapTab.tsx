@@ -11,7 +11,9 @@ import {
   type MapDestination,
   type MapItineraryData,
 } from "../data/mapItinerary";
-import { hasSupabaseConfig, supabase, supabaseMapTable, tripKey } from "../lib/supabase";
+import { supabase, supabaseMapTable, tripKey } from "../lib/supabase";
+import { makeOfflineCacheKey, readCachedDataset, writeCachedDataset } from "../lib/offlineCache";
+import type { SyncStatus } from "../types";
 
 type DraftState = {
   name: string;
@@ -95,6 +97,7 @@ const renderPopup = (destination: MapDestination, order: number) => `
 interface MapTabProps {
   session: Session | null;
   canEdit?: boolean;
+  isOnline?: boolean;
 }
 
 type SavedByInfo = {
@@ -108,6 +111,11 @@ const formatSavedBy = (email?: string, userId?: string) => {
   return "Unknown";
 };
 
+const getSyncPillClass = (value?: SyncStatus) =>
+  value === "pending"
+    ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
+    : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
+
 type SupabaseMapRow = {
   trip_key: string;
   data: MapItineraryData;
@@ -116,12 +124,56 @@ type SupabaseMapRow = {
   updated_at: string;
 };
 
-export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
+const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
+
+const applyMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): MapItineraryData => ({
+  ...data,
+  days: data.days.map((day) => ({
+    ...day,
+    destinations: day.destinations.map((destination) => ({
+      ...destination,
+      syncStatus: destination.syncStatus ?? syncStatus,
+    })),
+  })),
+});
+
+const forceMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): MapItineraryData => ({
+  ...data,
+  days: data.days.map((day) => ({
+    ...day,
+    destinations: day.destinations.map((destination) => ({
+      ...destination,
+      syncStatus,
+    })),
+  })),
+});
+
+const stripMapDestinationSyncStatus = (destination: MapDestination) => {
+  const { syncStatus: _syncStatus, ...rest } = destination;
+  return rest;
+};
+
+const mapDataForSync = (data: MapItineraryData) => ({
+  version: data.version,
+  updatedAt: data.updatedAt,
+  days: data.days.map((day) => ({
+    ...day,
+    destinations: day.destinations.map(stripMapDestinationSyncStatus),
+  })),
+});
+
+const mapSignature = (data: MapItineraryData) => JSON.stringify(mapDataForSync(data));
+
+export default function MapTab({ session: authSession, canEdit = false, isOnline = true }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
-  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => buildEmptyMapItinerary());
-  const [selectedDay, setSelectedDay] = useState<number>(() => buildEmptyMapItinerary().days[0]?.day ?? 11);
+  const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey));
+  const [initialMapData] = useState(() =>
+    applyMapSyncStatus(initialMapCache?.data ?? buildEmptyMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"),
+  );
+  const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
+  const [selectedDay, setSelectedDay] = useState<number>(() => initialMapData.days[0]?.day ?? 11);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
-    () => buildEmptyMapItinerary().days[0]?.destinations[0]?.id ?? "",
+    () => initialMapData.days[0]?.destinations[0]?.id ?? "",
   );
   const [draft, setDraft] = useState<DraftState>({
     name: "",
@@ -140,14 +192,24 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const markerRefs = useRef<Record<string, Marker>>({});
   const searchAbortRef = useRef<AbortController | null>(null);
-  const mapSignatureRef = useRef<string>("");
-  const mapLoadedRef = useRef<boolean>(!hasSupabaseConfig);
+  const mapSignatureRef = useRef<string>(initialMapCache?.syncedSignature || mapSignature(initialMapData));
+  const mapDirtyRef = useRef<boolean>(initialMapCache?.dirty ?? false);
+  const [mapLoaded, setMapLoaded] = useState<boolean>(!supabase);
   const currentSavedBy: SavedByInfo | null = session?.user
     ? {
         userId: session.user.id,
         email: session.user.email ?? "",
       }
     : null;
+  const saveMapSnapshot = (nextData: MapItineraryData, syncedSignature: string, dirty: boolean) => {
+    mapSignatureRef.current = syncedSignature;
+    mapDirtyRef.current = dirty;
+    writeCachedDataset(mapCacheKey, {
+      data: nextData,
+      syncedSignature,
+      dirty,
+    });
+  };
 
   const activeDay = useMemo(
     () => itineraryData.days.find((day) => day.day === selectedDay) ?? itineraryData.days[0] ?? null,
@@ -179,8 +241,12 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
 
   useEffect(() => {
     if (!supabase) {
-      mapLoadedRef.current = true;
-      setItineraryData(buildEmptyMapItinerary());
+      setMapLoaded(true);
+      return;
+    }
+
+    if (!isOnline) {
+      setMapLoaded(true);
       return;
     }
 
@@ -198,22 +264,19 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
 
       if (error) {
         console.warn("Supabase map load failed:", error.message);
-        mapLoadedRef.current = true;
+        setMapLoaded(true);
         return;
       }
 
-      const remoteData = data?.data as MapItineraryData | undefined;
-      if (remoteData?.days?.length) {
-        const normalized = normalizeMapItinerary(remoteData);
-        mapSignatureRef.current = JSON.stringify(normalized);
-        setItineraryData(normalized);
-      } else {
-        const empty = buildEmptyMapItinerary();
-        mapSignatureRef.current = JSON.stringify(empty);
-        setItineraryData(empty);
+      if (!mapDirtyRef.current) {
+        const remoteData = data?.data as MapItineraryData | undefined;
+        const normalized = remoteData?.days?.length ? normalizeMapItinerary(remoteData) : buildEmptyMapItinerary();
+        const synced = forceMapSyncStatus(normalized, "synced");
+        saveMapSnapshot(synced, mapSignature(synced), false);
+        setItineraryData(synced);
       }
 
-      mapLoadedRef.current = true;
+      setMapLoaded(true);
     };
 
     const bootstrap = async () => {
@@ -231,18 +294,21 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
             filter: `trip_key=eq.${tripKey}`,
           },
           (payload) => {
+            if (mapDirtyRef.current) return;
+
             if (payload.eventType === "DELETE") {
               const empty = buildEmptyMapItinerary();
-              mapSignatureRef.current = JSON.stringify(empty);
-              setItineraryData(empty);
+              const synced = forceMapSyncStatus(empty, "synced");
+              saveMapSnapshot(synced, mapSignature(synced), false);
+              setItineraryData(synced);
               return;
             }
 
             const nextData = payload.new?.data as MapItineraryData | undefined;
-            if (!nextData?.days?.length) return;
-            const normalized = normalizeMapItinerary(nextData);
-            mapSignatureRef.current = JSON.stringify(normalized);
-            setItineraryData(normalized);
+            const normalized = nextData?.days?.length ? normalizeMapItinerary(nextData) : buildEmptyMapItinerary();
+            const synced = forceMapSyncStatus(normalized, "synced");
+            saveMapSnapshot(synced, mapSignature(synced), false);
+            setItineraryData(synced);
           },
         )
         .subscribe();
@@ -256,18 +322,23 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
         void supabase.removeChannel(channel);
       }
     };
-  }, [session]);
+  }, [isOnline, session]);
 
   useEffect(() => {
-    if (!supabase || !session) {
-      mapLoadedRef.current = true;
+    if (!mapLoaded) return;
+
+    const currentSignature = mapSignature(itineraryData);
+    const hasPendingLocalChanges = currentSignature !== mapSignatureRef.current || mapDirtyRef.current;
+    if (!hasPendingLocalChanges) return;
+
+    if (currentSignature === mapSignatureRef.current) {
+      saveMapSnapshot(itineraryData, currentSignature, false);
       return;
     }
 
-    if (!mapLoadedRef.current) return;
+    saveMapSnapshot(itineraryData, mapSignatureRef.current, true);
 
-    const currentSignature = JSON.stringify(itineraryData);
-    if (currentSignature === mapSignatureRef.current) return;
+    if (!supabase || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
       const payload: SupabaseMapRow = {
@@ -284,11 +355,13 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
         return;
       }
 
-      mapSignatureRef.current = currentSignature;
+      const syncedMap = forceMapSyncStatus(itineraryData, "synced");
+      setItineraryData(syncedMap);
+      saveMapSnapshot(syncedMap, currentSignature, false);
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [itineraryData, session]);
+  }, [itineraryData, isOnline, mapLoaded, session]);
 
   useEffect(() => {
     if (!activeDay) return;
@@ -448,6 +521,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
                   ...patch,
                   savedByUserId: currentSavedBy?.userId ?? destination.savedByUserId,
                   savedByEmail: currentSavedBy?.email ?? destination.savedByEmail,
+                  syncStatus: "pending",
                 }
               : destination,
           ),
@@ -504,6 +578,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
       lng: coordinates.lng,
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
+      syncStatus: "pending",
     };
 
     setItineraryData((prev) => ({
@@ -558,6 +633,12 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
+      {!isOnline && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 shadow-xs">
+          Offline mode is active. Map edits are cached locally and upload automatically when the connection returns.
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
@@ -566,7 +647,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
           </div>
             <h3 className="text-lg md:text-xl font-serif font-bold text-[#0B3530]">{activeDay.title}</h3>
           <p className="text-xs text-stone-500">
-            Tap a destination in the list to pan the map and open its popup. Changes sync to Supabase immediately.
+            Tap a destination in the list to pan the map and open its popup. Changes sync when the device is online.
           </p>
         </div>
 
@@ -744,6 +825,15 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
                             {formatSavedBy(destination.savedByEmail, destination.savedByUserId)}
                           </span>
                         )}
+                        {destination.syncStatus === "pending" ? (
+                          <span className={getSyncPillClass(destination.syncStatus)}>Local</span>
+                        ) : (
+                          <span
+                            className={getSyncPillClass(destination.syncStatus)}
+                            title="Synced"
+                            aria-label="Synced"
+                          />
+                        )}
                       </div>
                     </div>
                   </button>
@@ -810,7 +900,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
           </div>
 
           <div className="border-t border-stone-100 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.25em] text-stone-400">
-            Supabase-backed map data with live cross-tab updates.
+            Local cache with Supabase sync and live cross-tab updates.
           </div>
         </section>
       </div>
