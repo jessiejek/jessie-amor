@@ -1,7 +1,19 @@
-import React, { useState } from "react";
-import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash } from "lucide-react";
+﻿import React, { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash, Utensils } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
+import { supabase } from "../lib/supabaseClient";
+
+type TransactionRow = {
+  id: string;
+  name: string;
+  date: string;
+  category: string;
+  method: string;
+  user: string | null;
+  amount: number;
+  created_at?: string;
+};
 
 interface BudgetTabProps {
   expenses: Expense[];
@@ -36,6 +48,10 @@ export default function BudgetTab({
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
   const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [transactionsError, setTransactionsError] = useState("");
+  const [selectedRegistryDate, setSelectedRegistryDate] = useState("All");
 
   const convertToRm = (value: number, currency: ExpenseCurrency) => {
     if (currency === "RM") return value;
@@ -46,7 +62,11 @@ export default function BudgetTab({
   const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
-  const formatSavedBy = (email?: string, userId?: string) => email || userId || "Unknown";
+  const formatSavedBy = (email?: string, userId?: string) => {
+    if (email) return email.split("@")[0];
+    if (userId) return userId.slice(0, 8);
+    return "Unknown";
+  };
   const formatTripDate = (tripDay: number) => `July ${tripDay}`;
 
   const addExpense = (e: React.FormEvent) => {
@@ -77,6 +97,16 @@ export default function BudgetTab({
   const deleteExpense = (id: string) => {
     if (!canEdit) return;
     setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+  };
+
+  const deleteTransaction = async (id: string) => {
+    if (!canEdit) return;
+    const { error } = await supabase.from("budget_expenses").delete().eq("id", id);
+    if (error) {
+      setTransactionsError(error.message);
+      return;
+    }
+    setTransactions((prev) => prev.filter((item) => item.id !== id));
   };
 
   const cashSpent = expenses
@@ -119,6 +149,151 @@ export default function BudgetTab({
       default:
         return "#7F8C8D";
     }
+  };
+
+  const registryExpenses = [...filteredExpenses].sort((a, b) => {
+    if (a.day !== b.day) return a.day - b.day;
+    return a.item.localeCompare(b.item);
+  });
+
+  const groupedExpenses = registryExpenses.reduce<Record<number, Expense[]>>((groups, exp) => {
+    if (!groups[exp.day]) groups[exp.day] = [];
+    groups[exp.day].push(exp);
+    return groups;
+  }, {});
+
+  const groupedExpenseDays = Object.keys(groupedExpenses)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const getCategoryBadgeClasses = (cat: ExpenseCategory) => {
+    switch (cat) {
+      case "Food":
+        return "bg-[#FDECEA] text-[#8A3A2C]";
+      case "Transport":
+        return "bg-[#EAF2FD] text-[#2E5EAA]";
+      case "Accommodation":
+        return "bg-[#FFF4E5] text-[#A05A00]";
+      case "Sightseeing":
+        return "bg-[#E8F4F1] text-[#1D6B63]";
+      default:
+        return "bg-[#F2F2F2] text-[#667085]";
+    }
+  };
+
+  const getPaymentBadgeClasses = (method: PaymentMethod) => {
+    return method === "Cash"
+      ? "bg-[#E6F7F1] text-[#1F6D54]"
+      : "bg-[#EAF2FD] text-[#2E5EAA]";
+  };
+
+  const getCategoryPillClass = (value: string) => {
+    switch (value.toLowerCase()) {
+      case "food":
+        return "budget-pill budget-pill-food";
+      case "transport":
+        return "budget-pill budget-pill-transport";
+      case "accommodation":
+        return "budget-pill budget-pill-accommodation";
+      case "sightseeing":
+        return "budget-pill budget-pill-sightseeing";
+      default:
+        return "budget-pill budget-pill-other";
+    }
+  };
+
+  const getMethodPillClass = (value: string) => {
+    return value === "Cash" || value === "Debit"
+      ? "budget-pill budget-pill-cash"
+      : "budget-pill budget-pill-card";
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTransactions = async () => {
+      setLoadingTransactions(true);
+      setTransactionsError("");
+
+      const { data, error } = await supabase
+        .from("budget_expenses")
+        .select("*")
+        .order("day", { ascending: false })
+        .order("item", { ascending: true });
+
+      if (!isMounted) return;
+
+      if (error) {
+        setTransactions([]);
+        setTransactionsError(error.message);
+      } else {
+        const mappedTransactions = ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+          id: String(row.id ?? ""),
+          name: String(row.item ?? ""),
+          date: `July ${String(row.day ?? "")}`,
+          category: String(row.category ?? ""),
+          method: String(row.paid_with ?? ""),
+          user: (row.saved_by_email as string | undefined) || (row.saved_by_user_id as string | undefined) || null,
+          amount: Number(row.amount ?? 0),
+          created_at: row.updated_at ? String(row.updated_at) : undefined,
+        }));
+
+        setTransactions(mappedTransactions);
+      }
+
+      setLoadingTransactions(false);
+    };
+
+    loadTransactions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const groupedTransactions = useMemo(() => {
+    const sorted = [...transactions].sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      return a.id.localeCompare(b.id);
+    });
+
+    const groups: Record<string, TransactionRow[]> = {};
+    const orderedDates: string[] = [];
+
+    sorted.forEach((item) => {
+      const key = item.date || "Unknown Date";
+      if (!groups[key]) {
+        groups[key] = [];
+        orderedDates.push(key);
+      }
+      groups[key].push(item);
+    });
+
+    return { groups, orderedDates };
+  }, [transactions]);
+
+  const groupedTransactionDates = useMemo(
+    () => groupedTransactions.orderedDates,
+    [groupedTransactions],
+  );
+
+  const registryDateChips = useMemo(() => {
+    const dates = new Set<string>();
+    transactions.forEach((tx) => {
+      if (tx.date) dates.add(tx.date);
+    });
+    return Array.from(dates).sort((a, b) => {
+      const aDay = parseInt(a.split(" ")[1] || "0", 10);
+      const bDay = parseInt(b.split(" ")[1] || "0", 10);
+      return aDay - bDay;
+    });
+  }, [transactions]);
+
+  const formatTransactionUser = (user?: string | null) => {
+    if (!user) return "Unknown";
+    return user.includes("@") ? user.split("@")[0] : user;
   };
 
   return (
@@ -298,19 +473,19 @@ export default function BudgetTab({
           </div>
         </div>
 
-        <div className="budget-registry bg-white rounded-2xl border border-stone-200 p-5 shadow-xs lg:col-span-2 flex flex-col h-[520px]">
-          <div className="budget-registry-header flex justify-between items-center border-b border-stone-100 pb-3 mb-4">
-            <div>
-              <h3 className="budget-registry-title text-[15px] font-serif font-bold text-[#0B3530]">Transaction Registry</h3>
-              <p className="budget-registry-description text-[15px] text-stone-400 font-sans">Chronological list of all recorded travel cash outflows</p>
+        <div className="budget-registry">
+          <div className="budget-registry-header">
+            <div className="budget-registry-header-copy">
+              <h3 className="budget-registry-title">Transaction Registry</h3>
+              <p className="budget-registry-description">Chronological list of all recorded travel cash outflows</p>
             </div>
 
-            <div className="budget-registry-filter flex items-center gap-1.5">
-              <ListFilter size={12} className="text-stone-400" />
+            <div className="budget-registry-filter">
+              <ListFilter size={12} className="budget-registry-filter-icon" />
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-              className="budget-registry-select px-2 py-1 border border-stone-200 rounded text-[14px] outline-none text-stone-600 font-sans bg-[#FFFFFF]"
+                className="budget-registry-select"
               >
                 <option value="All">All Categories</option>
                 <option value="Transport">Transport Only</option>
@@ -321,69 +496,86 @@ export default function BudgetTab({
             </div>
           </div>
 
-          <div className="budget-registry-list flex-1 overflow-y-auto pr-1 space-y-2">
-            {filteredExpenses.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <p className="text-xs text-stone-400 font-sans">No expenses logged matching this filter criteria.</p>
-              </div>
-            ) : (
-              filteredExpenses.map((exp) => (
-                <div
-                  key={exp.id}
-                  className="budget-transaction-row flex justify-between items-center p-3 rounded-lg border border-stone-100 bg-[#FBFBFB] hover:border-stone-200/80 transition-all text-sm md:text-xs font-sans group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="budget-transaction-dot w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: getCategoryColor(exp.category) }}
-                    />
-                    <div>
-                      <div className="budget-transaction-title font-semibold text-stone-800 text-[15px]">{exp.item}</div>
-                      <div className="budget-transaction-meta flex items-center gap-1 text-[14px] text-stone-400 font-sans mt-0.5 flex-nowrap min-w-0">
-                        <span>{formatTripDate(exp.day)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{exp.category}</span>
-                        <span aria-hidden="true">·</span>
-                        <span className={exp.paidWith === "Credit Card" ? "text-blue-500 font-mono" : "text-emerald-600 font-mono"}>
-                          {exp.paidWith}
-                        </span>
-                        {(exp.savedByEmail || exp.savedByUserId) && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="text-stone-500 font-mono">Saved by {formatSavedBy(exp.savedByEmail, exp.savedByUserId)}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+          <div className="budget-day-filter">
+            <button
+              type="button"
+              className={`budget-day-chip ${selectedRegistryDate === "All" ? "is-active" : ""}`}
+              onClick={() => setSelectedRegistryDate("All")}
+            >
+              All
+            </button>
+            {registryDateChips.map((dateLabel) => (
+              <button
+                key={dateLabel}
+                type="button"
+                className={`budget-day-chip ${selectedRegistryDate === dateLabel ? "is-active" : ""}`}
+                onClick={() => setSelectedRegistryDate(dateLabel)}
+              >
+                {dateLabel}
+              </button>
+            ))}
+          </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-right shrink-0 ml-2">
-                      <div className="budget-transaction-amount font-mono font-bold text-stone-800 text-[15px]">
-                        {exp.originalCurrency && exp.originalAmount != null
-                          ? `${currencyLabels[exp.originalCurrency]} ${exp.originalAmount.toFixed(2)}`
-                          : `RM ${exp.amount.toFixed(2)}`}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => deleteExpense(exp.id)}
-                      disabled={!canEdit}
-                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                      title="Delete expense"
-                    >
-                      <Trash size={14} />
-                    </button>
+          <div className="budget-registry-list">
+            {loadingTransactions ? (
+              <p className="budget-registry-state">Loading...</p>
+            ) : transactionsError ? (
+              <p className="budget-registry-state">No transactions found.</p>
+            ) : groupedTransactionDates.length === 0 ? (
+              <p className="budget-registry-state">No transactions found.</p>
+            ) : (
+              groupedTransactionDates
+                .filter((dateKey) => selectedRegistryDate === "All" || dateKey === selectedRegistryDate)
+                .map((dateKey) => (
+                <div key={dateKey} className="budget-date-group">
+                  <div className="budget-date-header">{dateKey.toUpperCase()}</div>
+
+                  <div className="budget-date-list">
+                    {groupedTransactions.groups[dateKey].map((tx) => (
+                      <article key={tx.id} className="budget-transaction-card">
+                        <div className="budget-transaction-icon">
+                          <i className="ti ti-tools-kitchen-2" aria-hidden="true" />
+                        </div>
+
+                        <div className="budget-transaction-body">
+                          <h4 className="budget-transaction-name">{tx.name}</h4>
+                          <div className="budget-transaction-meta">
+                            <span className="budget-transaction-date">{tx.date}</span>
+                            <span className="budget-transaction-dot" aria-hidden="true">·</span>
+                            <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
+                            <span className="budget-transaction-dot" aria-hidden="true">·</span>
+                            <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                          </div>
+                          <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
+                        </div>
+
+                        <div className="budget-transaction-right">
+                          <div className="budget-transaction-amount">−RM {Math.abs(tx.amount).toFixed(2)}</div>
+                          <button
+                            type="button"
+                            onClick={() => deleteTransaction(tx.id)}
+                            disabled={!canEdit}
+                            className="budget-transaction-delete"
+                            title="Delete transaction"
+                            aria-label="Delete transaction"
+                          >
+                            <i className="ti ti-trash" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                 </div>
               ))
             )}
-          </div>
-
-          <div className="border-t border-stone-100 pt-3 text-[13px] font-mono text-stone-400 text-center uppercase tracking-widest">
-            {isSupabaseConnected ? "SUPABASE SYNC ACTIVE" : "PREVIEW MODE ACTIVE"}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+

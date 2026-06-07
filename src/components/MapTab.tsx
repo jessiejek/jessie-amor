@@ -102,6 +102,12 @@ type SavedByInfo = {
   email: string;
 };
 
+const formatSavedBy = (email?: string, userId?: string) => {
+  if (email) return email.split("@")[0];
+  if (userId) return userId.slice(0, 8);
+  return "Unknown";
+};
+
 type SupabaseMapRow = {
   trip_key: string;
   data: MapItineraryData;
@@ -733,7 +739,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
                         </span>
                         {(destination.savedByEmail || destination.savedByUserId) && (
                           <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
-                            Saved by {destination.savedByEmail || destination.savedByUserId}
+                            {formatSavedBy(destination.savedByEmail, destination.savedByUserId)}
                           </span>
                         )}
                       </div>

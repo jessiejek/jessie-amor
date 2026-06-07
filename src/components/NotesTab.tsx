@@ -27,7 +27,11 @@ export default function NotesTab({
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
   
   const [newCheckItem, setNewCheckItem] = useState("");
-  const formatSavedBy = (email?: string, userId?: string) => email || userId || "Unknown";
+  const formatSavedBy = (email?: string, userId?: string) => {
+    if (email) return email.split("@")[0];
+    if (userId) return userId.slice(0, 8);
+    return "Unknown";
+  };
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +72,11 @@ export default function NotesTab({
       return item;
     });
     setChecklist(updated);
+  };
+
+  const handleDeleteCheckItem = (id: string) => {
+    if (!canEdit) return;
+    setChecklist((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleAddCheckItem = (e: React.FormEvent) => {
@@ -140,25 +149,44 @@ export default function NotesTab({
             {checklist.map((item) => (
               <div
                 key={item.id}
-                onClick={() => handleToggleCheck(item.id)}
-                className={`flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
+                className={`relative flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
                   canEdit ? "hover:bg-stone-50 cursor-pointer" : "cursor-default opacity-80"
                 }`}
               >
-                <div className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
-                  item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
-                }`}>
+                <button
+                  type="button"
+                  onClick={() => handleToggleCheck(item.id)}
+                  className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
+                    item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
+                  }`}
+                  aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
+                >
                   <CheckCircle2 size={12} className="stroke-[3px]" />
-                </div>
-                <span className={`text-[14px] font-sans leading-relaxed ${
-                  item.completed ? "line-through text-stone-400" : "text-stone-700"
-                }`}>
-                  {item.text}
-                </span>
-                {(item.savedByEmail || item.savedByUserId) && (
-                  <span className="mt-0.5 text-[14px] font-mono uppercase tracking-wider text-stone-400">
-                    Saved by {formatSavedBy(item.savedByEmail, item.savedByUserId)}
+                </button>
+
+                <div className="min-w-0 flex-1 pr-8">
+                  <span className={`block text-[14px] font-sans leading-relaxed ${
+                    item.completed ? "line-through text-stone-400" : "text-stone-700"
+                  }`}>
+                    {item.text}
                   </span>
+                  {(item.savedByEmail || item.savedByUserId) && (
+                    <span className="mt-0.5 block text-[11px] font-mono uppercase tracking-wider text-stone-400">
+                      {formatSavedBy(item.savedByEmail, item.savedByUserId)}
+                    </span>
+                  )}
+                </div>
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCheckItem(item.id)}
+                    className="absolute right-2 top-2 rounded p-1 text-stone-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                    aria-label="Delete checklist item"
+                    title="Delete checklist item"
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 )}
               </div>
             ))}
@@ -236,7 +264,7 @@ export default function NotesTab({
                     <button
                       onClick={() => handleDeleteNote(note.id)}
                       disabled={!canEdit}
-                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 absolute top-3 right-3"
+                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 absolute top-3 right-3"
                       title="Delete Note"
                     >
                       <Trash2 size={13} />
@@ -248,10 +276,10 @@ export default function NotesTab({
                   </p>
                 </div>
 
-                <div className="border-t border-stone-100 pt-2 text-[14px] font-mono text-stone-400 mt-2 flex flex-col gap-1">
+                <div className="border-t border-stone-100 pt-2 mt-2 flex flex-col gap-1 font-mono text-[11px] text-stone-400">
                   <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
                   {(note.savedByEmail || note.savedByUserId) && (
-                    <span>SAVED BY: {formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
+                    <span className="text-[11px] uppercase tracking-wider">{formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
                   )}
                   <Bookmark size={10} className="text-[#88B04B]" />
                 </div>
