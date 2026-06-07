@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash, Utensils } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CreditCard, DollarSign, ListFilter, PlusCircle } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
 import { supabase, supabaseExpenseTable, tripKey } from "../lib/supabase";
@@ -26,12 +26,6 @@ interface BudgetTabProps {
     email: string;
   } | null;
 }
-
-const currencyLabels: Record<ExpenseCurrency, string> = {
-  RM: "RM",
-  PHP: "PHP",
-  SGD: "SGD",
-};
 
 export default function BudgetTab({
   expenses,
@@ -62,12 +56,6 @@ export default function BudgetTab({
   const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
-  const formatSavedBy = (email?: string, userId?: string) => {
-    if (email) return email.split("@")[0];
-    if (userId) return userId.slice(0, 8);
-    return "Unknown";
-  };
-  const formatTripDate = (tripDay: number) => `July ${tripDay}`;
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,11 +93,6 @@ export default function BudgetTab({
     setDesc("");
     setAmountText("");
     setAmountCurrency("RM");
-  };
-
-  const deleteExpense = (id: string) => {
-    if (!canEdit) return;
-    setExpenses((prev) => prev.filter((exp) => exp.id !== id));
   };
 
   const deleteTransaction = async (id: string) => {
@@ -163,42 +146,6 @@ export default function BudgetTab({
       default:
         return "#7F8C8D";
     }
-  };
-
-  const registryExpenses = [...filteredExpenses].sort((a, b) => {
-    if (a.day !== b.day) return a.day - b.day;
-    return a.item.localeCompare(b.item);
-  });
-
-  const groupedExpenses = registryExpenses.reduce<Record<number, Expense[]>>((groups, exp) => {
-    if (!groups[exp.day]) groups[exp.day] = [];
-    groups[exp.day].push(exp);
-    return groups;
-  }, {});
-
-  const groupedExpenseDays = Object.keys(groupedExpenses)
-    .map(Number)
-    .sort((a, b) => a - b);
-
-  const getCategoryBadgeClasses = (cat: ExpenseCategory) => {
-    switch (cat) {
-      case "Food":
-        return "bg-[#FDECEA] text-[#8A3A2C]";
-      case "Transport":
-        return "bg-[#EAF2FD] text-[#2E5EAA]";
-      case "Accommodation":
-        return "bg-[#FFF4E5] text-[#A05A00]";
-      case "Sightseeing":
-        return "bg-[#E8F4F1] text-[#1D6B63]";
-      default:
-        return "bg-[#F2F2F2] text-[#667085]";
-    }
-  };
-
-  const getPaymentBadgeClasses = (method: PaymentMethod) => {
-    return method === "Cash"
-      ? "bg-[#E6F7F1] text-[#1F6D54]"
-      : "bg-[#EAF2FD] text-[#2E5EAA]";
   };
 
   const getCategoryPillClass = (value: string) => {
@@ -313,167 +260,175 @@ export default function BudgetTab({
   };
 
   return (
-    <div className="budget-page max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
-      <div className="budget-summary-grid grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-        <div className="budget-summary-card bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
+    <div className="budget-page mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8 animate-in fade-in duration-300">
+      <div className="budget-summary-grid mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="budget-summary-card flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div>
-            <span className="text-[13px] font-mono tracking-widest text-stone-400 uppercase block">CASH OUTFLOW</span>
-            <h4 className="text-2xl font-serif font-bold text-stone-800 mt-1">{formatPhp(cashSpent)}</h4>
-            <span className="text-[13px] text-stone-400 font-sans block mt-0.5">
+            <span className="block text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
+            <h4 className="mt-1 text-2xl font-serif font-bold text-stone-800">{formatPhp(cashSpent)}</h4>
+            <span className="mt-0.5 block text-[13px] text-stone-400">
               {formatRm(cashSpent)} | {formatSgd(cashSpent)}
             </span>
           </div>
-          <div className="budget-summary-icon p-3 rounded-full bg-stone-100 text-stone-600">
+          <div className="budget-summary-icon rounded-full bg-stone-100 p-3 text-stone-600">
             <DollarSign size={24} />
           </div>
         </div>
 
-        <div className="budget-summary-card bg-white rounded-xl border border-stone-200 p-5 flex items-center justify-between shadow-xs">
+        <div className="budget-summary-card flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div>
-            <span className="text-[13px] font-mono tracking-widest text-blue-500 uppercase block">CC SPENDS</span>
-            <h4 className="text-2xl font-serif font-bold text-blue-900 mt-1">{formatPhp(cardSpent)}</h4>
-            <span className="text-[13px] text-stone-400 font-sans block mt-0.5">
+            <span className="block text-[13px] font-mono uppercase tracking-widest text-blue-500">CC Spends</span>
+            <h4 className="mt-1 text-2xl font-serif font-bold text-blue-900">{formatPhp(cardSpent)}</h4>
+            <span className="mt-0.5 block text-[13px] text-stone-400">
               {formatRm(cardSpent)} | {formatSgd(cardSpent)}
             </span>
           </div>
-          <div className="budget-summary-icon p-3 rounded-full bg-blue-50 text-blue-600">
+          <div className="budget-summary-icon rounded-full bg-blue-50 p-3 text-blue-600">
             <CreditCard size={24} />
           </div>
         </div>
       </div>
 
       {isOverBudget && (
-        <div className="budget-alert mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex gap-2 items-center">
+        <div className="budget-alert mb-6 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
           <AlertTriangle size={16} />
           <span>
-            Careful, you have exceeded the recommended cash allowance of <strong>RM 1,000</strong>! Review card transactions or minimize shopping outflows.
+            Careful, you have exceeded the recommended cash allowance of <strong>RM 1,000</strong>. Review card transactions or minimize shopping outflows.
           </span>
         </div>
       )}
 
-      <div className="budget-main grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="budget-form-panel bg-white rounded-2xl border border-stone-200 p-5 shadow-xs h-fit">
-          <h3 className="budget-form-title text-[15px] font-serif font-bold text-[#0B3530] border-b border-stone-100 pb-3 mb-4 uppercase tracking-[0.08em]">Add Custom Spend</h3>
-          {!canEdit && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
-              Sign in to add or edit budget items.
-            </div>
-          )}
-
-          <form onSubmit={addExpense} className="budget-form space-y-4 font-sans">
-            <div>
-              <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Item Title</label>
-              <input
-                type="text"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="e.g. Kaya Toast, Metro Pass"
-                disabled={!canEdit}
-                className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530]"
-                required
-              />
+      <div className="budget-main grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)] xl:items-start">
+        <div className="space-y-6 xl:sticky xl:top-24">
+          <div className="budget-form-panel h-fit rounded-[26px] border border-stone-200 bg-white p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)]">
+            <div className="mb-4 border-b border-stone-100 pb-3">
+              <h3 className="budget-form-title mt-2 text-[18px] font-serif font-bold text-[#0B3530]">Add Custom Spend</h3>
             </div>
 
-            <div className="budget-two-col grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Price</label>
+            {!canEdit && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+                Sign in to add or edit budget items.
+              </div>
+            )}
+
+            <form onSubmit={addExpense} className="budget-form space-y-4 font-sans">
+              <div>
+                <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Item Title</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={amountText}
-                  onChange={(e) => setAmountText(e.target.value)}
-                  placeholder="0.00"
+                  type="text"
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  placeholder="e.g. Kaya Toast, Metro Pass"
                   disabled={!canEdit}
-                  className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530]"
+                  className="budget-input w-full rounded-lg border border-stone-200 px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
                   required
                 />
               </div>
 
-              <div>
-                <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Currency</label>
-                <select
-                  value={amountCurrency}
-                  onChange={(e) => setAmountCurrency(e.target.value as ExpenseCurrency)}
-                  disabled={!canEdit}
-                  className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
-                >
-                  <option value="RM">RM</option>
-                  <option value="PHP">PHP</option>
-                  <option value="SGD">SGD</option>
-                </select>
-              </div>
-            </div>
+              <div className="budget-two-col grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={amountText}
+                    onChange={(e) => setAmountText(e.target.value)}
+                    placeholder="0.00"
+                    disabled={!canEdit}
+                    className="budget-input w-full rounded-lg border border-stone-200 px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
+                    required
+                  />
+                </div>
 
-            <div className="budget-two-col grid grid-cols-2 gap-3">
-              <div>
-                <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Date</label>
-                <select
-                  value={day}
-                  onChange={(e) => setDay(parseInt(e.target.value))}
-                  disabled={!canEdit}
-                  className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
-                >
-                  <option value={11}>July 11</option>
-                  <option value={12}>July 12</option>
-                  <option value={13}>July 13</option>
-                  <option value={14}>July 14</option>
-                  <option value={15}>July 15</option>
-                  <option value={16}>July 16</option>
-                </select>
+                <div>
+                  <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Currency</label>
+                  <select
+                    value={amountCurrency}
+                    onChange={(e) => setAmountCurrency(e.target.value as ExpenseCurrency)}
+                    disabled={!canEdit}
+                    className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
+                  >
+                    <option value="RM">RM</option>
+                    <option value="PHP">PHP</option>
+                    <option value="SGD">SGD</option>
+                  </select>
+                </div>
               </div>
 
+              <div className="budget-two-col grid grid-cols-2 gap-3">
+                <div>
+                  <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Date</label>
+                  <select
+                    value={day}
+                    onChange={(e) => setDay(parseInt(e.target.value, 10))}
+                    disabled={!canEdit}
+                    className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
+                  >
+                    <option value={11}>July 11</option>
+                    <option value={12}>July 12</option>
+                    <option value={13}>July 13</option>
+                    <option value={14}>July 14</option>
+                    <option value={15}>July 15</option>
+                    <option value={16}>July 16</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Payment Type</label>
+                  <select
+                    value={paidWith}
+                    onChange={(e) => setPaidWith(e.target.value as PaymentMethod)}
+                    disabled={!canEdit}
+                    className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Debit">Debit</option>
+                    <option value="Credit Card">Credit Card</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Payment Type</label>
+                <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Category</label>
                 <select
-                  value={paidWith}
-                  onChange={(e) => setPaidWith(e.target.value as PaymentMethod)}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
                   disabled={!canEdit}
-                  className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                  className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="Debit">Debit</option>
-                  <option value="Credit Card">Credit Card</option>
+                  <option value="Food">Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Accommodation">Accommodation</option>
+                  <option value="Sightseeing">Sightseeing</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
-            </div>
 
-            <div>
-              <label className="budget-label text-[14px] font-semibold text-stone-600 block mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+              <button
+                type="submit"
                 disabled={!canEdit}
-                className="budget-input w-full px-3 py-2 border border-stone-200 rounded-lg text-[15px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                className="budget-submit mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border-none bg-[#0B3530] px-4 py-3 text-[15px] font-bold text-white shadow-xs transition-all hover:bg-[#18534C] cursor-pointer"
               >
-                <option value="Food">Food</option>
-                <option value="Transport">Transport</option>
-                <option value="Accommodation">Accommodation</option>
-                <option value="Sightseeing">Sightseeing</option>
-                <option value="Other">Other</option>
-              </select>
+                <PlusCircle size={15} /> Add Expense Detail
+              </button>
+            </form>
+          </div>
+
+          <div className="budget-category-panel rounded-[26px] border border-stone-200 bg-white p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)]">
+            <div className="mb-4 border-b border-stone-100 pb-3">
+              <h4 className="budget-category-title mt-2 text-[18px] font-serif font-bold text-[#0B3530]">Spends by Category</h4>
             </div>
 
-            <button
-              type="submit"
-              disabled={!canEdit}
-              className="budget-submit w-full py-3 px-4 rounded-lg bg-[#0B3530] text-white hover:bg-[#18534C] text-[15px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs mt-2"
-            >
-              <PlusCircle size={15} /> Add Expense Detail
-            </button>
-          </form>
-
-          <div className="budget-category-panel mt-6 border-t border-stone-100 pt-5">
-            <h4 className="budget-category-title text-[15px] font-bold text-stone-700 uppercase tracking-wider mb-3">Spends by Category</h4>
             <div className="budget-category-list space-y-3">
               {categoryTotals.map((cat) => {
                 const percentage = (cat.amount / maxCatTotal) * 100;
                 return (
                   <div key={cat.name} className="budget-category-row space-y-1">
-                    <div className="budget-category-row-head flex justify-between items-center text-[16px]">
+                    <div className="budget-category-row-head flex items-center justify-between text-[16px]">
                       <span className="font-sans font-medium text-stone-600">{cat.name}</span>
-                      <span className="font-mono text-stone-800 font-bold">{formatPhp(cat.amount)}</span>
+                      <span className="font-mono font-bold text-stone-800">{formatPhp(cat.amount)}</span>
                     </div>
-                    <div className="budget-category-bar w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                    <div className="budget-category-bar h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -494,6 +449,11 @@ export default function BudgetTab({
             <div className="budget-registry-header-copy">
               <h3 className="budget-registry-title">Transaction Registry</h3>
               <p className="budget-registry-description">Chronological list of all recorded travel cash outflows</p>
+              {!isSupabaseConnected && (
+                <p className="mt-2 text-[13px] text-amber-700">
+                  Cloud sync is offline right now, so this view is only showing the current local session state.
+                </p>
+              )}
             </div>
 
             <div className="budget-registry-filter">
@@ -543,46 +503,46 @@ export default function BudgetTab({
               groupedTransactionDates
                 .filter((dateKey) => selectedRegistryDate === "All" || dateKey === selectedRegistryDate)
                 .map((dateKey) => (
-                <div key={dateKey} className="budget-date-group">
-                  <div className="budget-date-header">{dateKey.toUpperCase()}</div>
+                  <div key={dateKey} className="budget-date-group">
+                    <div className="budget-date-header">{dateKey.toUpperCase()}</div>
 
-                  <div className="budget-date-list">
-                    {groupedTransactions.groups[dateKey].map((tx) => (
-                      <article key={tx.id} className="budget-transaction-card">
-                        <div className="budget-transaction-icon">
-                          <i className="ti ti-tools-kitchen-2" aria-hidden="true" />
-                        </div>
-
-                        <div className="budget-transaction-body">
-                          <h4 className="budget-transaction-name">{tx.name}</h4>
-                          <div className="budget-transaction-meta">
-                            <span className="budget-transaction-date">{tx.date}</span>
-                            <span className="budget-transaction-dot" aria-hidden="true">·</span>
-                            <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
-                            <span className="budget-transaction-dot" aria-hidden="true">·</span>
-                            <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                    <div className="budget-date-list">
+                      {groupedTransactions.groups[dateKey].map((tx) => (
+                        <article key={tx.id} className="budget-transaction-card">
+                          <div className="budget-transaction-icon">
+                            <i className="ti ti-tools-kitchen-2" aria-hidden="true" />
                           </div>
-                          <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
-                        </div>
 
-                        <div className="budget-transaction-right">
-                          <div className="budget-transaction-amount">−RM {Math.abs(tx.amount).toFixed(2)}</div>
-                          <button
-                            type="button"
-                            onClick={() => deleteTransaction(tx.id)}
-                            disabled={!canEdit}
-                            className="budget-transaction-delete"
-                            title="Delete transaction"
-                            aria-label="Delete transaction"
-                          >
-                            <i className="ti ti-trash" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </article>
-                    ))}
+                          <div className="budget-transaction-body">
+                            <h4 className="budget-transaction-name">{tx.name}</h4>
+                            <div className="budget-transaction-meta">
+                              <span className="budget-transaction-date">{tx.date}</span>
+                              <span className="budget-transaction-dot" aria-hidden="true">·</span>
+                              <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
+                              <span className="budget-transaction-dot" aria-hidden="true">·</span>
+                              <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                            </div>
+                            <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
+                          </div>
+
+                          <div className="budget-transaction-right">
+                            <div className="budget-transaction-amount">-RM {Math.abs(tx.amount).toFixed(2)}</div>
+                            <button
+                              type="button"
+                              onClick={() => deleteTransaction(tx.id)}
+                              disabled={!canEdit}
+                              className="budget-transaction-delete"
+                              title="Delete transaction"
+                              aria-label="Delete transaction"
+                            >
+                              <i className="ti ti-trash" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
@@ -590,8 +550,3 @@ export default function BudgetTab({
     </div>
   );
 }
-
-
-
-
-
