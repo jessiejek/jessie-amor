@@ -29,7 +29,7 @@ import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
-import { formatLiveRateLabel, useLiveExchangeRates } from "./lib/exchangeRates";
+import { useLiveExchangeRates } from "./lib/exchangeRates";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -461,10 +461,8 @@ export default function App() {
   }, []);
 
   const metadata = {
-    title: "Jessie & Amor's Malaysia Singapore",
+    title: "Jessie & Amor's Malaysia Singapore Trip",
     description: itinerary.hero.subtitle,
-    sub: `2 people | Travelodge KL City Centre | ${formatLiveRateLabel(exchangeRates)}`,
-    rate: formatLiveRateLabel(exchangeRates),
   };
 
   const handleOpenGuide = (item: TimelineItemData) => {

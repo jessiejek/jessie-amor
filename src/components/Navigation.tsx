@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Share2, Download, Printer, Copy, Check, Info, LogIn } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+
+const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11);
 
 interface NavigationProps {
   activeTab: string;
@@ -10,8 +12,6 @@ interface NavigationProps {
   metadata: {
     title: string;
     description: string;
-    sub: string;
-    rate: string;
   };
 }
 
@@ -19,6 +19,28 @@ export default function Navigation({ activeTab, setActiveTab, session, onOpenAut
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [daysLeft, setDaysLeft] = useState(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = TRIP_COUNTDOWN_TARGET.getTime() - startOfToday.getTime();
+    return Math.max(0, Math.ceil(diff / 86400000));
+  });
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const diff = TRIP_COUNTDOWN_TARGET.getTime() - startOfToday.getTime();
+      setDaysLeft(Math.max(0, Math.ceil(diff / 86400000)));
+    };
+
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown, 60 * 60 * 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -62,10 +84,11 @@ export default function Navigation({ activeTab, setActiveTab, session, onOpenAut
                   2026
                 </span>
               </h1>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-300 mt-1 font-sans">
-                <span>{metadata.sub}</span>
-                <span className="text-stone-400">|</span>
-                <span className="font-mono text-stone-200">{metadata.rate}</span>
+              <div className="mt-2">
+                <span className="inline-flex items-baseline rounded-full border border-[#88B04B]/35 bg-[#18534C] px-3 py-1 text-[#88B04B] shadow-sm">
+                  <span className="text-3xl md:text-4xl font-black tracking-tight font-sans">{daysLeft}</span>
+                  <span className="ml-2 text-sm md:text-base font-semibold uppercase tracking-wider">Days Left</span>
+                </span>
               </div>
             </div>
 
