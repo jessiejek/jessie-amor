@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 
-type ProviderId = "google" | "facebook";
+type ProviderId = "google" | "facebook" | "github";
 
 interface AuthPanelProps {
   open: boolean;
@@ -10,6 +10,7 @@ interface AuthPanelProps {
   description: string;
   session: Session | null;
   loading?: boolean;
+  errorMessage?: string;
   onClose: () => void;
   onSignIn: (provider: ProviderId) => void;
   onSignOut: () => void;
@@ -23,6 +24,7 @@ const providers: Array<{
   badge: string;
 }> = [
   { id: "google", label: "Continue with Google", note: "Use your Google account", badge: "G" },
+  { id: "github", label: "Continue with GitHub", note: "Use your GitHub account", badge: "GH" },
   { id: "facebook", label: "Continue with Facebook", note: "Use your Facebook account", badge: "f" },
 ];
 
@@ -32,6 +34,7 @@ export default function AuthPanel({
   description,
   session,
   loading = false,
+  errorMessage = "",
   onClose,
   onSignIn,
   onSignOut,
@@ -74,6 +77,12 @@ export default function AuthPanel({
         </div>
 
         <div className="space-y-4 p-6">
+          {errorMessage ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+              <p className="text-[14px] font-semibold text-rose-800">{errorMessage}</p>
+            </div>
+          ) : null}
+
           <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
             <p className="text-[14px] font-sans text-stone-600 leading-relaxed">
               Sign in to sync your budget and trip checklist across devices. We keep the trip data private to this itinerary.
@@ -118,15 +127,15 @@ export default function AuthPanel({
               <p className="text-[13px] font-mono uppercase tracking-widest text-stone-400">Account</p>
               {session ? (
                 <>
-                  <p className="mt-2 text-[15px] font-semibold text-stone-800">{session.user.email ?? "Signed in"}</p>
-                  <p className="mt-1 text-[14px] text-stone-500">Budget + checklist sync is active.</p>
-                </>
-              ) : (
-                <>
-                  <p className="mt-2 text-[15px] font-semibold text-stone-800">Not signed in</p>
-                  <p className="mt-1 text-[14px] text-stone-500">Choose Google or Facebook to enable shared cloud sync.</p>
-                </>
-              )}
+              <p className="mt-2 text-[15px] font-semibold text-stone-800">{session.user.email ?? "Signed in"}</p>
+              <p className="mt-1 text-[14px] text-stone-500">Budget + checklist sync is active.</p>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-[15px] font-semibold text-stone-800">Not signed in</p>
+              <p className="mt-1 text-[14px] text-stone-500">Choose Google, GitHub, or Facebook to enable shared cloud sync.</p>
+            </>
+          )}
             </div>
 
             <button

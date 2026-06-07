@@ -43,6 +43,7 @@ type SupabaseExpenseRow = {
   original_currency: Expense["originalCurrency"] | null;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  updated_at: string;
 };
 
 type SupabaseChecklistRow = {
@@ -52,6 +53,7 @@ type SupabaseChecklistRow = {
   completed: boolean;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  updated_at: string;
 };
 
 type SupabaseNotesRow = {
@@ -59,6 +61,7 @@ type SupabaseNotesRow = {
   notes: TravelNote[];
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  updated_at: string;
 };
 
 type SavedByInfo = {
@@ -78,6 +81,7 @@ const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseEx
   original_currency: expense.originalCurrency ?? null,
   saved_by_user_id: savedBy?.userId ?? expense.savedByUserId ?? null,
   saved_by_email: savedBy?.email ?? expense.savedByEmail ?? null,
+  updated_at: new Date().toISOString(),
 });
 
 const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
@@ -100,6 +104,7 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
   completed: item.completed,
   saved_by_user_id: savedBy?.userId ?? item.savedByUserId ?? null,
   saved_by_email: savedBy?.email ?? item.savedByEmail ?? null,
+  updated_at: new Date().toISOString(),
 });
 
   const rowToChecklist = (row: SupabaseChecklistRow): ChecklistItem => ({
@@ -146,6 +151,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState<boolean>(!supabase);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string>("");
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -348,15 +354,22 @@ export default function App() {
     if (!supabase || !authReady || !session || !expensesLoaded) return;
 
     const payload = expenses.map((expense) => expenseToRow(expense, currentSavedBy));
-    const currentSignature = JSON.stringify(payload);
+    const currentSignature = JSON.stringify(
+      payload.map(({ updated_at: _updatedAt, ...row }) => row),
+    );
     const currentIds = expenses.map((expense) => expense.id);
     const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
     if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) return;
 
     const timeout = window.setTimeout(async () => {
+      const writePayload = payload.map((row) => ({
+        ...row,
+        updated_at: new Date().toISOString(),
+      }));
+
       const { error: upsertError } = await supabase
         .from(supabaseExpenseTable)
-        .upsert(payload, { onConflict: "id" });
+        .upsert(writePayload, { onConflict: "id" });
 
       if (upsertError) {
         console.warn("Supabase expense sync failed:", upsertError.message);
@@ -386,15 +399,22 @@ export default function App() {
     if (!supabase || !authReady || !session || !checklistLoaded) return;
 
     const payload = checklist.map((item) => checklistToRow(item, currentSavedBy));
-    const currentSignature = JSON.stringify(payload);
+    const currentSignature = JSON.stringify(
+      payload.map(({ updated_at: _updatedAt, ...row }) => row),
+    );
     const currentIds = checklist.map((item) => item.id);
     const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
     if (currentSignature === checklistSignatureRef.current && removedIds.length === 0) return;
 
     const timeout = window.setTimeout(async () => {
+      const writePayload = payload.map((row) => ({
+        ...row,
+        updated_at: new Date().toISOString(),
+      }));
+
       const { error: upsertError } = await supabase
         .from(supabaseChecklistTable)
-        .upsert(payload, { onConflict: "id" });
+        .upsert(writePayload, { onConflict: "id" });
 
       if (upsertError) {
         console.warn("Supabase checklist sync failed:", upsertError.message);
@@ -437,9 +457,14 @@ export default function App() {
     if (currentSignature === notesSignatureRef.current) return;
 
     const timeout = window.setTimeout(async () => {
+      const writePayload = {
+        ...payload,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from(supabaseNotesTable)
-        .upsert(payload, { onConflict: "trip_key" });
+        .upsert(writePayload, { onConflict: "trip_key" });
 
       if (error) {
         console.warn("Supabase notes sync failed:", error.message);
@@ -470,9 +495,10 @@ export default function App() {
     setSelectedGuide(buildGuideForItem(item));
   };
 
-  const handleSignIn = async (provider: "google" | "facebook") => {
+  const handleSignIn = async (provider: "google" | "facebook" | "github") => {
     if (!supabase) return;
 
+    setAuthError("");
     const redirectTo = `${window.location.origin}${window.location.pathname}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -482,14 +508,17 @@ export default function App() {
     });
 
     if (error) {
+      setAuthError(error.message);
       console.warn("Supabase sign-in failed:", error.message);
     }
   };
 
   const handleSignOut = async () => {
     if (!supabase) return;
+    setAuthError("");
     const { error } = await supabase.auth.signOut();
     if (error) {
+      setAuthError(error.message);
       console.warn("Supabase sign-out failed:", error.message);
     }
   };
@@ -582,6 +611,24 @@ export default function App() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
+      {!session && authReady && (
+        <div className="fixed inset-0 z-[4000] flex items-center justify-center bg-stone-950/60 px-4 no-print">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-serif font-bold text-[#0B3530]">Sign in required</h3>
+            <p className="mt-2 text-[14px] text-stone-600">
+              This shared trip space is protected. Sign in to browse the budget, map, notes, and checklist sections.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+            >
+              Open sign in
+            </button>
+          </div>
+        </div>
+      )}
+
         <Navigation
           activeTab={activeRoute}
           setActiveTab={navigateTo}
@@ -721,9 +768,10 @@ export default function App() {
       <AuthPanel
         open={showAuthModal}
         title={session ? "Manage your account" : "Sign in to sync your trip"}
-        description={session ? "Your cloud sync is active for budget and checklist data." : "Choose Google or Facebook to enable shared budget and checklist sync."}
+        description={session ? "Your cloud sync is active for budget and checklist data." : "Choose Google, GitHub, or Facebook to enable shared budget and checklist sync."}
         session={session}
         loading={!authReady}
+        errorMessage={authError}
         onClose={() => setShowAuthModal(false)}
         onSignIn={handleSignIn}
         onSignOut={handleSignOut}

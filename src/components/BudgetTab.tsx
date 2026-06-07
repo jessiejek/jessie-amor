@@ -2,7 +2,7 @@
 import { AlertTriangle, CreditCard, DollarSign, ListFilter, PiggyBank, PlusCircle, Trash, Utensils } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
-import { supabase } from "../lib/supabaseClient";
+import { supabase, supabaseExpenseTable, tripKey } from "../lib/supabase";
 
 type TransactionRow = {
   id: string;
@@ -89,6 +89,19 @@ export default function BudgetTab({
     };
 
     setExpenses((prev) => [...prev, newExp]);
+    setTransactions((prev) => [
+      ...prev,
+      {
+        id: newExp.id,
+        name: newExp.item,
+        date: `July ${newExp.day}`,
+        category: newExp.category,
+        method: newExp.paidWith,
+        user: newExp.savedByEmail ?? newExp.savedByUserId ?? null,
+        amount: newExp.amount,
+        created_at: new Date().toISOString(),
+      },
+    ]);
     setDesc("");
     setAmountText("");
     setAmountCurrency("RM");
@@ -101,12 +114,13 @@ export default function BudgetTab({
 
   const deleteTransaction = async (id: string) => {
     if (!canEdit) return;
-    const { error } = await supabase.from("budget_expenses").delete().eq("id", id);
+    const { error } = await supabase.from(supabaseExpenseTable).delete().eq("trip_key", tripKey).eq("id", id);
     if (error) {
       setTransactionsError(error.message);
       return;
     }
     setTransactions((prev) => prev.filter((item) => item.id !== id));
+    setExpenses((prev) => prev.filter((exp) => exp.id !== id));
   };
 
   const cashSpent = expenses
@@ -216,8 +230,10 @@ export default function BudgetTab({
       setTransactionsError("");
 
       const { data, error } = await supabase
-        .from("budget_expenses")
+        .from(supabaseExpenseTable)
         .select("*")
+        .eq("trip_key", tripKey)
+        .order("updated_at", { ascending: false })
         .order("day", { ascending: false })
         .order("item", { ascending: true });
 
@@ -520,7 +536,7 @@ export default function BudgetTab({
             {loadingTransactions ? (
               <p className="budget-registry-state">Loading...</p>
             ) : transactionsError ? (
-              <p className="budget-registry-state">No transactions found.</p>
+              <p className="budget-registry-state">{transactionsError}</p>
             ) : groupedTransactionDates.length === 0 ? (
               <p className="budget-registry-state">No transactions found.</p>
             ) : (

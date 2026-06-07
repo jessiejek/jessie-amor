@@ -113,6 +113,7 @@ type SupabaseMapRow = {
   data: MapItineraryData;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  updated_at: string;
 };
 
 export default function MapTab({ session: authSession, canEdit = false }: MapTabProps) {
@@ -274,6 +275,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
         data: itineraryData,
         saved_by_user_id: currentSavedBy?.userId ?? null,
         saved_by_email: currentSavedBy?.email ?? null,
+        updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from(supabaseMapTable).upsert(payload, { onConflict: "trip_key" });
 
