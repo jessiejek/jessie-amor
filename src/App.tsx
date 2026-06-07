@@ -718,7 +718,7 @@ export default function App() {
         />
 
         <main
-          className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
+          className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0 pt-[112px] md:pt-0"
           style={{
             transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
             transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",

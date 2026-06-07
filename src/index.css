@@ -12,12 +12,11 @@ body,
 #root {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 body {
+  overflow-x: clip;
   overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -383,12 +382,14 @@ textarea::placeholder {
   font-size: 0.875rem !important;
 }
 
-button,
-a,
-input,
-select,
-textarea {
-  touch-action: manipulation;
+@media (pointer: coarse) {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
 }
 
 @keyframes spin-slow {

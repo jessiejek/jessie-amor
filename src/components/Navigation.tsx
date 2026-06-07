@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   Copy,
@@ -109,6 +109,26 @@ export default function Navigation({
     };
   }, [showMoreDrawer]);
 
+  const [showCountdown, setShowCountdown] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 10) {
+        setShowCountdown(true);
+      } else if (currentScrollY > lastScrollY.current) {
+        setShowCountdown(false);
+      } else {
+        setShowCountdown(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -158,7 +178,7 @@ export default function Navigation({
   return (
     <>
       <header className="no-print">
-        <div className="md:hidden bg-[#1a3328] text-stone-100 px-[14px] pt-3 pb-[10px]">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-3 pb-[10px]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
@@ -189,15 +209,17 @@ export default function Navigation({
             </div>
           </div>
 
-          <div className="mt-[10px] flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
-            <div className="flex items-center gap-2 whitespace-nowrap leading-none">
-              <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-              <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
+          <div className={`overflow-hidden transition-all duration-300 ${showCountdown ? "max-h-[48px] mt-[10px] opacity-100" : "max-h-0 mt-0 opacity-0"}`}>
+            <div className="flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
+              <div className="flex items-center gap-2 whitespace-nowrap leading-none">
+                <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
+                <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
+              </div>
+
+              <div className="mx-2 h-6 w-px bg-white/15" />
+
+              <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
             </div>
-
-            <div className="mx-2 h-6 w-px bg-white/15" />
-
-            <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
           </div>
         </div>
 
