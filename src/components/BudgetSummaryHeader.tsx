@@ -70,7 +70,7 @@ export default function BudgetSummaryHeader({
       >
         {card.featured ? <div className="absolute -bottom-4 -right-4 h-16 w-16 rounded-full bg-[#18534C]/25" /> : null}
         <span
-          className={`block mb-1 text-[9px] font-mono font-bold uppercase tracking-widest ${
+          className={`block mb-1 text-[13px] font-mono font-bold uppercase tracking-widest ${
             card.featured ? "text-[#88B04B]" : "text-[#88B04B]/90"
           }`}
         >
@@ -79,7 +79,7 @@ export default function BudgetSummaryHeader({
         <h3 className={`text-xl font-bold font-serif ${card.featured ? "text-white" : "text-stone-800"}`}>
           {phpLabel}
         </h3>
-        <div className={`mt-1 text-[11px] font-mono ${card.featured ? "text-[#88B04B]" : "text-stone-400"}`}>
+        <div className={`mt-1 text-[13px] font-mono ${card.featured ? "text-[#88B04B]" : "text-stone-400"}`}>
           <p>
             {rmLabel} <span className="mx-1">|</span> {sgdLabel}
           </p>
@@ -102,18 +102,18 @@ export default function BudgetSummaryHeader({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowLiveSpends(!showLiveSpends)}
-              className="mr-2 rounded border-none bg-[#18534C]/15 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#0B3530] transition-colors hover:bg-[#18534C]/20 cursor-pointer"
+            className="mr-2 rounded border-none bg-[#18534C]/15 px-2 py-0.5 text-[13px] font-mono font-bold uppercase tracking-wider text-[#0B3530] transition-colors hover:bg-[#18534C]/20 cursor-pointer"
             >
               {showLiveSpends ? "Show Targets" : "Show Calculated Active"}
             </button>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400">
+            <span className="text-[13px] font-mono uppercase tracking-wider text-stone-400">
               Estimated total
             </span>
             <span className="text-lg font-serif font-bold text-[#0B3530]">
               PHP {Math.round(600 * exchangeRates.php).toLocaleString()} - {Math.round(903 * exchangeRates.php).toLocaleString()}
             </span>
           </div>
-          <div className="mt-0.5 text-[10px] font-mono leading-none text-stone-400">
+          <div className="mt-0.5 text-[13px] font-mono leading-none text-stone-400">
             RM 600.00 | {toSgd(600)} <span className="mx-1">|</span> RM 903.00 | {toSgd(903)}
           </div>
         </div>
@@ -125,11 +125,11 @@ export default function BudgetSummaryHeader({
 
       <div className="grid grid-cols-1 gap-4 mb-5 sm:grid-cols-2">
         <div className="relative overflow-hidden rounded-2xl border border-[#0B3530] bg-[#0B3530] p-4 text-white">
-          <span className="block mb-1 text-[9px] font-mono font-bold uppercase tracking-widest text-[#88B04B]">
-            TOTAL CASH OUTFLOW (Cash / Debit)
+          <span className="block mb-1 text-[13px] font-mono font-bold uppercase tracking-widest text-[#88B04B]">
+            CASH OUTFLOW
           </span>
           <h3 className="text-xl font-bold font-serif text-white">{toPhp(totalCashActual)}</h3>
-          <div className="mt-1 text-[11px] font-mono text-[#88B04B]">
+          <div className="mt-1 text-[13px] font-mono text-[#88B04B]">
             <p>
               RM {totalCashActual.toFixed(2)} <span className="mx-1">|</span> {toSgd(totalCashActual)}
             </p>
@@ -137,11 +137,11 @@ export default function BudgetSummaryHeader({
         </div>
 
         <div className="relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-4">
-          <span className="block mb-1 text-[9px] font-mono font-bold uppercase tracking-widest text-[#88B04B]/90">
-            CREDIT CARD SPENDS
+          <span className="block mb-1 text-[13px] font-mono font-bold uppercase tracking-widest text-[#88B04B]/90">
+            CC SPENDS
           </span>
           <h3 className="text-xl font-bold font-serif text-stone-800">{toPhp(totalCardActual)}</h3>
-          <div className="mt-1 text-[11px] font-mono text-stone-400">
+          <div className="mt-1 text-[13px] font-mono text-stone-400">
             <p>
               RM {totalCardActual.toFixed(2)} <span className="mx-1">|</span> {toSgd(totalCardActual)}
             </p>

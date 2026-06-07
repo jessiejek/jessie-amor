@@ -22,7 +22,7 @@ export default function Hero({ hero }: HeroProps) {
       </div>
 
       <div className="hero-info-card absolute bottom-4 left-4 max-w-lg rounded-2xl border border-white/50 bg-white/95 p-6 shadow-xl backdrop-blur-md md:bottom-8 md:left-8 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <span className="hero-eyebrow mb-2 block text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#88B04B] md:text-xs">
+        <span className="hero-eyebrow mb-2 block text-[13px] font-mono font-bold uppercase tracking-[0.25em] text-[#88B04B] md:text-sm">
           {hero.eyebrow}
         </span>
         <h2 className="hero-title text-xl font-serif font-bold leading-tight tracking-tight text-[#0B3530] md:text-3xl">
@@ -35,7 +35,7 @@ export default function Hero({ hero }: HeroProps) {
             {hero.meta.map((item) => (
               <span
                 key={item}
-                className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
+                className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[13px] font-medium text-stone-600"
               >
                 {item}
               </span>
@@ -43,7 +43,7 @@ export default function Hero({ hero }: HeroProps) {
           </div>
         ) : null}
         {hero.note.length > 0 ? (
-          <p className="hero-note mt-4 text-[11px] leading-relaxed text-stone-500 md:text-xs">
+          <p className="hero-note mt-4 text-[13px] leading-relaxed text-stone-500 md:text-sm">
             <RichText segments={hero.note} />
           </p>
         ) : null}

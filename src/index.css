@@ -16,8 +16,36 @@ body,
 
 body {
   overscroll-behavior-x: none;
+  font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+input,
+select,
+textarea {
+  font-size: 15px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-size: 14px;
+}
+
+.text-xs {
+  font-size: 0.875rem !important;
+}
+
+.text-sm {
+  font-size: 0.9375rem !important;
+}
+
+.text-\[10px\] {
+  font-size: 0.8125rem !important;
+}
+
+.text-\[11px\] {
+  font-size: 0.875rem !important;
 }
 
 button,
@@ -84,7 +112,7 @@ textarea {
   }
 
   .hero-eyebrow {
-    font-size: 9px !important;
+    font-size: 13px !important;
     letter-spacing: 0.1em !important;
     color: #0f6e56 !important;
     margin-bottom: 6px !important;
@@ -127,7 +155,7 @@ textarea {
 
   .legend-pill {
     gap: 4px !important;
-    font-size: 10px !important;
+    font-size: 13px !important;
     color: rgba(15, 23, 42, 0.65) !important;
     padding: 4px 10px !important;
   }
@@ -135,12 +163,6 @@ textarea {
   .legend-dot {
     width: 7px !important;
     height: 7px !important;
-  }
-
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
   }
 
   .budget-page {
@@ -171,7 +193,7 @@ textarea {
   }
 
   .budget-page .budget-summary-card > div:first-child > span:first-child {
-    font-size: 9px !important;
+    font-size: 13px !important;
     line-height: 1.1 !important;
     letter-spacing: 0.12em !important;
   }
@@ -184,7 +206,7 @@ textarea {
   }
 
   .budget-page .budget-summary-card > div:first-child > span:last-child {
-    font-size: 10px !important;
+    font-size: 13px !important;
     line-height: 1.1 !important;
     margin-top: 2px !important;
   }
@@ -217,7 +239,7 @@ textarea {
 
   .budget-page .budget-form-title,
   .budget-page .budget-registry-title {
-    font-size: 11px !important;
+    font-size: 15px !important;
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
     margin-bottom: 6px !important;
@@ -229,7 +251,7 @@ textarea {
   }
 
   .budget-page .budget-label {
-    font-size: 10px !important;
+    font-size: 14px !important;
     margin-bottom: 3px !important;
   }
 
@@ -239,7 +261,7 @@ textarea {
     padding-bottom: 0 !important;
     padding-left: 6px !important;
     padding-right: 6px !important;
-    font-size: 12px !important;
+    font-size: 15px !important;
   }
 
   .budget-page .budget-two-col {
@@ -256,7 +278,7 @@ textarea {
     margin-top: 6px !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    font-size: 12px !important;
+    font-size: 15px !important;
   }
 
   .budget-page .budget-category-panel {
@@ -265,7 +287,7 @@ textarea {
   }
 
   .budget-page .budget-category-title {
-    font-size: 10px !important;
+    font-size: 15px !important;
     margin-bottom: 4px !important;
   }
 
@@ -278,11 +300,11 @@ textarea {
   }
 
   .budget-page .budget-category-row-head {
-    font-size: 12px !important;
+    font-size: 16px !important;
   }
 
   .budget-page .budget-category-row-head span {
-    font-size: 12px !important;
+    font-size: 16px !important;
   }
 
   .budget-page .budget-category-bar {
@@ -308,7 +330,7 @@ textarea {
   }
 
   .budget-page .budget-registry-title {
-    font-size: 12px !important;
+    font-size: 15px !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
     margin-bottom: 0 !important;
@@ -317,7 +339,7 @@ textarea {
   }
 
   .budget-page .budget-registry-description {
-    font-size: 9px !important;
+    font-size: 15px !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -340,7 +362,7 @@ textarea {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     height: 26px !important;
-    font-size: 11px !important;
+    font-size: 14px !important;
   }
 
   .budget-page .budget-registry-list {
@@ -361,14 +383,14 @@ textarea {
   }
 
   .budget-page .budget-transaction-title {
-    font-size: 11px !important;
+    font-size: 15px !important;
     line-height: 1.15 !important;
   }
 
   .budget-page .budget-transaction-meta {
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    font-size: 9px !important;
+    font-size: 14px !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -379,7 +401,7 @@ textarea {
   }
 
   .budget-page .budget-transaction-amount {
-    font-size: 11px !important;
+    font-size: 15px !important;
     line-height: 1.1 !important;
     text-align: right !important;
     flex-shrink: 0 !important;
@@ -396,6 +418,10 @@ textarea {
     margin-bottom: 6px !important;
     padding: 8px 10px !important;
     border-radius: 10px !important;
+  }
+
+  .budget-page .budget-registry-list .text-xs {
+    font-size: 0.9375rem !important;
   }
 }
 

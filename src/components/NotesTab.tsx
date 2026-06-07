@@ -107,11 +107,11 @@ export default function NotesTab({
         <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col h-fit">
           <div className="flex items-center gap-2 border-b border-stone-100 pb-3 mb-4">
             <ClipboardList className="text-[#0B3530]" size={18} />
-            <h3 className="text-base font-serif font-bold text-[#0B3530]">Trip Checklist</h3>
+            <h3 className="text-[15px] font-serif font-bold text-[#0B3530]">Trip Checklist</h3>
           </div>
 
           {!canEdit && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
               Sign in to add, edit, or mark checklist items.
             </div>
           )}
@@ -123,13 +123,13 @@ export default function NotesTab({
               onChange={(e) => setNewCheckItem(e.target.value)}
               placeholder="Add new checklist task..."
               disabled={!canEdit}
-              className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
+              className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530]"
               maxLength={80}
             />
             <button
               type="submit"
               disabled={!canEdit}
-              className="px-3 py-1.5 bg-[#0B3530] text-[#88B04B] hover:text-white hover:bg-[#18534C] text-xs font-semibold rounded-lg transition-colors cursor-pointer border-none"
+              className="px-3 py-1.5 bg-[#0B3530] text-[#88B04B] hover:text-white hover:bg-[#18534C] text-[14px] font-semibold rounded-lg transition-colors cursor-pointer border-none"
             >
               Add
             </button>
@@ -150,13 +150,13 @@ export default function NotesTab({
                 }`}>
                   <CheckCircle2 size={12} className="stroke-[3px]" />
                 </div>
-                <span className={`text-xs font-sans leading-relaxed ${
+                <span className={`text-[14px] font-sans leading-relaxed ${
                   item.completed ? "line-through text-stone-400" : "text-stone-700"
                 }`}>
                   {item.text}
                 </span>
                 {(item.savedByEmail || item.savedByUserId) && (
-                  <span className="mt-0.5 text-[9px] font-mono uppercase tracking-wider text-stone-400">
+                  <span className="mt-0.5 text-[14px] font-mono uppercase tracking-wider text-stone-400">
                     Saved by {formatSavedBy(item.savedByEmail, item.savedByUserId)}
                   </span>
                 )}
@@ -172,7 +172,7 @@ export default function NotesTab({
           <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs">
             <div className="flex items-center gap-2 border-b border-stone-100 pb-3 mb-4">
               <PenTool className="text-[#0B3530]" size={18} />
-              <h3 className="text-base font-serif font-bold text-[#0B3530]">Add Travel Scratch Note</h3>
+              <h3 className="text-[15px] font-serif font-bold text-[#0B3530]">Add Travel Scratch Note</h3>
             </div>
 
             <form onSubmit={handleAddNote} className="space-y-3 font-sans">
@@ -183,7 +183,7 @@ export default function NotesTab({
                 onChange={(e) => setNoteTitle(e.target.value)}
                 placeholder="Note Title (e.g., Souvenir Ideas)"
                 disabled={!canEdit}
-                className="col-span-2 px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530]"
+                className="col-span-2 px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530]"
                 required
               />
                 
@@ -191,7 +191,7 @@ export default function NotesTab({
                   value={noteCategory}
                   onChange={(e) => setNoteCategory(e.target.value as any)}
                   disabled={!canEdit}
-                  className="px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
+                  className="px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
                 >
                   <option value="General">General Info</option>
                   <option value="Rule">Strict Rule</option>
@@ -205,7 +205,7 @@ export default function NotesTab({
                 placeholder="Write down sights to seek, shops to visit, or custom budgets ideas..."
                 rows={3}
                 disabled={!canEdit}
-                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs outline-none focus:border-[#0B3530] resize-none"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530] resize-none"
                 required
               />
 
@@ -213,7 +213,7 @@ export default function NotesTab({
                 <button
                   type="submit"
                   disabled={!canEdit}
-                  className="px-4 py-2 bg-[#0B3530] text-white hover:bg-[#18534C] text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer border-none shadow-xs"
+                  className="px-4 py-2 bg-[#0B3530] text-white hover:bg-[#18534C] text-[14px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer border-none shadow-xs"
                 >
                   <Plus size={14} /> Add Scratch Note
                 </button>
@@ -230,7 +230,7 @@ export default function NotesTab({
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">
-                    <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-mono font-bold border ${getCatBadgeStyles(note.category)}`}>
+                    <span className={`px-2 py-0.5 rounded text-[14px] uppercase tracking-wider font-mono font-bold border ${getCatBadgeStyles(note.category)}`}>
                       {note.category}
                     </span>
                     <button
@@ -242,13 +242,13 @@ export default function NotesTab({
                       <Trash2 size={13} />
                     </button>
                   </div>
-                  <h4 className="text-xs font-bold text-stone-800 font-sans mt-1 line-clamp-1">{note.title}</h4>
-                  <p className="text-[11px] text-stone-500 font-sans leading-relaxed mt-2 line-clamp-4">
+                  <h4 className="text-[14px] font-bold text-stone-800 font-sans mt-1 line-clamp-1">{note.title}</h4>
+                  <p className="text-[13px] text-stone-500 font-sans leading-relaxed mt-2 line-clamp-4">
                     {note.content}
                   </p>
                 </div>
 
-                <div className="border-t border-stone-100 pt-2 text-[9px] font-mono text-stone-400 mt-2 flex flex-col gap-1">
+                <div className="border-t border-stone-100 pt-2 text-[14px] font-mono text-stone-400 mt-2 flex flex-col gap-1">
                   <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
                   {(note.savedByEmail || note.savedByUserId) && (
                     <span>SAVED BY: {formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>

@@ -12,7 +12,7 @@ export default function Legend({ items }: LegendProps) {
         {items.map((item) => (
           <div
             key={item.label}
-            className="legend-pill inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 text-[10px] font-semibold tracking-wide text-stone-600 shadow-xs"
+          className="legend-pill inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 text-[13px] font-semibold tracking-wide text-stone-600 shadow-xs"
           >
             <span className="legend-dot h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
             {item.label}

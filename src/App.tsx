@@ -525,42 +525,42 @@ export default function App() {
 
   const mobileAccountCard = session ? (
     <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
-      <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#7ec96b]/40 bg-[#7ec96b]/20 text-[12px] font-semibold text-[#7ec96b]">
-            JA
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-medium text-[#1a3328]">Jessie Jayr</div>
-            <div className="truncate text-[10px] text-[#888]">{session.user.email ?? "Signed in"}</div>
-          </div>
-        </div>
+          <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#7ec96b]/40 bg-[#7ec96b]/20 text-[14px] font-semibold text-[#7ec96b]">
+                JA
+              </div>
+              <div className="min-w-0">
+            <div className="text-[14px] font-medium text-[#1a3328]">Jessie Jayr</div>
+            <div className="truncate text-[14px] text-[#888]">{session.user.email ?? "Signed in"}</div>
+              </div>
+            </div>
 
-        <div className="mt-3 border-t border-[#eee] pt-2">
-          <button
-            type="button"
-            onClick={handleShareTrip}
-            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#555]"
-          >
-            <Share2 size={14} />
-            Share trip
-          </button>
-          <button
-            type="button"
-            onClick={handleMobilePrint}
-            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#555]"
-          >
-            <Printer size={14} />
-            Print
-          </button>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#d94f4f]"
-          >
-            <LogOut size={14} />
-            Log out
-          </button>
+            <div className="mt-3 border-t border-[#eee] pt-2">
+              <button
+                type="button"
+                onClick={handleShareTrip}
+                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
+              >
+                <Share2 size={14} />
+                Share trip
+              </button>
+              <button
+                type="button"
+                onClick={handleMobilePrint}
+                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
+              >
+                <Printer size={14} />
+                Print
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#d94f4f]"
+              >
+                <LogOut size={14} />
+                Log out
+              </button>
         </div>
       </div>
     </section>
@@ -568,11 +568,11 @@ export default function App() {
     <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
       <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
         <div className="text-[13px] font-medium text-[#1a3328]">Not signed in</div>
-        <div className="mt-1 text-[10px] text-[#888]">Use the Login button above to sync your trip data.</div>
+        <div className="mt-1 text-[13px] text-[#888]">Use the Login button above to sync your trip data.</div>
         <button
           type="button"
           onClick={() => setShowAuthModal(true)}
-          className="mt-3 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+          className="mt-3 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C]"
         >
           Log in
         </button>
@@ -613,7 +613,7 @@ export default function App() {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
-                  <p className="mt-1 text-xs font-sans text-stone-500">
+                  <p className="mt-1 text-[14px] font-sans text-stone-500">
                     Code 1's itinerary reminders, folded into Code 2's visual system.
                   </p>
                 </div>
@@ -631,7 +631,7 @@ export default function App() {
                   <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">
                     Pro-Traveler Insights
                   </h3>
-                  <p className="text-xs text-stone-500 font-sans mt-1">
+                  <p className="text-[14px] text-stone-500 font-sans mt-1">
                     Smart hacks and safety strategies recommended by our logistics team
                   </p>
                 </div>
@@ -642,7 +642,7 @@ export default function App() {
                       <CreditCard size={20} />
                     </div>
                     <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Touch 'n Go Card</h4>
-                    <p className="text-xs text-stone-500 font-sans leading-relaxed">
+                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
                       The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.
                     </p>
                   </div>
@@ -652,7 +652,7 @@ export default function App() {
                       <Ticket size={20} />
                     </div>
                     <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Advance Booking</h4>
-                    <p className="text-xs text-stone-500 font-sans leading-relaxed">
+                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
                       Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.
                     </p>
                   </div>
@@ -662,7 +662,7 @@ export default function App() {
                       <Utensils size={20} />
                     </div>
                     <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Street Food Strategy</h4>
-                    <p className="text-xs text-stone-500 font-sans leading-relaxed">
+                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
                       At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.
                     </p>
                   </div>
@@ -685,10 +685,10 @@ export default function App() {
                 <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
                   <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
                   <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
-                  <p className="text-[10px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
+                  <p className="text-[13px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
                     INTERACTIVE MAP NOW ACTIVE
                   </p>
-                  <p className="text-[10px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
+                  <p className="text-[13px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
                 </div>
               </div>
             </section>
@@ -733,18 +733,18 @@ export default function App() {
       <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(8rem+env(safe-area-inset-bottom))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-lg font-serif font-bold text-white leading-tight mt-2 max-w-xs">
+            <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">
               Curating unforgettable Asian experiences.
             </h3>
-            <p className="text-xs text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
+            <p className="text-[14px] text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
               {itinerary.footer}
             </p>
           </div>
 
           <div className="md:col-span-2 grid grid-cols-2 gap-6">
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
-              <ul className="space-y-2 text-xs font-sans">
+              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
+              <ul className="space-y-2 text-[14px] font-sans">
                 <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
                 <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
                 <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
@@ -753,8 +753,8 @@ export default function App() {
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
-              <ul className="space-y-2 text-xs font-sans">
+              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
+              <ul className="space-y-2 text-[14px] font-sans">
                 <li><span className="text-stone-400">Transport Guide</span></li>
                 <li><span className="text-stone-400">Dining Notes</span></li>
                 <li><span className="text-stone-400">Safety Tips</span></li>
@@ -763,7 +763,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[10px] font-mono text-stone-500">
+        <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-stone-500">
           <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
           <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
             <span className="hover:text-stone-400">Privacy</span>

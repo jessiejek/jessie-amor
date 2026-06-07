@@ -85,10 +85,10 @@ const escapeHtml = (value: string) =>
 
 const renderPopup = (destination: MapDestination, order: number) => `
   <div style="min-width: 180px; max-width: 220px;">
-    <div style="font-size: 11px; font-family: monospace; letter-spacing: 0.12em; color: #88B04B; text-transform: uppercase;">Stop ${order}</div>
+    <div style="font-size: 13px; font-family: monospace; letter-spacing: 0.12em; color: #88B04B; text-transform: uppercase;">Stop ${order}</div>
     <div style="font-weight: 700; color: #0B3530; margin-top: 4px;">${escapeHtml(destination.name)}</div>
-    <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">${escapeHtml(destination.time)}</div>
-    <div style="font-size: 12px; color: #374151; line-height: 1.45; margin-top: 8px;">${escapeHtml(destination.notes)}</div>
+    <div style="font-size: 14px; color: #6B7280; margin-top: 4px;">${escapeHtml(destination.time)}</div>
+    <div style="font-size: 14px; color: #374151; line-height: 1.45; margin-top: 8px;">${escapeHtml(destination.notes)}</div>
   </div>
 `;
 

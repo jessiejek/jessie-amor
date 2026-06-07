@@ -161,11 +161,11 @@ export default function Navigation({
         <div className="md:hidden bg-[#1a3328] text-stone-100 px-[14px] pt-3 pb-[10px]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
+              <div className="text-[13px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
                 TRAVEL ITINERARY
               </div>
               <div className="mt-1 flex min-w-0 items-center gap-2">
-                <h1 className="min-w-0 text-[14px] font-semibold leading-[1.3] text-white">
+                <h1 className="min-w-0 text-[15px] font-semibold leading-[1.3] text-white">
                   <span className="block truncate">{HEADER_TITLE}</span>
                 </h1>
               </div>
@@ -192,12 +192,12 @@ export default function Navigation({
           <div className="mt-[10px] flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
             <div className="flex items-center gap-2 whitespace-nowrap leading-none">
               <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-              <span className="text-[9px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
+              <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
             </div>
 
             <div className="mx-2 h-6 w-px bg-white/15" />
 
-            <div className="text-[12px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+            <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export default function Navigation({
                 <div className="text-[10px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
                   TRAVEL ITINERARY
                 </div>
-                <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[17px] font-semibold leading-tight text-white">
+                <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[15px] font-semibold leading-tight text-white">
                   <span>{HEADER_TITLE}</span>
                 </h1>
               </div>
@@ -269,12 +269,12 @@ export default function Navigation({
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 whitespace-nowrap leading-none">
                     <span className="text-[20px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-                    <span className="text-[9px] uppercase tracking-[0.07em] leading-none text-white/50">
+                    <span className="text-[13px] uppercase tracking-[0.07em] leading-none text-white/50">
                       DAYS LEFT
                     </span>
                   </div>
                   <div className="h-6 w-px bg-white/15" />
-                  <div className="text-[12px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+                  <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
                 </div>
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function Navigation({
                 <button
                   key={tab.label}
                   onClick={() => handleNavigate(tab.path)}
-                  className={`flex flex-col items-center gap-[3px] py-[7px] text-[9px] transition-colors ${
+                className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${
                     isActive ? "text-[#7ec96b]" : "text-white/50"
                   }`}
                 >
@@ -302,7 +302,7 @@ export default function Navigation({
 
             <button
               onClick={() => setShowMoreDrawer(true)}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[9px] transition-colors ${
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${
                 isMoreActive ? "text-[#7ec96b]" : "text-white/50"
               }`}
               aria-expanded={showMoreDrawer}
@@ -334,8 +334,8 @@ export default function Navigation({
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
               <div>
-                <p className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#7ec96b]/70">More</p>
-                <h2 className="mt-1 text-[16px] font-semibold text-white">Navigation</h2>
+                <p className="text-[13px] font-mono uppercase tracking-[0.22em] text-[#7ec96b]/70">More</p>
+                <h2 className="mt-1 text-[15px] font-semibold text-white">Navigation</h2>
               </div>
               <button
                 type="button"
@@ -392,7 +392,7 @@ export default function Navigation({
                 </button>
               ) : (
                 <div className="flex items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.04)] px-3 py-[10px]">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-[12px] font-semibold text-white">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-[14px] font-semibold text-white">
                     {userAvatar ? (
                       <img
                         src={userAvatar}
@@ -406,10 +406,10 @@ export default function Navigation({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-medium leading-tight text-white">
+                    <div className="truncate text-[14px] font-medium leading-tight text-white">
                       {userDisplayName}
                     </div>
-                    <div className="truncate text-[11px] leading-tight text-white/50">{userEmail}</div>
+                    <div className="truncate text-[14px] leading-tight text-white/50">{userEmail}</div>
                   </div>
 
                   <button
