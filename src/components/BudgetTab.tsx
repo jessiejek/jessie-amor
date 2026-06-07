@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CreditCard, DollarSign, ListFilter, PlusCircle } from "lucide-react";
+import { AlertTriangle, BedDouble, BusFront, Camera, CreditCard, DollarSign, ListFilter, PlusCircle, Trash2, UtensilsCrossed, WalletCards } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod } from "../types";
 import { supabase, supabaseExpenseTable, tripKey } from "../lib/supabase";
@@ -220,6 +220,21 @@ export default function BudgetTab({
     return value === "Cash" || value === "Debit"
       ? "budget-pill budget-pill-cash"
       : "budget-pill budget-pill-card";
+  };
+
+  const getCategoryIcon = (value: string) => {
+    switch (value.toLowerCase()) {
+      case "food":
+        return <UtensilsCrossed size={16} aria-hidden="true" />;
+      case "transport":
+        return <BusFront size={16} aria-hidden="true" />;
+      case "accommodation":
+        return <BedDouble size={16} aria-hidden="true" />;
+      case "sightseeing":
+        return <Camera size={16} aria-hidden="true" />;
+      default:
+        return <WalletCards size={16} aria-hidden="true" />;
+    }
   };
 
   useEffect(() => {
@@ -583,24 +598,33 @@ export default function BudgetTab({
                       {filteredGroupedTransactions.groups[dateKey].map((tx) => (
                         <article key={tx.id} className="budget-transaction-card">
                           <div className="budget-transaction-icon">
-                            <i className="ti ti-tools-kitchen-2" aria-hidden="true" />
+                            {getCategoryIcon(tx.category)}
                           </div>
 
                           <div className="budget-transaction-body">
-                            <h4 className="budget-transaction-name">{tx.name}</h4>
-                            <div className="budget-transaction-meta">
-                              <span className="budget-transaction-date">{tx.date}</span>
-                              <span className="budget-transaction-dot" aria-hidden="true">·</span>
-                              <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
-                              <span className="budget-transaction-dot" aria-hidden="true">·</span>
-                              <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                            <div className="budget-transaction-top">
+                              <h4 className="budget-transaction-name">{tx.name}</h4>
                             </div>
-                            <div className="budget-transaction-time">{tx.time}</div>
-                            <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
+
+                            <div className="budget-transaction-middle">
+                              <div className="budget-transaction-badges">
+                                <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
+                                <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                              </div>
+                              <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
+                            </div>
+
+                            <div className="budget-transaction-bottom">
+                              <div className="budget-transaction-datetime">
+                                <span className="budget-transaction-date">{tx.date}</span>
+                                <span className="budget-transaction-dot" aria-hidden="true">|</span>
+                                <span className="budget-transaction-time">{tx.time}</span>
+                              </div>
+                              <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
+                            </div>
                           </div>
 
-                          <div className="budget-transaction-right">
-                            <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
+                          <div className="budget-transaction-actions">
                             <button
                               type="button"
                               onClick={() => deleteTransaction(tx.id)}
@@ -609,7 +633,7 @@ export default function BudgetTab({
                               title="Delete transaction"
                               aria-label="Delete transaction"
                             >
-                              <i className="ti ti-trash" aria-hidden="true" />
+                              <Trash2 size={16} aria-hidden="true" />
                             </button>
                           </div>
                         </article>

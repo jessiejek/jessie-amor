@@ -147,78 +147,104 @@ textarea::placeholder {
   background: linear-gradient(180deg, #ffffff 0%, #fcfdfc 100%);
   border: 1px solid #e7ece8;
   border-radius: 18px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   margin-bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
 .budget-transaction-icon {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  border-radius: 14px;
-  background: #fdf3e7;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #fff7ef 0%, #fff2e2 100%);
   color: #d97240;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
-}
-
-.budget-transaction-icon i {
-  font-size: 18px;
-  line-height: 1;
+  border: 1px solid #f3e2cf;
 }
 
 .budget-transaction-body {
-  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.budget-transaction-top {
   min-width: 0;
 }
 
 .budget-transaction-name {
-  margin: 0 0 5px;
-  font-size: 16px;
-  font-weight: 600;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
   color: #111827;
   line-height: 1.2;
+  word-break: break-word;
 }
 
-.budget-transaction-meta {
+.budget-transaction-middle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.budget-transaction-badges {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   min-width: 0;
+}
+
+.budget-transaction-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.budget-transaction-datetime {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .budget-transaction-date,
 .budget-transaction-user {
   font-size: 12px;
   color: #9ca3af;
-  white-space: nowrap;
   flex-shrink: 0;
 }
 
 .budget-transaction-user-line {
-  margin-top: 6px;
   font-size: 12px;
   color: #9ca3af;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
 .budget-transaction-time {
-  margin-top: 2px;
   font-size: 11px;
   color: #6b7280;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
 }
 
 .budget-transaction-dot {
@@ -273,24 +299,26 @@ textarea::placeholder {
   color: #667085;
 }
 
-.budget-transaction-right {
+.budget-transaction-actions {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: flex-end;
   flex-shrink: 0;
+  padding-top: 1px;
 }
 
 .budget-transaction-amount {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #dc2626;
   white-space: nowrap;
+  text-align: right;
 }
 
 .budget-transaction-delete {
   border: 0;
   background: transparent;
-  color: #d1d5db;
+  color: #c0cad7;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -672,57 +700,88 @@ textarea {
   }
 
   .budget-page .budget-transaction-meta {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    min-width: 0 !important;
-    font-size: 12px !important;
-    line-height: 1.1 !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    gap: 5px !important;
-    margin-top: 1px !important;
+    display: none !important;
+  }
+
+  .budget-page .budget-transaction-card {
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    align-items: start !important;
   }
 
   .budget-page .budget-registry-list {
     gap: 6px !important;
   }
 
-  .budget-page .budget-transaction-card {
-    display: grid !important;
-    grid-template-columns: 42px minmax(0, 1fr) auto !important;
-    gap: 10px !important;
-    padding: 12px !important;
-    border-radius: 16px !important;
-    align-items: center !important;
-  }
-
   .budget-page .budget-transaction-icon {
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 12px !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 11px !important;
+    font-size: 16px !important;
   }
 
   .budget-page .budget-transaction-body {
     min-width: 0 !important;
+    display: grid !important;
+    gap: 6px !important;
+  }
+
+  .budget-page .budget-transaction-top {
+    margin-bottom: 0 !important;
   }
 
   .budget-page .budget-transaction-name {
     font-size: 15px !important;
-    line-height: 1.15 !important;
-    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
+
+  .budget-page .budget-transaction-middle {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .budget-page .budget-transaction-badges {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+  }
+
+  .budget-page .budget-transaction-bottom {
+    display: grid !important;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .budget-page .budget-transaction-datetime {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-wrap: wrap !important;
   }
 
   .budget-page .budget-transaction-time {
     font-size: 10px !important;
-    margin-top: 1px !important;
+    margin-top: 0 !important;
   }
 
-  .budget-page .budget-transaction-right {
+  .budget-page .budget-transaction-user-line {
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  .budget-page .budget-transaction-actions {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: flex-end !important;
-    gap: 6px !important;
     min-width: max-content !important;
   }
 
@@ -731,7 +790,6 @@ textarea {
     line-height: 1.1 !important;
     text-align: right !important;
     flex-shrink: 0 !important;
-    margin-left: 0 !important;
   }
 
   .budget-page .budget-transaction-delete {
