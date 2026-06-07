@@ -1,6 +1,7 @@
 import React from "react";
 import type { HeroData } from "../data/code1Itinerary";
 import RichText from "./RichText";
+import heroImage from "../assets/images/malaysia_singapore_hero_019e9d4d.png";
 
 interface HeroProps {
   hero: HeroData;
@@ -11,8 +12,8 @@ export default function Hero({ hero }: HeroProps) {
     <div className="hero-intro-section relative w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-2 no-print bg-stone-50">
       <div className="hero-image-wrapper group relative overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/6] bg-stone-200 shadow-lg">
         <img
-          src="/src/assets/images/kl_skyline_1780754501759.png"
-          alt="Kuala Lumpur Skyline with Petronas Twin Towers"
+          src={heroImage}
+          alt="Malaysia and Singapore skyline at sunset"
           className="hero-image absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.01]"
           referrerPolicy="no-referrer"
         />
