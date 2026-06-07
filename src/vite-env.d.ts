@@ -7,9 +7,15 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_CHECKLIST_TABLE: string;
   readonly VITE_SUPABASE_MAP_TABLE: string;
   readonly VITE_SUPABASE_NOTES_TABLE: string;
+  readonly VITE_SUPABASE_DIARY_TABLE: string;
+  readonly VITE_SUPABASE_DIARY_BUCKET: string;
   readonly VITE_TRIP_KEY: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+declare module "virtual:pwa-register" {
+  export function registerSW(options?: { immediate?: boolean }): () => void;
 }

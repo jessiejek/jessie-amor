@@ -7,6 +7,7 @@ This app uses Supabase for:
 - Shared trip checklist sync
 - Shared trip map sync
 - Shared trip scratch notes sync
+- Shared trip diary sync
 
 ## 1) Enable Auth Providers
 
@@ -29,6 +30,8 @@ VITE_SUPABASE_EXPENSES_TABLE="budget_expenses"
 VITE_SUPABASE_CHECKLIST_TABLE="trip_checklist_items"
 VITE_SUPABASE_MAP_TABLE="trip_map_itineraries"
 VITE_SUPABASE_NOTES_TABLE="trip_scratch_notes"
+VITE_SUPABASE_DIARY_TABLE="trip_diary_entries"
+VITE_SUPABASE_DIARY_BUCKET="trip-diary-photos"
 VITE_TRIP_KEY="jessie-amor-malaysia-singapore"
 ```
 
@@ -189,10 +192,98 @@ create policy "Authenticated users can delete scratch notes"
   on public.trip_scratch_notes
   for delete
   using (auth.role() = 'authenticated');
+
+-- Diary bucket and table
+insert into storage.buckets (id, name, public)
+values ('trip-diary-photos', 'trip-diary-photos', false)
+on conflict (id) do update
+set name = excluded.name,
+    public = excluded.public;
+
+create table if not exists public.trip_diary_entries (
+  id text primary key,
+  trip_key text not null,
+  title text not null,
+  description text not null,
+  type text not null,
+  rating integer not null check (rating between 1 and 5),
+  date_visited date,
+  location_name text,
+  city_or_country text,
+  tags text[] not null default '{}',
+  would_revisit boolean not null default false,
+  photo_path text,
+  saved_by_user_id text,
+  saved_by_email text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists trip_diary_entries_trip_key_idx
+  on public.trip_diary_entries (trip_key);
+
+create index if not exists trip_diary_entries_type_idx
+  on public.trip_diary_entries (type);
+
+create index if not exists trip_diary_entries_rating_idx
+  on public.trip_diary_entries (rating);
+
+alter table public.trip_diary_entries enable row level security;
+
+drop policy if exists "Authenticated users can read diary entries" on public.trip_diary_entries;
+create policy "Authenticated users can read diary entries"
+  on public.trip_diary_entries
+  for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can write diary entries" on public.trip_diary_entries;
+create policy "Authenticated users can write diary entries"
+  on public.trip_diary_entries
+  for insert
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can update diary entries" on public.trip_diary_entries;
+create policy "Authenticated users can update diary entries"
+  on public.trip_diary_entries
+  for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can delete diary entries" on public.trip_diary_entries;
+create policy "Authenticated users can delete diary entries"
+  on public.trip_diary_entries
+  for delete
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can read diary photos" on storage.objects;
+create policy "Authenticated users can read diary photos"
+  on storage.objects
+  for select
+  using (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can upload diary photos" on storage.objects;
+create policy "Authenticated users can upload diary photos"
+  on storage.objects
+  for insert
+  with check (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can update diary photos" on storage.objects;
+create policy "Authenticated users can update diary photos"
+  on storage.objects
+  for update
+  using (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated')
+  with check (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can delete diary photos" on storage.objects;
+create policy "Authenticated users can delete diary photos"
+  on storage.objects
+  for delete
+  using (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated');
 ```
 
-## 4) Notes
+## 5) Notes
 
 - The app uses `VITE_TRIP_KEY` so both travelers sync to the same trip record.
 - Budget, checklist, map, and scratch notes now cache locally in the browser. When a signed-in device is online, those changes sync to Supabase automatically.
+- Diary entries sync the same way, with private photo uploads stored in the `trip-diary-photos` bucket using signed URLs.
 - If you add more trip sections later, reuse the same `trip_key` pattern.

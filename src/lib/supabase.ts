@@ -7,6 +7,8 @@ export const supabaseExpenseTable = import.meta.env.VITE_SUPABASE_EXPENSES_TABLE
 export const supabaseChecklistTable = import.meta.env.VITE_SUPABASE_CHECKLIST_TABLE || "trip_checklist_items";
 export const supabaseMapTable = import.meta.env.VITE_SUPABASE_MAP_TABLE || "trip_map_itineraries";
 export const supabaseNotesTable = import.meta.env.VITE_SUPABASE_NOTES_TABLE || "trip_scratch_notes";
+export const supabaseDiaryTable = import.meta.env.VITE_SUPABASE_DIARY_TABLE || "trip_diary_entries";
+export const supabaseDiaryBucket = import.meta.env.VITE_SUPABASE_DIARY_BUCKET || "trip-diary-photos";
 export const tripKey = import.meta.env.VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 

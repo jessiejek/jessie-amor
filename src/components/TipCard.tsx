@@ -4,6 +4,7 @@ import RichText from "./RichText";
 
 interface TipCardProps {
   tip: TipCardData;
+  key?: React.Key;
 }
 
 export default function TipCard({ tip }: TipCardProps) {

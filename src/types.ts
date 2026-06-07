@@ -2,6 +2,14 @@ export type ExpenseCategory = "Transport" | "Accommodation" | "Food" | "Sightsee
 export type PaymentMethod = "Cash" | "Debit" | "Credit Card";
 export type ExpenseCurrency = "RM" | "PHP" | "SGD";
 export type SyncStatus = "synced" | "pending";
+export type DiaryEntryType =
+  | "Food"
+  | "Landmark"
+  | "Hotel"
+  | "Transport"
+  | "Shopping"
+  | "Moment"
+  | "Other";
 
 export interface Expense {
   id: string;
@@ -71,5 +79,25 @@ export interface ChecklistItem {
   completed: boolean;
   savedByUserId?: string;
   savedByEmail?: string;
+  syncStatus?: SyncStatus;
+}
+
+export interface DiaryEntry {
+  id: string;
+  title: string;
+  description: string;
+  type: DiaryEntryType;
+  rating: number;
+  dateVisited: string;
+  locationName: string;
+  cityOrCountry?: string;
+  tags: string[];
+  wouldRevisit: boolean;
+  photoPath?: string;
+  photoUrl?: string;
+  savedByUserId?: string;
+  savedByEmail?: string;
+  createdAt: string;
+  updatedAt?: string;
   syncStatus?: SyncStatus;
 }

@@ -9,6 +9,7 @@ import {
   LogOut,
   Map as MapIcon,
   Menu,
+  BookOpen,
   NotebookText,
   Printer,
   Share2,
@@ -64,6 +65,7 @@ const navItems: NavTab[] = [
   { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true },
   { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true },
+  { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: false },
 ];
 
 export default function Navigation({
@@ -144,6 +146,7 @@ export default function Navigation({
   };
 
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
+  const desktopNavItems = navItems;
   const bottomNavItems = navItems.filter((tab) => tab.showInBottom);
   const bottomNavPaths = bottomNavItems.map((tab) => tab.path);
   const isMoreActive = showMoreDrawer || !bottomNavPaths.includes(activeTab);
@@ -266,7 +269,7 @@ export default function Navigation({
 
             <div className="flex items-center justify-between gap-4 pt-2.5 pb-[10px]">
               <nav className="flex items-center gap-2 whitespace-nowrap">
-                {bottomNavItems.map((tab) => (
+                {desktopNavItems.map((tab) => (
                   <button
                     key={tab.label}
                     onClick={() => setActiveTab(tab.path)}

@@ -56,6 +56,11 @@ export type DaySectionData = {
   title: string;
   budgetLabel: string;
   items: TimelineItemData[];
+  images?: {
+    title: string;
+    url: string;
+    label: string;
+  }[];
 };
 
 export type HeroData = {

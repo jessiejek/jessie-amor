@@ -5,16 +5,19 @@ import {
   buildGuideForItem,
   selectedItinerary,
   type DestinationGuide,
+  type TipCardData,
   type TimelineItemData,
 } from "./data/code1Itinerary";
 import type { MapItineraryData } from "./data/mapItinerary";
-import { Expense, TravelNote, ChecklistItem, type SyncStatus } from "./types";
+import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus } from "./types";
 import {
   hasSupabaseConfig,
   supabase,
   supabaseExpenseTable,
   supabaseChecklistTable,
   supabaseNotesTable,
+  supabaseDiaryTable,
+  supabaseDiaryBucket,
   tripKey,
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
@@ -26,6 +29,7 @@ import DailyItineraryView from "./components/DailyItineraryView";
 import BudgetTab from "./components/BudgetTab";
 import MapTab from "./components/MapTab";
 import NotesTab from "./components/NotesTab";
+import DiaryTab from "./components/DiaryTab";
 import Legend from "./components/Legend";
 import AlertBox from "./components/AlertBox";
 import TipCard from "./components/TipCard";
@@ -64,6 +68,25 @@ type SupabaseNotesRow = {
   notes: TravelNote[];
   saved_by_user_id: string | null;
   saved_by_email: string | null;
+  updated_at: string;
+};
+
+type SupabaseDiaryRow = {
+  id: string;
+  trip_key: string;
+  title: string;
+  description: string;
+  type: DiaryEntry["type"];
+  rating: number;
+  date_visited: string | null;
+  location_name: string | null;
+  city_or_country: string | null;
+  tags: string[] | null;
+  would_revisit: boolean;
+  photo_path: string | null;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
+  created_at: string;
   updated_at: string;
 };
 
@@ -155,6 +178,14 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
     return copy;
   };
 
+  const mergeDiaryRow = (current: DiaryEntry[], row: DiaryEntry) => {
+    const index = current.findIndex((entry) => entry.id === row.id);
+    if (index === -1) return [...current, row];
+    const copy = [...current];
+    copy[index] = row;
+    return copy;
+  };
+
 const expenseCacheKey = makeOfflineCacheKey(tripKey, "expenses");
 const checklistCacheKey = makeOfflineCacheKey(tripKey, "checklist");
 const notesCacheKey = makeOfflineCacheKey(tripKey, "notes");
@@ -188,6 +219,62 @@ const notesPayload = (notes: TravelNote[], savedBy: SavedByInfo | null) => ({
 
 const notesSignature = (notes: TravelNote[], savedBy: SavedByInfo | null) => JSON.stringify(notesPayload(notes, savedBy));
 
+const diaryEntryToRow = (entry: DiaryEntry, savedBy: SavedByInfo | null): Omit<SupabaseDiaryRow, "trip_key"> => ({
+  id: entry.id,
+  title: entry.title,
+  description: entry.description,
+  type: entry.type,
+  rating: entry.rating,
+  date_visited: entry.dateVisited || null,
+  location_name: entry.locationName || null,
+  city_or_country: entry.cityOrCountry ?? null,
+  tags: entry.tags,
+  would_revisit: entry.wouldRevisit,
+  photo_path: entry.photoPath ?? null,
+  saved_by_user_id: savedBy?.userId ?? entry.savedByUserId ?? null,
+  saved_by_email: savedBy?.email ?? entry.savedByEmail ?? null,
+  created_at: entry.createdAt,
+  updated_at: entry.updatedAt ?? entry.createdAt,
+});
+
+const rowToDiaryEntry = (row: SupabaseDiaryRow, photoUrl?: string): DiaryEntry => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  type: row.type,
+  rating: Number(row.rating),
+  dateVisited: row.date_visited ?? new Date().toISOString().slice(0, 10),
+  locationName: row.location_name ?? "",
+  cityOrCountry: row.city_or_country ?? undefined,
+  tags: Array.isArray(row.tags) ? row.tags.map((tag) => String(tag)) : [],
+  wouldRevisit: Boolean(row.would_revisit),
+  photoPath: row.photo_path ?? undefined,
+  photoUrl,
+  savedByUserId: row.saved_by_user_id ?? undefined,
+  savedByEmail: row.saved_by_email ?? undefined,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const diarySignature = (entries: DiaryEntry[], savedBy: SavedByInfo | null) =>
+  JSON.stringify(entries.map((entry) => {
+    const { updated_at: _updatedAt, ...row } = diaryEntryToRow(entry, savedBy);
+    return row;
+  }));
+
+const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
+
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return hash.toString(16);
+};
+
+const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
+
 export default function App() {
   const PULL_REFRESH_TRIGGER = 84;
   const PULL_REFRESH_MAX = 108;
@@ -197,6 +284,7 @@ export default function App() {
     if (pathname === "/budget") return "/budget";
     if (pathname === "/map") return "/map";
     if (pathname === "/notes") return "/notes";
+    if (pathname === "/diary") return "/diary";
     if (pathname === "/account") return "/account";
     return "/";
   };
@@ -216,27 +304,38 @@ export default function App() {
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
+  const [diaryLoaded, setDiaryLoaded] = useState<boolean>(!hasSupabaseConfig);
   const pullStartYRef = useRef<number | null>(null);
   const isPullingRef = useRef<boolean>(false);
   const isOnline = useOnlineStatus();
   const [initialExpenseCache] = useState(() => readCachedDataset<Expense[]>(expenseCacheKey));
   const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
   const [initialNotesCache] = useState(() => readCachedDataset<TravelNote[]>(notesCacheKey));
+  const [initialDiaryCache] = useState(() => readCachedDataset<DiaryEntry[]>(diaryCacheKey));
   const mapCache = useCachedDataset<MapItineraryData>(mapCacheKey);
-  const initialExpenseItems = applySyncStatus(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced");
-  const initialChecklistItems = applySyncStatus(initialChecklistCache?.data ?? [], initialChecklistCache?.dirty ? "pending" : "synced");
-  const initialNoteItems = applySyncStatus(initialNotesCache?.data ?? [], initialNotesCache?.dirty ? "pending" : "synced");
+  const initialExpenseItems = applySyncStatus<Expense>(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced");
+  const initialChecklistItems = applySyncStatus<ChecklistItem>(initialChecklistCache?.data ?? [], initialChecklistCache?.dirty ? "pending" : "synced");
+  const initialNoteItems = applySyncStatus<TravelNote>(initialNotesCache?.data ?? [], initialNotesCache?.dirty ? "pending" : "synced");
+  const initialDiaryItems = applySyncStatus<DiaryEntry>(initialDiaryCache?.data ?? [], initialDiaryCache?.dirty ? "pending" : "synced");
   const [expenses, setExpenses] = useState<Expense[]>(() => initialExpenseItems);
   const [notes, setNotes] = useState<TravelNote[]>(() => initialNoteItems);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => initialChecklistItems);
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>(() => initialDiaryItems);
   const expenseSignatureRef = useRef<string>(initialExpenseCache?.syncedSignature || expenseSignature(initialExpenseItems, null));
   const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems, null));
   const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems, null));
+  const diarySignatureRef = useRef<string>(initialDiaryCache?.syncedSignature || diarySignature(initialDiaryItems, null));
   const expenseDirtyRef = useRef<boolean>(initialExpenseCache?.dirty ?? false);
   const checklistDirtyRef = useRef<boolean>(initialChecklistCache?.dirty ?? false);
   const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
+  const diaryDirtyRef = useRef<boolean>(initialDiaryCache?.dirty ?? false);
   const expenseIdsRef = useRef<string[]>(initialExpenseCache?.syncedIds ?? initialExpenseItems.map((expense) => expense.id));
   const checklistIdsRef = useRef<string[]>(initialChecklistCache?.syncedIds ?? initialChecklistItems.map((item) => item.id));
+  const diaryIdsRef = useRef<string[]>(initialDiaryCache?.syncedIds ?? initialDiaryItems.map((entry) => entry.id));
+  const diarySyncedEntriesRef = useRef<Record<string, DiaryEntry>>(
+    Object.fromEntries(initialDiaryItems.map((entry) => [entry.id, entry])),
+  );
+  const diaryPhotoRetryBlockRef = useRef<string>("");
   const currentSavedBy: SavedByInfo | null = session?.user
     ? {
         userId: session.user.id,
@@ -278,6 +377,21 @@ export default function App() {
       data: nextNotes,
       syncedSignature,
       dirty,
+    });
+  };
+
+  const saveDiarySnapshot = (nextDiary: DiaryEntry[], syncedSignature: string, dirty: boolean, syncedIds: string[] = diaryIdsRef.current) => {
+    diarySignatureRef.current = syncedSignature;
+    diaryDirtyRef.current = dirty;
+    if (!dirty) {
+      diaryIdsRef.current = syncedIds;
+      diarySyncedEntriesRef.current = Object.fromEntries(nextDiary.map((entry) => [entry.id, entry]));
+    }
+    writeCachedDataset(diaryCacheKey, {
+      data: nextDiary,
+      syncedSignature,
+      dirty,
+      syncedIds,
     });
   };
 
@@ -363,7 +477,7 @@ export default function App() {
         console.warn("Supabase expense load failed:", expenseError.message);
       } else if (!expenseDirtyRef.current) {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
-        const syncedExpenses = forceSyncStatus(remoteExpenses, "synced");
+        const syncedExpenses = forceSyncStatus<Expense>(remoteExpenses, "synced");
         const remoteSignature = expenseSignature(syncedExpenses, currentSavedBy);
         saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
         setExpenses(syncedExpenses);
@@ -373,7 +487,7 @@ export default function App() {
         console.warn("Supabase checklist load failed:", checklistError.message);
       } else if (!checklistDirtyRef.current) {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
-        const syncedChecklist = forceSyncStatus(remoteChecklist, "synced");
+        const syncedChecklist = forceSyncStatus<ChecklistItem>(remoteChecklist, "synced");
         const remoteSignature = checklistSignature(syncedChecklist, currentSavedBy);
         saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
         setChecklist(syncedChecklist);
@@ -385,7 +499,7 @@ export default function App() {
         const remoteNotes = notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes)
           ? (notesData as SupabaseNotesRow).notes
           : [];
-        const syncedNotes = forceSyncStatus(remoteNotes, "synced");
+        const syncedNotes = forceSyncStatus<TravelNote>(remoteNotes, "synced");
         const remoteSignature = notesSignature(syncedNotes, currentSavedBy);
         saveNotesSnapshot(syncedNotes, remoteSignature, false);
         setNotes(syncedNotes);
@@ -412,7 +526,7 @@ export default function App() {
               const deletedId = String(payload.old?.id ?? "");
               if (!deletedId) return;
               setExpenses((current) => {
-                const next = forceSyncStatus(current.filter((expense) => expense.id !== deletedId), "synced");
+                const next = forceSyncStatus<Expense>(current.filter((expense) => expense.id !== deletedId), "synced");
                 const nextSignature = expenseSignature(next, currentSavedBy);
                 saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
                 return next;
@@ -423,7 +537,7 @@ export default function App() {
             const row = payload.new as SupabaseExpenseRow;
             if (!row) return;
             setExpenses((current) => {
-              const next = forceSyncStatus(mergeExpenseRow(current, row), "synced");
+              const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
               const nextSignature = expenseSignature(next, currentSavedBy);
               saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
               return next;
@@ -440,7 +554,7 @@ export default function App() {
               const deletedId = String(payload.old?.id ?? "");
               if (!deletedId) return;
               setChecklist((current) => {
-                const next = forceSyncStatus(current.filter((item) => item.id !== deletedId), "synced");
+                const next = forceSyncStatus<ChecklistItem>(current.filter((item) => item.id !== deletedId), "synced");
                 const nextSignature = checklistSignature(next, currentSavedBy);
                 saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
                 return next;
@@ -451,7 +565,7 @@ export default function App() {
             const row = payload.new as SupabaseChecklistRow;
             if (!row) return;
             setChecklist((current) => {
-              const next = forceSyncStatus(mergeChecklistRow(current, row), "synced");
+              const next = forceSyncStatus<ChecklistItem>(mergeChecklistRow(current, row), "synced");
               const nextSignature = checklistSignature(next, currentSavedBy);
               saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
               return next;
@@ -473,9 +587,122 @@ export default function App() {
 
             const row = payload.new as SupabaseNotesRow | undefined;
             if (!row || !Array.isArray(row.notes)) return;
-            const next = forceSyncStatus(row.notes, "synced");
+            const next = forceSyncStatus<TravelNote>(row.notes, "synced");
             saveNotesSnapshot(next, notesSignature(next, currentSavedBy), false);
             setNotes(next);
+          },
+        )
+        .subscribe();
+    };
+
+    void bootstrap();
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
+  }, [authReady, isOnline, session]);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session) {
+      setDiaryLoaded(true);
+      return;
+    }
+
+    if (!isOnline) {
+      setDiaryLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const hydrateDiaryEntry = async (row: SupabaseDiaryRow) => {
+      const baseEntry = rowToDiaryEntry(row);
+      if (!row.photo_path) return baseEntry;
+
+      const { data, error } = await supabase.storage.from(supabaseDiaryBucket).createSignedUrl(row.photo_path, 60 * 60);
+      if (error) {
+        console.warn("Supabase diary photo load failed:", error.message);
+        return baseEntry;
+      }
+
+      return {
+        ...baseEntry,
+        photoUrl: data?.signedUrl ?? baseEntry.photoUrl,
+      };
+    };
+
+    const loadSyncedDiary = async () => {
+      const { data, error } = await supabase
+        .from(supabaseDiaryTable)
+        .select("id, trip_key, title, description, type, rating, date_visited, location_name, city_or_country, tags, would_revisit, photo_path, saved_by_user_id, saved_by_email, created_at, updated_at")
+        .eq("trip_key", tripKey)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Supabase diary load failed:", error.message);
+        setDiaryLoaded(true);
+        return;
+      }
+
+      if (!diaryDirtyRef.current) {
+        const remoteRows = (data ?? []) as SupabaseDiaryRow[];
+        const hydratedRows = await Promise.all(remoteRows.map(async (row) => hydrateDiaryEntry(row)));
+        if (cancelled) return;
+
+        const syncedDiary = forceSyncStatus<DiaryEntry>(hydratedRows, "synced");
+        const remoteSignature = diarySignature(syncedDiary, currentSavedBy);
+        saveDiarySnapshot(syncedDiary, remoteSignature, false, syncedDiary.map((entry) => entry.id));
+        setDiaryEntries(syncedDiary);
+      }
+
+      setDiaryLoaded(true);
+    };
+
+    const bootstrap = async () => {
+      await loadSyncedDiary();
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`trip-diary-sync-${tripKey}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: supabaseDiaryTable, filter: `trip_key=eq.${tripKey}` },
+          (payload) => {
+            if (diaryDirtyRef.current) return;
+
+            if (payload.eventType === "DELETE") {
+              const deletedId = String(payload.old?.id ?? "");
+              if (!deletedId) return;
+              setDiaryEntries((current) => {
+                const next = forceSyncStatus<DiaryEntry>(current.filter((entry) => entry.id !== deletedId), "synced");
+                const nextSignature = diarySignature(next, currentSavedBy);
+                saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                return next;
+              });
+              return;
+            }
+
+            const row = payload.new as SupabaseDiaryRow | undefined;
+            if (!row) return;
+
+            void (async () => {
+              const hydratedRow = await hydrateDiaryEntry(row);
+              if (diaryDirtyRef.current) return;
+
+              setDiaryEntries((current) => {
+                const next = forceSyncStatus<DiaryEntry>(mergeDiaryRow(current, hydratedRow), "synced");
+                const nextSignature = diarySignature(next, currentSavedBy);
+                saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                return next;
+              });
+            })();
           },
         )
         .subscribe();
@@ -538,7 +765,7 @@ export default function App() {
         }
       }
 
-      const syncedExpenses = forceSyncStatus(expenses, "synced");
+      const syncedExpenses = forceSyncStatus<Expense>(expenses, "synced");
       setExpenses(syncedExpenses);
       saveExpenseSnapshot(syncedExpenses, currentSignature, false, currentIds);
     }, 300);
@@ -593,7 +820,7 @@ export default function App() {
         }
       }
 
-      const syncedChecklist = forceSyncStatus(checklist, "synced");
+      const syncedChecklist = forceSyncStatus<ChecklistItem>(checklist, "synced");
       setChecklist(syncedChecklist);
       saveChecklistSnapshot(syncedChecklist, currentSignature, false, currentIds);
     }, 300);
@@ -634,13 +861,195 @@ export default function App() {
         return;
       }
 
-      const syncedNotes = forceSyncStatus(notes, "synced");
+      const syncedNotes = forceSyncStatus<TravelNote>(notes, "synced");
       setNotes(syncedNotes);
       saveNotesSnapshot(syncedNotes, currentSignature, false);
     }, 300);
 
     return () => window.clearTimeout(timeout);
   }, [notes, notesLoaded, authReady, session, isOnline]);
+
+  useEffect(() => {
+    if (!diaryLoaded) return;
+
+    const currentSignature = diarySignature(diaryEntries, currentSavedBy);
+    const currentIds = diaryEntries.map((entry) => entry.id);
+    const removedIds = diaryIdsRef.current.filter((id) => !currentIds.includes(id));
+    const pendingPhotoSignature = diaryEntries
+      .filter((entry) => entry.photoUrl?.startsWith("data:"))
+      .map((entry) => `${entry.id}:${hashString(entry.photoUrl ?? "")}:${entry.photoPath ?? ""}`)
+      .join("|");
+    const hasPendingPhotoUploads = pendingPhotoSignature.length > 0;
+    const hasPendingLocalChanges =
+      currentSignature !== diarySignatureRef.current ||
+      removedIds.length > 0 ||
+      diaryDirtyRef.current ||
+      hasPendingPhotoUploads;
+
+    if (!hasPendingLocalChanges) return;
+
+    const shouldBlockPhotoRetry =
+      hasPendingPhotoUploads &&
+      diaryPhotoRetryBlockRef.current === pendingPhotoSignature &&
+      currentSignature === diarySignatureRef.current &&
+      removedIds.length === 0;
+
+    if (shouldBlockPhotoRetry) return;
+
+    if (currentSignature === diarySignatureRef.current && removedIds.length === 0 && !hasPendingPhotoUploads && !diaryDirtyRef.current) {
+      saveDiarySnapshot(diaryEntries, currentSignature, false, currentIds);
+      return;
+    }
+
+    saveDiarySnapshot(diaryEntries, diarySignatureRef.current, true, diaryIdsRef.current);
+
+    if (!supabase || !authReady || !session || !isOnline || !currentSavedBy) return;
+
+    const timeout = window.setTimeout(async () => {
+      const uploadResults = await Promise.all(
+        diaryEntries.map(async (entry) => {
+          if (!entry.photoUrl?.startsWith("data:")) {
+            return {
+              id: entry.id,
+              photoPath: entry.photoPath ?? null,
+              photoUrl: entry.photoUrl,
+              uploaded: false,
+              error: null as Error | null,
+            };
+          }
+
+          try {
+            const photoPath = entry.photoPath ?? buildDiaryPhotoPath(entry.id, currentSavedBy.userId);
+            const response = await fetch(entry.photoUrl);
+            const blob = await response.blob();
+            const { error: uploadError } = await supabase.storage.from(supabaseDiaryBucket).upload(photoPath, blob, {
+              contentType: blob.type || "image/jpeg",
+              upsert: true,
+            });
+
+            if (uploadError) {
+              throw uploadError;
+            }
+
+            const { data: signedData, error: signedError } = await supabase.storage
+              .from(supabaseDiaryBucket)
+              .createSignedUrl(photoPath, 60 * 60);
+
+            if (signedError) {
+              console.warn("Supabase diary photo sign URL failed:", signedError.message);
+            }
+
+            return {
+              id: entry.id,
+              photoPath,
+              photoUrl: signedData?.signedUrl ?? undefined,
+              uploaded: true,
+              error: null as Error | null,
+            };
+          } catch (error) {
+            return {
+              id: entry.id,
+              photoPath: entry.photoPath ?? null,
+              photoUrl: entry.photoUrl,
+              uploaded: false,
+              error: error instanceof Error ? error : new Error(String(error)),
+            };
+          }
+        }),
+      );
+
+      uploadResults
+        .filter((result) => result.error)
+        .forEach((result) => {
+          console.warn("Supabase diary photo upload failed:", result.error?.message);
+        });
+
+      const nextDiary = diaryEntries.map((entry) => {
+        const result = uploadResults.find((item) => item.id === entry.id);
+        const savedByUserId = currentSavedBy.userId ?? entry.savedByUserId;
+        const savedByEmail = currentSavedBy.email ?? entry.savedByEmail;
+
+        if (result?.uploaded) {
+          return {
+            ...entry,
+            photoPath: result.photoPath ?? entry.photoPath,
+            photoUrl: result.photoUrl,
+            savedByUserId,
+            savedByEmail,
+            syncStatus: "synced",
+          };
+        }
+
+        return {
+          ...entry,
+          savedByUserId,
+          savedByEmail,
+          syncStatus: entry.photoUrl?.startsWith("data:") ? "pending" : "synced",
+        };
+      });
+
+      const writePayload = nextDiary.map((entry) => ({
+        trip_key: tripKey,
+        ...diaryEntryToRow(entry, currentSavedBy),
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { error: upsertError } = await supabase
+        .from(supabaseDiaryTable)
+        .upsert(writePayload, { onConflict: "id" });
+
+      if (upsertError) {
+        console.warn("Supabase diary sync failed:", upsertError.message);
+        return;
+      }
+
+      if (removedIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from(supabaseDiaryTable)
+          .delete()
+          .in("id", removedIds);
+
+        if (deleteError) {
+          console.warn("Supabase diary delete failed:", deleteError.message);
+          return;
+        }
+      }
+
+      const removedPhotoPaths = removedIds
+        .map((id) => diarySyncedEntriesRef.current[id]?.photoPath)
+        .filter((value): value is string => Boolean(value));
+
+      if (removedPhotoPaths.length > 0) {
+        const { error: photoDeleteError } = await supabase.storage.from(supabaseDiaryBucket).remove(removedPhotoPaths);
+        if (photoDeleteError) {
+          console.warn("Supabase diary photo delete failed:", photoDeleteError.message);
+        }
+      }
+
+      const syncedDiary = nextDiary.map((entry) => ({
+        ...entry,
+        syncStatus: entry.photoUrl?.startsWith("data:") ? "pending" : "synced",
+      }));
+      const nextPendingPhotoSignature = syncedDiary
+        .filter((entry) => entry.photoUrl?.startsWith("data:"))
+        .map((entry) => `${entry.id}:${hashString(entry.photoUrl ?? "")}:${entry.photoPath ?? ""}`)
+        .join("|");
+      const remainingDirty = Boolean(nextPendingPhotoSignature);
+      const nextSignature = diarySignature(syncedDiary, currentSavedBy);
+
+      saveDiarySnapshot(syncedDiary, nextSignature, remainingDirty, currentIds);
+      diaryIdsRef.current = currentIds;
+      diarySyncedEntriesRef.current = Object.fromEntries(syncedDiary.map((entry) => [entry.id, entry]));
+      diaryPhotoRetryBlockRef.current = remainingDirty ? nextPendingPhotoSignature : "";
+      setDiaryEntries(syncedDiary);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [diaryEntries, diaryLoaded, authReady, session, isOnline]);
+
+  useEffect(() => {
+    diaryPhotoRetryBlockRef.current = "";
+  }, [isOnline, session]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -659,13 +1068,14 @@ export default function App() {
   const pendingExpenseCount = expenses.filter((expense) => expense.syncStatus === "pending").length;
   const pendingChecklistCount = checklist.filter((item) => item.syncStatus === "pending").length;
   const pendingNoteCount = notes.filter((note) => note.syncStatus === "pending").length;
+  const pendingDiaryCount = diaryEntries.filter((entry) => entry.syncStatus === "pending").length;
   const pendingMapItemCount =
     mapCache?.data?.days?.reduce(
       (count, day) => count + day.destinations.filter((destination) => destination.syncStatus === "pending").length,
       0,
     ) ?? 0;
   const pendingMapCount = mapCache?.dirty ? Math.max(1, pendingMapItemCount) : pendingMapItemCount;
-  const pendingSyncCount = pendingExpenseCount + pendingChecklistCount + pendingNoteCount + pendingMapCount;
+  const pendingSyncCount = pendingExpenseCount + pendingChecklistCount + pendingNoteCount + pendingDiaryCount + pendingMapCount;
   const syncBannerTitle = !isOnline
     ? "Offline mode"
     : pendingSyncCount > 0
@@ -677,13 +1087,14 @@ export default function App() {
       ? "Those entries are saved locally for now and will push to Supabase automatically once the app is online."
       : "The visible data matches the latest Supabase sync.";
   const syncBannerStats = pendingSyncCount > 0
-    ? [
+      ? [
         pendingExpenseCount ? `${pendingExpenseCount} budget` : null,
         pendingChecklistCount ? `${pendingChecklistCount} checklist` : null,
         pendingNoteCount ? `${pendingNoteCount} notes` : null,
+        pendingDiaryCount ? `${pendingDiaryCount} diary${pendingDiaryCount === 1 ? "" : " entries"}` : null,
         pendingMapCount ? `${pendingMapCount} map` : null,
       ]
-        .filter((value): value is string => Boolean(value))
+      .filter((value): value is string => Boolean(value))
         .join(", ") + " waiting"
     : "No local changes waiting";
 
@@ -955,8 +1366,8 @@ export default function App() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {itinerary.tips.map((tip) => (
-                  <TipCard key={tip.icon + tip.description.map((segment) => ("value" in segment ? segment.value : segment.label)).join("")} tip={tip} />
+                {itinerary.tips.map((tip, index) => (
+                  <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
                 ))}
               </div>
             </section>
@@ -1054,13 +1465,22 @@ export default function App() {
             currentSavedBy={currentSavedBy}
           />
         )}
+        {activeRoute === "/diary" && (
+          <DiaryTab
+            diaryEntries={diaryEntries}
+            setDiaryEntries={setDiaryEntries}
+            isOnline={isOnline}
+            canEdit={Boolean(session)}
+            currentSavedBy={currentSavedBy}
+          />
+        )}
           </main>
         </div>
 
-      <AuthPanel
+        <AuthPanel
         open={showAuthModal}
         title={session ? "Manage your account" : "Sign in to sync your trip"}
-        description={session ? "Your cloud sync is active for budget and checklist data." : "Choose Google, GitHub, or Facebook to enable shared budget and checklist sync."}
+        description={session ? "Your cloud sync is active for budget, checklist, notes, map, and diary data." : "Choose Google, GitHub, or Facebook to enable shared budget, checklist, notes, map, and diary sync."}
         session={session}
         loading={!authReady}
         errorMessage={authError}
@@ -1089,6 +1509,7 @@ export default function App() {
                 <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
                 <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
                 <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
+                <li><button onClick={() => navigateTo("/diary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Diary</button></li>
               </ul>
             </div>
 
