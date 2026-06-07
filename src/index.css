@@ -16,6 +16,16 @@ body,
 
 body {
   overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 @keyframes spin-slow {
