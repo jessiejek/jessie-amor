@@ -1065,39 +1065,6 @@ export default function App() {
     description: itinerary.hero.subtitle,
   };
 
-  const pendingExpenseCount = expenses.filter((expense) => expense.syncStatus === "pending").length;
-  const pendingChecklistCount = checklist.filter((item) => item.syncStatus === "pending").length;
-  const pendingNoteCount = notes.filter((note) => note.syncStatus === "pending").length;
-  const pendingDiaryCount = diaryEntries.filter((entry) => entry.syncStatus === "pending").length;
-  const pendingMapItemCount =
-    mapCache?.data?.days?.reduce(
-      (count, day) => count + day.destinations.filter((destination) => destination.syncStatus === "pending").length,
-      0,
-    ) ?? 0;
-  const pendingMapCount = mapCache?.dirty ? Math.max(1, pendingMapItemCount) : pendingMapItemCount;
-  const pendingSyncCount = pendingExpenseCount + pendingChecklistCount + pendingNoteCount + pendingDiaryCount + pendingMapCount;
-  const syncBannerTitle = !isOnline
-    ? "Offline mode"
-    : pendingSyncCount > 0
-      ? `${pendingSyncCount} local change${pendingSyncCount === 1 ? "" : "s"} waiting to sync`
-      : "All changes synced";
-  const syncBannerBody = !isOnline
-    ? "Edits are being saved on this device and will upload when the connection returns."
-    : pendingSyncCount > 0
-      ? "Those entries are saved locally for now and will push to Supabase automatically once the app is online."
-      : "The visible data matches the latest Supabase sync.";
-  const syncBannerStats = pendingSyncCount > 0
-      ? [
-        pendingExpenseCount ? `${pendingExpenseCount} budget` : null,
-        pendingChecklistCount ? `${pendingChecklistCount} checklist` : null,
-        pendingNoteCount ? `${pendingNoteCount} notes` : null,
-        pendingDiaryCount ? `${pendingDiaryCount} diary${pendingDiaryCount === 1 ? "" : " entries"}` : null,
-        pendingMapCount ? `${pendingMapCount} map` : null,
-      ]
-      .filter((value): value is string => Boolean(value))
-        .join(", ") + " waiting"
-    : "No local changes waiting";
-
   const handleOpenGuide = (item: TimelineItemData) => {
     setSelectedGuide(buildGuideForItem(item));
   };
@@ -1308,29 +1275,12 @@ export default function App() {
           setActiveTab={navigateTo}
           metadata={metadata}
           session={session}
+          isOnline={isOnline}
           onOpenAuth={() => setShowAuthModal(true)}
           onSignOut={handleSignOut}
         />
 
         <div className="pt-[112px] md:pt-0">
-          <div className="no-print mx-auto w-full max-w-7xl px-4 pt-3 md:px-8">
-            <div className={`flex flex-col gap-1 rounded-2xl border px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between ${
-              isOnline
-                ? pendingSyncCount > 0
-                  ? "border-amber-200 bg-amber-50 text-amber-900"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-stone-200 bg-stone-100 text-stone-700"
-            }`}>
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.28em]">{syncBannerTitle}</div>
-                <div className="mt-1 text-[13px]">{syncBannerBody}</div>
-              </div>
-              <div className="text-[11px] font-mono uppercase tracking-[0.22em] text-stone-500">
-                {syncBannerStats}
-              </div>
-            </div>
-          </div>
-
           <main
             className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
             style={{

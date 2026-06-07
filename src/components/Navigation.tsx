@@ -45,6 +45,7 @@ interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   session: Session | null;
+  isOnline: boolean;
   onOpenAuth: () => void;
   onSignOut: () => void;
   metadata: {
@@ -72,6 +73,7 @@ export default function Navigation({
   activeTab,
   setActiveTab,
   session,
+  isOnline,
   onOpenAuth,
   onSignOut,
   metadata,
@@ -172,6 +174,8 @@ export default function Navigation({
     setShowMoreDrawer(false);
   };
 
+  const connectionDotClass = isOnline ? "bg-emerald-400" : "bg-red-500";
+
   return (
     <>
       <header className="no-print">
@@ -183,7 +187,14 @@ export default function Navigation({
               </div>
               <div className="mt-1 flex min-w-0 items-center gap-2">
                 <h1 className="min-w-0 text-[15px] font-semibold leading-[1.3] text-white">
-                  <span className="block truncate">{HEADER_TITLE}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="block truncate">{HEADER_TITLE}</span>
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${connectionDotClass}`}
+                      aria-label={isOnline ? "Online" : "Offline"}
+                      title={isOnline ? "Online" : "Offline"}
+                    />
+                  </span>
                 </h1>
               </div>
             </div>
@@ -228,7 +239,14 @@ export default function Navigation({
                   TRAVEL ITINERARY
                 </div>
                 <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[15px] font-semibold leading-tight text-white">
-                  <span>{HEADER_TITLE}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate">{HEADER_TITLE}</span>
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${connectionDotClass}`}
+                      aria-label={isOnline ? "Online" : "Offline"}
+                      title={isOnline ? "Online" : "Offline"}
+                    />
+                  </span>
                 </h1>
               </div>
 
