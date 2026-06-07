@@ -1,41 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { Share2, Download, Printer, Copy, Check, Info, LogIn } from "lucide-react";
+import { Share2, Download, Printer, Copy, Check, Info, LogIn, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 
-const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11);
+const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0);
+
+type CountdownState = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
+const getCountdownState = (): CountdownState => {
+  const diff = Math.max(0, TRIP_COUNTDOWN_TARGET.getTime() - Date.now());
+  const totalSeconds = Math.floor(diff / 1000);
+
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+};
 
 interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   session: Session | null;
   onOpenAuth: () => void;
+  onSignOut: () => void;
   metadata: {
     title: string;
     description: string;
   };
 }
 
-export default function Navigation({ activeTab, setActiveTab, session, onOpenAuth, metadata }: NavigationProps) {
+export default function Navigation({ activeTab, setActiveTab, session, onOpenAuth, onSignOut, metadata }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [daysLeft, setDaysLeft] = useState(() => {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diff = TRIP_COUNTDOWN_TARGET.getTime() - startOfToday.getTime();
-    return Math.max(0, Math.ceil(diff / 86400000));
-  });
+  const [countdown, setCountdown] = useState<CountdownState>(() => getCountdownState());
 
   useEffect(() => {
     const updateCountdown = () => {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const diff = TRIP_COUNTDOWN_TARGET.getTime() - startOfToday.getTime();
-      setDaysLeft(Math.max(0, Math.ceil(diff / 86400000)));
+      setCountdown(getCountdownState());
     };
 
     updateCountdown();
-    const interval = window.setInterval(updateCountdown, 60 * 60 * 1000);
+    const interval = window.setInterval(updateCountdown, 1000);
 
     return () => {
       window.clearInterval(interval);
@@ -85,21 +97,30 @@ export default function Navigation({ activeTab, setActiveTab, session, onOpenAut
                 </span>
               </h1>
               <div className="mt-2">
-                <span className="inline-flex items-baseline rounded-full border border-[#88B04B]/35 bg-[#18534C] px-3 py-1 text-[#88B04B] shadow-sm">
-                  <span className="text-3xl md:text-4xl font-black tracking-tight font-sans">{daysLeft}</span>
-                  <span className="ml-2 text-sm md:text-base font-semibold uppercase tracking-wider">Days Left</span>
+                <span className="inline-flex flex-col rounded-full border border-[#88B04B]/35 bg-[#18534C] px-4 py-2 text-[#88B04B] shadow-sm">
+                  <span className="text-3xl md:text-5xl font-black leading-none tracking-tight font-sans">
+                    {countdown.days}
+                  </span>
+                  <span className="text-sm md:text-base font-semibold uppercase tracking-[0.28em] leading-none">
+                    Days Left
+                  </span>
+                  <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] md:text-sm font-semibold uppercase tracking-[0.18em] text-[#d8e7dd]">
+                    <span>{String(countdown.hours).padStart(2, "0")} Hours</span>
+                    <span>{String(countdown.minutes).padStart(2, "0")} Mins</span>
+                    <span>{String(countdown.seconds).padStart(2, "0")} Seconds</span>
+                  </span>
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2 border-l border-[#18534C] pl-0 md:pl-4">
               <button
-                onClick={onOpenAuth}
+                onClick={session ? onSignOut : onOpenAuth}
                 className="inline-flex items-center gap-2 rounded-full border border-[#18534C] bg-[#18534C] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1f6158]"
-                title={session ? "Manage account" : "Login"}
+                title={session ? "Log out" : "Login"}
               >
-                <LogIn size={14} />
-                {session ? "Account" : "Login"}
+                {session ? <LogOut size={14} /> : <LogIn size={14} />}
+                {session ? "Log out" : "Login"}
               </button>
               <button
                 onClick={() => setShowShareModal(true)}

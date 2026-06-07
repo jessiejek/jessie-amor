@@ -502,13 +502,14 @@ export default function App() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
-      <Navigation
-        activeTab={activeRoute}
-        setActiveTab={navigateTo}
-        metadata={metadata}
-        session={session}
-        onOpenAuth={() => setShowAuthModal(true)}
-      />
+        <Navigation
+          activeTab={activeRoute}
+          setActiveTab={navigateTo}
+          metadata={metadata}
+          session={session}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onSignOut={handleSignOut}
+        />
 
       <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
         {activeRoute === "/" && (
@@ -649,7 +650,6 @@ export default function App() {
       <footer className="bg-[#041D1A] text-stone-400 py-14 px-4 md:px-8 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <span className="text-[10px] tracking-widest text-[#88B04B] font-mono block uppercase">TRAVEL LOGIX</span>
             <h3 className="text-lg font-serif font-bold text-white leading-tight mt-2 max-w-xs">
               Curating unforgettable Asian experiences.
             </h3>
@@ -681,7 +681,7 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[10px] font-mono text-stone-500">
-            <span>(c) 2026 TravelLogix. All rights reserved.</span>
+          <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
           <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
             <span className="hover:text-stone-400">Privacy</span>
             <span className="hover:text-stone-400">Support</span>

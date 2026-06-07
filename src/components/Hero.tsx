@@ -25,22 +25,26 @@ export default function Hero({ hero }: HeroProps) {
           </span>
           <h2 className="text-xl font-serif font-bold leading-tight tracking-tight text-[#0B3530] md:text-3xl">
             {hero.title}
-            <span className="block text-[#18534C]">{hero.subtitle}</span>
+            {hero.subtitle ? <span className="block text-[#18534C]">{hero.subtitle}</span> : null}
           </h2>
           <div className="mt-4 h-1 w-16 rounded-full bg-[#88B04B]" />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {hero.meta.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-          <p className="mt-4 text-[11px] leading-relaxed text-stone-500 md:text-xs">
-            <RichText segments={hero.note} />
-          </p>
+          {hero.meta.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {hero.meta.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {hero.note.length > 0 ? (
+            <p className="mt-4 text-[11px] leading-relaxed text-stone-500 md:text-xs">
+              <RichText segments={hero.note} />
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

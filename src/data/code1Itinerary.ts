@@ -678,12 +678,8 @@ const currentItinerary = {
     eyebrow: 'Travel Itinerary',
     title: "Jessie & Amor's Malaysia · Singapore",
     subtitle: 'Trip Itinerary',
-    meta: ['2 people', 'Travelodge KL City Centre', 'RM1 ~ PHP 15.58'],
-    note: [
-      text('⚠️ Airport Grab on July 12 & July 15 is paid by credit card and is '),
-      strong('not'),
-      text(' included in the cash/e-wallet budget. · Coffee rule: 1 shared coffee, not 2.'),
-    ],
+    meta: [],
+    note: [],
   } satisfies HeroData,
   budgetSummary: [
     { label: 'July 12', amount: 'RM 130–200', php: 'PHP 2,023–3,111' },
@@ -1447,7 +1443,7 @@ const currentItinerary = {
       ],
     },
   ] satisfies TipCardData[],
-  footer: "Jessie & Amor's Malaysia · Singapore · RM 600–903 estimated total",
+  footer: "Jessie & Amor's Malaysia · Singapore",
 };
 
 export const destinationGuides: Record<string, DestinationGuide> = {
