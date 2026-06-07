@@ -126,9 +126,6 @@ export default function Navigation({
                 <h1 className="min-w-0 text-[14px] font-semibold leading-[1.3] text-white">
                   <span className="block truncate">{HEADER_TITLE}</span>
                 </h1>
-                <span className="shrink-0 rounded-[20px] bg-[#c8e6a0] px-2 py-[2px] text-[11px] font-semibold leading-none text-[#2a5a0a]">
-                  2026
-                </span>
               </div>
             </div>
 
@@ -171,9 +168,6 @@ export default function Navigation({
                 </div>
                 <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[17px] font-semibold leading-tight text-white">
                   <span>{HEADER_TITLE}</span>
-                  <span className="rounded-[20px] bg-[#c8e6a0] px-2 py-[2px] text-[11px] font-semibold leading-none text-[#2a5a0a]">
-                    2026
-                  </span>
                 </h1>
               </div>
 
