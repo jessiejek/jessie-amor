@@ -13,6 +13,8 @@ type TransactionRow = {
   method: string;
   user: string | null;
   amount: number;
+  originalAmount?: number;
+  originalCurrency?: ExpenseCurrency;
   created_at?: string;
 };
 
@@ -67,6 +69,13 @@ export default function BudgetTab({
       .toLowerCase();
   };
 
+  const formatTransactionAmount = (tx: TransactionRow) => {
+    if (tx.originalAmount != null && tx.originalCurrency) {
+      return `-${tx.originalCurrency} ${Math.abs(tx.originalAmount).toFixed(2)}`;
+    }
+    return `-RM ${Math.abs(tx.amount).toFixed(2)}`;
+  };
+
   const mapRowToTransaction = (row: Record<string, unknown>): TransactionRow => ({
     id: String(row.id ?? ""),
     name: String(row.item ?? ""),
@@ -76,6 +85,8 @@ export default function BudgetTab({
     method: String(row.paid_with ?? ""),
     user: (row.saved_by_email as string | undefined) || (row.saved_by_user_id as string | undefined) || null,
     amount: Number(row.amount ?? 0),
+    originalAmount: row.original_amount == null ? undefined : Number(row.original_amount),
+    originalCurrency: (row.original_currency as ExpenseCurrency | undefined) ?? undefined,
     created_at: (row.created_at as string | undefined) ?? (row.updated_at ? String(row.updated_at) : undefined),
   });
 
@@ -131,6 +142,8 @@ export default function BudgetTab({
           method: newExp.paidWith,
           user: newExp.savedByEmail ?? newExp.savedByUserId ?? null,
           amount: newExp.amount,
+          originalAmount: newExp.originalAmount,
+          originalCurrency: newExp.originalCurrency,
           created_at: newExp.createdAt,
         },
       ]),
@@ -587,7 +600,7 @@ export default function BudgetTab({
                           </div>
 
                           <div className="budget-transaction-right">
-                            <div className="budget-transaction-amount">-RM {Math.abs(tx.amount).toFixed(2)}</div>
+                            <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
                             <button
                               type="button"
                               onClick={() => deleteTransaction(tx.id)}
