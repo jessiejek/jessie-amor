@@ -18,6 +18,97 @@ type TransactionRow = {
   syncStatus?: SyncStatus;
 };
 
+interface SpeechRecognition {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionEvent {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+const voiceNumberWords: Record<string, string> = {
+  zero: "0",
+  oh: "0",
+  one: "1",
+  won: "1",
+  two: "2",
+  to: "2",
+  too: "2",
+  three: "3",
+  four: "4",
+  for: "4",
+  five: "5",
+  six: "6",
+  seven: "7",
+  eight: "8",
+  ate: "8",
+  nine: "9",
+  ten: "10",
+  eleven: "11",
+  twelve: "12",
+  thirteen: "13",
+  fourteen: "14",
+  fifteen: "15",
+  sixteen: "16",
+  seventeen: "17",
+  eighteen: "18",
+  nineteen: "19",
+  twenty: "20",
+  thirty: "30",
+  forty: "40",
+  fifty: "50",
+  sixty: "60",
+  seventy: "70",
+  eighty: "80",
+  ninety: "90",
+  hundred: "100",
+};
+
+const voiceCurrencyAliases: Record<ExpenseCurrency, string[]> = {
+  RM: ["rm", "ringgit", "malaysian ringgit", "myr"],
+  SGD: ["sgd", "singapore dollar", "singapore dollars", "sing dollar", "sing dollars"],
+  PHP: ["php", "peso", "pesos", "philippine peso", "philippine pesos"],
+};
+
+const voicePaymentAliases: Record<PaymentMethod, string[]> = {
+  Cash: ["cash", "money", "paid cash"],
+  Debit: ["debit", "debit card", "atm card"],
+  "Credit Card": ["credit card", "credit", "visa", "mastercard", "master card", "card"],
+};
+
+const voiceCategoryAliases: Record<ExpenseCategory, string[]> = {
+  Food: ["food", "eat", "lunch", "dinner", "breakfast", "coffee", "cafe", "restaurant", "kaya", "toast", "nasi", "roti", "makan", "egg roll", "burger", "pizza", "snack", "drinks", "boba", "milk tea"],
+  Transport: ["transport", "grab", "taxi", "bus", "mrt", "train", "ride", "uber", "transit", "ferry", "toll", "parking"],
+  Accommodation: ["accommodation", "accomodation", "hotel", "hostel", "airbnb", "room", "stay", "check in", "check-in"],
+  Sightseeing: ["sightseeing", "sight seeing", "tour", "museum", "attraction", "ticket", "visit", "zoo", "park", "entry", "show"],
+  Other: ["other", "others", "misc", "miscellaneous"],
+};
+
+const voiceCategoryLabelAliases = ["food", "transport", "accommodation", "accomodation", "sightseeing", "sight seeing", "other", "others"];
+
+const voiceCorrections: Array<[RegExp, string]> = [
+  [/\begg dose\b/g, "egg toast"],
+  [/\bdose\b/g, "toast"],
+];
+
+const numberWordPattern = new RegExp(`\\b(${Object.keys(voiceNumberWords).join("|")})\\b`, "g");
+const matchesVoiceAlias = (text: string, aliases: string[]) =>
+  aliases.some((alias) => new RegExp(`\\b${alias.replace(/\s+/g, "\\s+")}\\b`).test(text));
+const buildVoiceAliasPattern = (aliases: string[]) =>
+  new RegExp(`\\b(${aliases.map((alias) => alias.replace(/\s+/g, "\\s+")).join("|")})\\b`, "g");
+
 interface BudgetTabProps {
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
@@ -48,6 +139,10 @@ export default function BudgetTab({
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
   const [filterCategory, setFilterCategory] = useState<string>("All");
   const [selectedRegistryDate, setSelectedRegistryDate] = useState("All");
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
+  const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
   const convertToRm = (value: number, currency: ExpenseCurrency) => {
     if (currency === "RM") return value;
@@ -255,6 +350,140 @@ export default function BudgetTab({
     return user.includes("@") ? user.split("@")[0] : user;
   };
 
+  const handleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setSpeechError("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    setSpeechError(null);
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      setIsListening(false);
+      if (event.error === "not-allowed") {
+        setSpeechError("Microphone access denied. Please allow mic and try again.");
+      } else {
+        setSpeechError(`Speech error: ${event.error}`);
+      }
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript.toLowerCase().trim();
+      parseTranscriptToForm(transcript);
+    };
+
+    recognition.start();
+  };
+
+  const parseTranscriptToForm = (text: string) => {
+    const normalizeVoiceText = (value: string) => {
+      let normalized = value
+        .toLowerCase()
+        .replace(/[.,!?]/g, " ");
+
+      voiceCorrections.forEach(([pattern, replacement]) => {
+        normalized = normalized.replace(pattern, replacement);
+      });
+
+      return normalized
+        .replace(numberWordPattern, (match) => voiceNumberWords[match] ?? match)
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const lower = normalizeVoiceText(text);
+    const currencyPattern = buildVoiceAliasPattern(Object.values(voiceCurrencyAliases).flat());
+
+    const spokenCurrency = (Object.entries(voiceCurrencyAliases) as Array<[ExpenseCurrency, string[]]>).find(([, aliases]) =>
+      matchesVoiceAlias(lower, aliases),
+    )?.[0];
+    if (spokenCurrency) setAmountCurrency(spokenCurrency);
+
+    const priceMatch = lower.match(/\b(\d+(\.\d{1,2})?)\b/);
+    if (priceMatch) setAmountText(priceMatch[1]);
+
+    const spokenPayment = (Object.entries(voicePaymentAliases) as Array<[PaymentMethod, string[]]>).find(([, aliases]) =>
+      matchesVoiceAlias(lower, aliases),
+    )?.[0];
+    if (spokenPayment) setPaidWith(spokenPayment);
+
+    const spokenCategory = (Object.entries(voiceCategoryAliases) as Array<[ExpenseCategory, string[]]>).find(([, aliases]) =>
+      matchesVoiceAlias(lower, aliases),
+    )?.[0];
+    if (spokenCategory) setCategory(spokenCategory);
+
+    const dateMatch = lower.match(/\bjuly\s*(1[1-6])\b|\b(1[1-6])\b/);
+    if (dateMatch) {
+      const d = parseInt(dateMatch[1] || dateMatch[2], 10);
+      if (d >= 11 && d <= 16) setDay(d);
+    } else if (/\btoday\b/.test(lower)) {
+      const d = new Date().getDate();
+      if (d >= 11 && d <= 16) setDay(d);
+    }
+
+    const cleanVoiceTitle = (value: string) => {
+      const titleStripPatterns = [
+        /\b\d+(\.\d{1,2})?\b/g,
+        currencyPattern,
+        buildVoiceAliasPattern(Object.values(voicePaymentAliases).flat()),
+        buildVoiceAliasPattern(voiceCategoryLabelAliases),
+        /\bjuly\s*\d{1,2}\b|\b1[1-6]\b/g,
+        /\b(i|spent|paid|bought|for|the|a|an|on|at|with|using|worth|costing|costed)\b/g,
+      ];
+
+      let cleaned = value;
+      for (const pattern of titleStripPatterns) {
+        cleaned = cleaned.replace(pattern, " ");
+      }
+      return cleaned.replace(/\s+/g, " ").trim();
+    };
+
+    const currencyMatch = lower.match(currencyPattern);
+    const breakpoints = [
+      typeof priceMatch?.index === "number" ? priceMatch.index : -1,
+      typeof currencyMatch?.index === "number" ? currencyMatch.index : -1,
+    ].filter((index) => index >= 0);
+    const firstStructuredIndex = breakpoints.length ? Math.min(...breakpoints) : -1;
+    const flowTitle = firstStructuredIndex > 0 ? cleanVoiceTitle(lower.slice(0, firstStructuredIndex)) : "";
+    if (flowTitle) {
+      setDesc(flowTitle);
+      return;
+    }
+
+    const STRIP_PATTERNS = [
+      /\b\d+(\.\d{1,2})?\b/g,
+      currencyPattern,
+      buildVoiceAliasPattern(Object.values(voicePaymentAliases).flat()),
+      buildVoiceAliasPattern(voiceCategoryLabelAliases),
+      /\bjuly\s*\d{1,2}\b|\b1[1-6]\b/g,
+      /\b(i|spent|paid|bought|for|the|a|an|on|at|with|using|worth|costing|costed)\b/g,
+    ];
+
+    let title = lower;
+    for (const pattern of STRIP_PATTERNS) {
+      title = title.replace(pattern, " ");
+    }
+    title = title.replace(/\s+/g, " ").trim();
+    if (title) setDesc(title);
+  };
+
   return (
     <div className="budget-page mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8 animate-in fade-in duration-300">
       <div className="budget-summary-grid mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -398,6 +627,55 @@ export default function BudgetTab({
                   <option value="Sightseeing">Sightseeing</option>
                   <option value="Other">Other</option>
                 </select>
+              </div>
+
+              <div className="relative">
+                <div
+                  className={`absolute inset-0 rounded-xl transition-all duration-300 ${
+                    isListening ? "shadow-[0_0_0_3px_rgba(239,68,68,0.2)]" : ""
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={handleVoiceInput}
+                  disabled={!canEdit}
+                  className={`relative flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-[14px] font-semibold transition-all duration-200 cursor-pointer
+                    ${!canEdit
+                      ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed"
+                      : isListening
+                        ? "border-rose-200 bg-rose-50 text-rose-600"
+                        : "border-stone-200 bg-stone-50 text-stone-500 hover:border-[#0B3530] hover:text-[#0B3530] hover:bg-[#0B3530]/5"
+                    }`}
+                  title={isListening ? "Tap to stop recording" : "Tap to fill form by voice"}
+                >
+                  {isListening ? (
+                    <>
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                      </span>
+                      <span>Listening... tap to stop</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="22"/>
+                      </svg>
+                      <span>Fill by voice</span>
+                    </>
+                  )}
+                </button>
+
+                {speechError && (
+                  <p className="mt-1.5 flex items-center gap-1 text-[12px] text-rose-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {speechError}
+                  </p>
+                )}
               </div>
 
               <button
