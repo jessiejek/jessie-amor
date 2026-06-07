@@ -8,9 +8,11 @@ import {
   LogIn,
   LogOut,
   Map as MapIcon,
+  Menu,
   NotebookText,
   Printer,
   Share2,
+  X,
   User,
   Wallet,
 } from "lucide-react";
@@ -54,21 +56,14 @@ type NavTab = {
   label: string;
   path: string;
   icon?: React.ComponentType<{ size?: number; className?: string }>;
+  showInBottom?: boolean;
 };
 
-const desktopTabs: NavTab[] = [
-  { label: "Itinerary", path: "/" },
-  { label: "Budget", path: "/budget" },
-  { label: "Map", path: "/map" },
-  { label: "Notes", path: "/notes" },
-];
-
-const mobileTabs: NavTab[] = [
-  { label: "Itinerary", path: "/", icon: CalendarDays },
-  { label: "Budget", path: "/budget", icon: Wallet },
-  { label: "Map", path: "/map", icon: MapIcon },
-  { label: "Notes", path: "/notes", icon: NotebookText },
-  { label: "Account", path: "/account", icon: User },
+const navItems: NavTab[] = [
+  { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true },
+  { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
+  { label: "Map", path: "/map", icon: MapIcon, showInBottom: true },
+  { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true },
 ];
 
 export default function Navigation({
@@ -81,6 +76,7 @@ export default function Navigation({
 }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState<CountdownState>(() => getCountdownState());
 
@@ -90,6 +86,28 @@ export default function Navigation({
     const interval = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!showMoreDrawer) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowMoreDrawer(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showMoreDrawer]);
 
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -112,6 +130,30 @@ export default function Navigation({
   };
 
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
+  const bottomNavItems = navItems.filter((tab) => tab.showInBottom);
+  const bottomNavPaths = bottomNavItems.map((tab) => tab.path);
+  const isMoreActive = showMoreDrawer || !bottomNavPaths.includes(activeTab);
+  const userMetadata = session?.user.user_metadata as
+    | {
+        avatar_url?: string;
+        picture?: string;
+        full_name?: string;
+        name?: string;
+      }
+    | undefined;
+  const userDisplayName =
+    userMetadata?.full_name ??
+    userMetadata?.name ??
+    session?.user.email?.split("@")[0] ??
+    "Signed in";
+  const userEmail = session?.user.email ?? "";
+  const userAvatar = userMetadata?.avatar_url ?? userMetadata?.picture ?? null;
+  const userInitial = (userDisplayName.trim().charAt(0) || "?").toUpperCase();
+
+  const handleNavigate = (path: string) => {
+    setActiveTab(path);
+    setShowMoreDrawer(false);
+  };
 
   return (
     <>
@@ -208,7 +250,7 @@ export default function Navigation({
 
             <div className="flex items-center justify-between gap-4 pt-2.5 pb-[10px]">
               <nav className="flex items-center gap-2 whitespace-nowrap">
-                {desktopTabs.map((tab) => (
+                {bottomNavItems.map((tab) => (
                   <button
                     key={tab.label}
                     onClick={() => setActiveTab(tab.path)}
@@ -241,13 +283,13 @@ export default function Navigation({
 
         <nav className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom))] md:hidden">
           <div className="grid grid-cols-5">
-            {mobileTabs.map((tab) => {
+            {bottomNavItems.map((tab) => {
               const Icon = tab.icon ?? CalendarDays;
               const isActive = activeTab === tab.path;
               return (
                 <button
                   key={tab.label}
-                  onClick={() => setActiveTab(tab.path)}
+                  onClick={() => handleNavigate(tab.path)}
                   className={`flex flex-col items-center gap-[3px] py-[7px] text-[9px] transition-colors ${
                     isActive ? "text-[#7ec96b]" : "text-white/50"
                   }`}
@@ -257,9 +299,137 @@ export default function Navigation({
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setShowMoreDrawer(true)}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[9px] transition-colors ${
+                isMoreActive ? "text-[#7ec96b]" : "text-white/50"
+              }`}
+              aria-expanded={showMoreDrawer}
+              aria-controls="mobile-more-drawer"
+              title="More"
+            >
+              <Menu size={17} />
+              <span>More</span>
+            </button>
           </div>
         </nav>
       </header>
+
+      {showMoreDrawer && (
+        <div className="fixed inset-0 z-[1350] md:hidden" aria-hidden="false">
+          <button
+            type="button"
+            aria-label="Close more menu"
+            className="absolute inset-0 bg-black/55 backdrop-blur-[1px] transition-opacity"
+            onClick={() => setShowMoreDrawer(false)}
+          />
+
+          <aside
+            id="mobile-more-drawer"
+            className="absolute left-0 top-0 z-10 flex h-[100dvh] w-[75vw] max-w-[300px] flex-col border-r border-white/10 bg-[#1a3a35] text-white shadow-2xl transition-transform duration-300 ease-out animate-in fade-in slide-in-from-left-12"
+            role="dialog"
+            aria-modal="true"
+            aria-label="More navigation"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#7ec96b]/70">More</p>
+                <h2 className="mt-1 text-[16px] font-semibold text-white">Navigation</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMoreDrawer(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white transition-colors hover:bg-white/10"
+                aria-label="Close sidebar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              <div className="space-y-1.5">
+                {navItems.map((item) => {
+                  const Icon = item.icon ?? CalendarDays;
+                  const isActive = activeTab === item.path;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => handleNavigate(item.path)}
+                      className={`flex min-h-12 w-full items-center gap-2.5 rounded-[12px] px-3 py-[10px] text-left text-[14px] font-medium transition-colors ${
+                        isActive ? "bg-white/12 text-white" : "text-white/75 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          isActive ? "bg-[#7ec96b]/20 text-[#7ec96b]" : "bg-white/10 text-white/75"
+                        }`}
+                      >
+                        <Icon size={15} />
+                      </span>
+                      <span className="flex-1">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-auto border-t border-white/10 px-3 py-3">
+              {!session ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreDrawer(false);
+                    onOpenAuth();
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.08)] px-4 py-[10px] text-left text-[14px] text-white transition-colors hover:bg-[rgba(255,255,255,0.12)]"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80">
+                    <User size={15} />
+                  </span>
+                  <span className="flex-1">Login</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.04)] px-3 py-[10px]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-[12px] font-semibold text-white">
+                    {userAvatar ? (
+                      <img
+                        src={userAvatar}
+                        alt={userDisplayName}
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span>{userInitial}</span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-medium leading-tight text-white">
+                      {userDisplayName}
+                    </div>
+                    <div className="truncate text-[11px] leading-tight text-white/50">{userEmail}</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMoreDrawer(false);
+                      onSignOut();
+                    }}
+                    className="inline-flex shrink-0 items-center justify-center text-white/50 transition-colors hover:text-white"
+                    aria-label="Log out"
+                    title="Log out"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
 
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-4 backdrop-blur-xs no-print">
