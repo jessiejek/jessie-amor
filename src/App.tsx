@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { CreditCard, Compass, Ticket, Utensils } from "lucide-react";
+import { CreditCard, Compass, Ticket, Utensils, LogOut, Share2, Printer } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -135,6 +135,7 @@ export default function App() {
     if (pathname === "/budget") return "/budget";
     if (pathname === "/map") return "/map";
     if (pathname === "/notes") return "/notes";
+    if (pathname === "/account") return "/account";
     return "/";
   };
 
@@ -461,7 +462,7 @@ export default function App() {
   }, []);
 
   const metadata = {
-    title: "Jessie & Amor's Malaysia Singapore Trip",
+    title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
 
@@ -500,6 +501,85 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleShareTrip = async () => {
+    const shareData = {
+      title: metadata.title,
+      text: metadata.description,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(window.location.href);
+    } catch {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  const handleMobilePrint = () => {
+    window.print();
+  };
+
+  const mobileAccountCard = session ? (
+    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
+      <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#7ec96b]/40 bg-[#7ec96b]/20 text-[12px] font-semibold text-[#7ec96b]">
+            JA
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium text-[#1a3328]">Jessie Jayr</div>
+            <div className="truncate text-[10px] text-[#888]">{session.user.email ?? "Signed in"}</div>
+          </div>
+        </div>
+
+        <div className="mt-3 border-t border-[#eee] pt-2">
+          <button
+            type="button"
+            onClick={handleShareTrip}
+            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#555]"
+          >
+            <Share2 size={14} />
+            Share trip
+          </button>
+          <button
+            type="button"
+            onClick={handleMobilePrint}
+            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#555]"
+          >
+            <Printer size={14} />
+            Print
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2 py-1.5 text-[12px] text-[#d94f4f]"
+          >
+            <LogOut size={14} />
+            Log out
+          </button>
+        </div>
+      </div>
+    </section>
+  ) : (
+    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
+      <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
+        <div className="text-[13px] font-medium text-[#1a3328]">Not signed in</div>
+        <div className="mt-1 text-[10px] text-[#888]">Use the Login button above to sync your trip data.</div>
+        <button
+          type="button"
+          onClick={() => setShowAuthModal(true)}
+          className="mt-3 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+        >
+          Log in
+        </button>
+      </div>
+    </section>
+  );
+
   return (
     <div className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]">
         <Navigation
@@ -511,9 +591,10 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-      <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
-        {activeRoute === "/" && (
-          <div className="animate-in fade-in duration-300">
+        <main className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0">
+          {activeRoute === "/account" && mobileAccountCard}
+          {activeRoute === "/" && (
+            <div className="animate-in fade-in duration-300">
             <Hero hero={itinerary.hero} />
             <Legend items={itinerary.legend} />
             <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
@@ -647,7 +728,7 @@ export default function App() {
         isConfigured={hasSupabaseConfig}
       />
 
-      <footer className="bg-[#041D1A] text-stone-400 py-14 px-4 md:px-8 border-t border-[#0B3530] no-print">
+      <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(8rem+env(safe-area-inset-bottom))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-lg font-serif font-bold text-white leading-tight mt-2 max-w-xs">

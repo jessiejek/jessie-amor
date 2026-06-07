@@ -676,7 +676,7 @@ const FOOD_GUIDES_BY_KEY: Record<FoodGuideKey, FoodGuide> = {
 const currentItinerary = {
   hero: {
     eyebrow: 'Travel Itinerary',
-    title: "Jessie & Amor's Malaysia · Singapore",
+    title: "J&A Malaysia · Singapore Trip 2026",
     subtitle: 'Trip Itinerary',
     meta: [],
     note: [],
@@ -1443,7 +1443,7 @@ const currentItinerary = {
       ],
     },
   ] satisfies TipCardData[],
-  footer: "Jessie & Amor's Malaysia · Singapore",
+  footer: "J&A Malaysia · Singapore Trip 2026",
 };
 
 export const destinationGuides: Record<string, DestinationGuide> = {
