@@ -178,7 +178,7 @@ export default function MapTab({ session: authSession, canEdit = false }: MapTab
   }, [authSession]);
 
   useEffect(() => {
-    if (!supabase || !session) {
+    if (!supabase) {
       mapLoadedRef.current = true;
       setItineraryData(buildEmptyMapItinerary());
       return;
