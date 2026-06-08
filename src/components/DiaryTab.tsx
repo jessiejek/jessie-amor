@@ -302,18 +302,16 @@ const renderStars = (rating: number, className = "h-4 w-4") =>
   starScale.map((starValue) => {
     const starTone = getRatingStarTone(rating);
     return (
-    <span
-      key={starValue}
-      className={starValue <= rating ? starTone.activeText : "text-stone-300"}
-    >
-      <Star
-        size={14}
-        className={className}
-        fill={starValue <= rating ? "currentColor" : "none"}
-        strokeWidth={starValue <= rating ? 0 : 2}
-      />
-    </span>
-  )});
+      <span key={starValue} className={starValue <= rating ? starTone.activeText : "text-stone-300"}>
+        <Star
+          size={14}
+          className={className}
+          fill={starValue <= rating ? "currentColor" : "none"}
+          strokeWidth={starValue <= rating ? 0 : 2}
+        />
+      </span>
+    );
+  });
 
 export default function DiaryTab({
   diaryEntries,
@@ -330,8 +328,6 @@ export default function DiaryTab({
   const [photoError, setPhotoError] = useState("");
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
-  const ratingStarsRef = useRef<HTMLDivElement | null>(null);
-  const isDraggingRatingRef = useRef(false);
 
   const editingEntry = editingId ? diaryEntries.find((entry) => entry.id === editingId) ?? null : null;
   const canManageEntry = (entry?: DiaryEntry | null) => {
@@ -345,38 +341,8 @@ export default function DiaryTab({
     setForm((current) => ({ ...current, rating: normalizeDiaryRating(rating) }));
   };
 
-  const getRatingFromPointerEvent = (event: React.PointerEvent<HTMLDivElement>) => {
-    const container = ratingStarsRef.current ?? event.currentTarget;
-    const rect = container.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-
-    const ratio = (event.clientX - rect.left) / rect.width;
-    const clampedRatio = Math.max(0, Math.min(1, ratio));
-    const rawRating = 1 + clampedRatio * 4;
-    return normalizeDiaryRating(rawRating);
-  };
-
-  const beginRatingDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!canEdit) return;
-    const rating = getRatingFromPointerEvent(event);
-    if (rating === null) return;
-
-    isDraggingRatingRef.current = true;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setRatingFromValue(rating);
-    event.preventDefault();
-  };
-
-  const moveRatingDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!canEdit || !isDraggingRatingRef.current) return;
-    const rating = getRatingFromPointerEvent(event);
-    if (rating === null) return;
-    setRatingFromValue(rating);
-    event.preventDefault();
-  };
-
-  const endRatingDrag = () => {
-    isDraggingRatingRef.current = false;
+  const handleRatingRangeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRatingFromValue(Number(event.target.value));
   };
 
   const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
@@ -729,37 +695,19 @@ export default function DiaryTab({
                   </div>
                   <span className={`text-[11px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</span>
                 </div>
-                <div
-                  ref={ratingStarsRef}
-                  className="grid w-full grid-cols-5 gap-2 touch-none select-none"
-                  onPointerDown={beginRatingDrag}
-                  onPointerMove={moveRatingDrag}
-                  onPointerUp={endRatingDrag}
-                  onPointerCancel={endRatingDrag}
-                  onPointerLeave={() => {
-                    if (!isDraggingRatingRef.current) return;
-                    endRatingDrag();
-                  }}
-                >
+                <div className="relative grid w-full grid-cols-5 gap-2 select-none">
                   {Array.from({ length: 5 }, (_, index) => {
                     const starNumber = index + 1;
                     const starTone = getRatingStarTone(form.rating);
                     return (
-                      <button
+                      <div
                         key={starNumber}
-                        type="button"
-                        onClick={(event) => {
-                          if (event.detail !== 0) return;
-                          setRatingFromValue(starNumber);
-                        }}
-                        disabled={!canEdit}
+                        aria-hidden="true"
                         className={`inline-flex h-11 w-full items-center justify-center rounded-full border transition-colors ${
                           starNumber <= form.rating
                             ? `${starTone.border} ${starTone.activeBg} ${starTone.activeText}`
                             : "border-stone-200 bg-white text-stone-400"
                         }`}
-                        aria-label={`Rate ${starNumber} stars`}
-                        aria-pressed={starNumber <= form.rating}
                       >
                         <span className="relative inline-flex h-[16px] w-[16px]">
                           <Star className="absolute inset-0 h-[16px] w-[16px] text-stone-300" fill="currentColor" strokeWidth={0} />
@@ -770,9 +718,21 @@ export default function DiaryTab({
                             <Star className="h-[16px] w-[16px] text-[#0B3530]" fill="currentColor" strokeWidth={0} />
                           </span>
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    value={form.rating}
+                    onChange={handleRatingRangeChange}
+                    onInput={handleRatingRangeChange}
+                    disabled={!canEdit}
+                    aria-label="Diary rating"
+                    className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                  />
                 </div>
                 <p className="text-[11px] text-stone-400">Click or drag across the stars to set a decimal rating.</p>
               </div>
