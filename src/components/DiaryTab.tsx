@@ -75,6 +75,11 @@ const createEmptyForm = (): DiaryFormState => ({
   photoChanged: false,
 });
 
+const normalizeDiaryRating = (rating: number) => {
+  const numericRating = Number.isFinite(rating) ? rating : 0;
+  return Math.max(1, Math.min(5, Math.round(numericRating)));
+};
+
 const compressImageFileToDataUrl = async (file: File) => {
   const objectUrl = URL.createObjectURL(file);
 
@@ -179,7 +184,6 @@ const getRevisitPillClass = (value: boolean) =>
     : "border-stone-200 bg-stone-100 text-stone-600";
 
 const getRatingLabel = (rating: number) => {
-  if (rating === 0) return "No rating";
   if (rating <= 1) return "Terrible";
   if (rating <= 2) return "Poor";
   if (rating <= 3) return "Average";
@@ -365,7 +369,7 @@ export default function DiaryTab({
       title: entry.title,
       description: entry.description,
       type: entry.type,
-      rating: entry.rating,
+      rating: normalizeDiaryRating(entry.rating),
       dateVisited: entry.dateVisited,
       locationName: entry.locationName,
       cityOrCountry: entry.cityOrCountry ?? "",
@@ -406,7 +410,7 @@ export default function DiaryTab({
       title: trimmedTitle,
       description: trimmedDescription,
       type: form.type,
-      rating: Math.max(0, Math.min(5, Number(form.rating.toFixed(1)))),
+      rating: normalizeDiaryRating(form.rating),
       dateVisited: form.dateVisited,
       locationName: trimmedLocation,
       cityOrCountry: form.cityOrCountry.trim() || undefined,
@@ -631,7 +635,7 @@ export default function DiaryTab({
               <span className="mb-1 block text-[13px] font-semibold text-stone-600">Rating</span>
               <div className="space-y-3">
                 <div className="flex items-end gap-2">
-                  <span className={`text-2xl font-semibold ${ratingTone.scoreText}`}>{form.rating.toFixed(1)}</span>
+                  <span className={`text-2xl font-semibold ${ratingTone.scoreText}`}>{form.rating}</span>
                   <span className="pb-0.5 text-[13px] text-stone-400">/ 5</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -670,14 +674,14 @@ export default function DiaryTab({
                 </div>
                 <input
                   type="range"
-                  min="0"
+                  min="1"
                   max="5"
-                  step="0.1"
+                  step="1"
                   value={form.rating}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      rating: Number(Number(event.target.value).toFixed(1)),
+                      rating: normalizeDiaryRating(Number(event.target.value)),
                     }))
                   }
                   disabled={!canEdit}

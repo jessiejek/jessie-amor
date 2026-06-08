@@ -222,13 +222,17 @@ const notesPayload = (notes: TravelNote[]) => ({
 });
 
 const notesSignature = (notes: TravelNote[]) => JSON.stringify(notesPayload(notes));
+const normalizeDiaryRating = (rating: number) => {
+  const numericRating = Number.isFinite(rating) ? rating : 0;
+  return Math.max(1, Math.min(5, Math.round(numericRating)));
+};
 
 const diaryEntryToRow = (entry: DiaryEntry): Omit<SupabaseDiaryRow, "trip_key"> => ({
   id: entry.id,
   title: entry.title,
   description: entry.description,
   type: entry.type,
-  rating: entry.rating,
+  rating: normalizeDiaryRating(entry.rating),
   date_visited: entry.dateVisited || null,
   location_name: entry.locationName || null,
   city_or_country: entry.cityOrCountry ?? null,
@@ -246,7 +250,7 @@ const rowToDiaryEntry = (row: SupabaseDiaryRow, photoUrl?: string): DiaryEntry =
   title: row.title,
   description: row.description,
   type: row.type,
-  rating: Number(row.rating),
+  rating: normalizeDiaryRating(Number(row.rating)),
   dateVisited: row.date_visited ?? new Date().toISOString().slice(0, 10),
   locationName: row.location_name ?? "",
   cityOrCountry: row.city_or_country ?? undefined,
@@ -268,8 +272,10 @@ const diarySignature = (entries: DiaryEntry[]) =>
   }));
 
 const getExpenseOwnerId = (expense: Expense) => expense.createdBy ?? expense.savedByUserId ?? null;
+const getDiaryOwnerId = (entry: DiaryEntry) => entry.createdBy ?? entry.savedByUserId ?? null;
 
 const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
+const isDiaryLocalPhotoUrl = (photoUrl?: string) => Boolean(photoUrl?.startsWith("data:"));
 
 const hashString = (value: string) => {
   let hash = 0;
@@ -406,6 +412,7 @@ export default function App() {
   const [notesSyncNonce, setNotesSyncNonce] = useState(0);
   const [diarySyncNonce, setDiarySyncNonce] = useState(0);
   const expenseSnapshotOwnerRef = useRef<string>("");
+  const diarySnapshotOwnerRef = useRef<string>("");
   const currentUser: CurrentUserInfo | null = session?.user
     ? {
         userId: session.user.id,
@@ -1080,6 +1087,8 @@ export default function App() {
     if (!hasPendingLocalChanges) return;
 
     if (checklistSyncInFlightRef.current) {
+      // dirty state persisted before return
+      saveChecklistSnapshot(checklist, checklistSignatureRef.current, true, checklistIdsRef.current);
       checklistSyncQueuedRef.current = true;
       return;
     }
@@ -1091,6 +1100,7 @@ export default function App() {
 
     saveChecklistSnapshot(checklist, checklistSignatureRef.current, true, checklistIdsRef.current);
 
+    // dirty state persisted before return
     if (!supabase || !authReady || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
@@ -1116,17 +1126,19 @@ export default function App() {
           .upsert(writePayload, { onConflict: "id" });
 
         if (upsertError) {
+          // dirty state persisted before return
           console.warn("Supabase checklist sync failed:", upsertError.message);
           return;
         }
 
-        if (removedIds.length > 0) {
+        if (requestRemovedIds.length > 0) {
           const { error: deleteError } = await supabase
             .from(supabaseChecklistTable)
             .delete()
-            .in("id", removedIds);
+            .in("id", requestRemovedIds);
 
           if (deleteError) {
+            // dirty state persisted before return
             console.warn("Supabase checklist delete failed:", deleteError.message);
             return;
           }
@@ -1157,7 +1169,9 @@ export default function App() {
           }
 
           if (hasMismatch) {
+            // successful request baseline persisted; newer local state preserved and queued
             checklistSyncQueuedRef.current = true;
+            saveChecklistSnapshot(next, requestChecklistSignature, true, requestChecklistIds);
             return next;
           }
 
@@ -1187,6 +1201,8 @@ export default function App() {
     if (!hasPendingLocalChanges) return;
 
     if (notesSyncInFlightRef.current) {
+      // dirty state persisted before return
+      saveNotesSnapshot(notes, notesSignatureRef.current, true, notesIdsRef.current);
       notesSyncQueuedRef.current = true;
       return;
     }
@@ -1198,6 +1214,7 @@ export default function App() {
 
     saveNotesSnapshot(notes, notesSignatureRef.current, true, notesIdsRef.current);
 
+    // dirty state persisted before return
     if (!supabase || !authReady || !session || !isOnline) return;
 
     const timeout = window.setTimeout(async () => {
@@ -1220,13 +1237,16 @@ export default function App() {
           .upsert(writePayload, { onConflict: "trip_key" });
 
         if (error) {
+          // dirty state persisted before return
           console.warn("Supabase notes sync failed:", error.message);
           return;
         }
 
         setNotes((current) => {
           if (notesSignature(current) !== requestNotesSignature) {
+            // successful request baseline persisted; newer local state preserved and queued
             notesSyncQueuedRef.current = true;
+            saveNotesSnapshot(current, requestNotesSignature, true, requestNotes.map((note) => note.id));
             return current;
           }
 
@@ -1251,10 +1271,34 @@ export default function App() {
   useEffect(() => {
     if (!diaryLoaded) return;
 
-    const currentSignature = diarySignature(diaryEntries);
-    const currentIds = diaryEntries.map((entry) => entry.id);
+    const ownerKey = currentUser ? `${currentUser.isAdmin ? "admin" : "user"}:${currentUser.userId}` : "";
+    if (diarySnapshotOwnerRef.current !== ownerKey) {
+      diarySnapshotOwnerRef.current = ownerKey;
+      const managedDiaryEntries = currentUser
+        ? diaryEntries.filter((entry) => {
+            if (currentUser.isAdmin) return true;
+            return getDiaryOwnerId(entry) === currentUser.userId;
+          })
+        : [];
+      const managedSignature = diarySignature(managedDiaryEntries);
+      const managedIds = managedDiaryEntries.map((entry) => entry.id);
+      const managedHasPending = managedDiaryEntries.some((entry) => entry.syncStatus === "pending" || isDiaryLocalPhotoUrl(entry.photoUrl));
+      diarySignatureRef.current = managedSignature;
+      diaryDirtyRef.current = managedHasPending;
+      if (!managedHasPending) {
+        diaryIdsRef.current = managedIds;
+      }
+    }
+
+    const managedDiaryEntries = diaryEntries.filter((entry) => {
+      if (!currentUser) return false;
+      if (currentUser.isAdmin) return true;
+      return getDiaryOwnerId(entry) === currentUser.userId;
+    });
+    const currentSignature = diarySignature(managedDiaryEntries);
+    const currentIds = managedDiaryEntries.map((entry) => entry.id);
     const removedIds = diaryIdsRef.current.filter((id) => !currentIds.includes(id));
-    const pendingPhotoSignature = diaryEntries
+    const pendingPhotoSignature = managedDiaryEntries
       .filter((entry) => entry.photoUrl?.startsWith("data:"))
       .map((entry) => `${entry.id}:${hashString(entry.photoUrl ?? "")}:${entry.photoPath ?? ""}`)
       .join("|");
@@ -1282,22 +1326,29 @@ export default function App() {
 
     saveDiarySnapshot(diaryEntries, diarySignatureRef.current, true, diaryIdsRef.current);
 
+    // dirty state persisted before return
     if (!supabase || !authReady || !session || !isOnline || !currentSavedBy) return;
     if (diarySyncInFlightRef.current) {
+      // dirty state persisted before return
       diarySyncQueuedRef.current = true;
       return;
     }
 
     const timeout = window.setTimeout(async () => {
-      if (diarySyncInFlightRef.current) return;
+      if (diarySyncInFlightRef.current) {
+        // dirty state already persisted before scheduling; queue retry instead of dropping local changes
+        diarySyncQueuedRef.current = true;
+        return;
+      }
       diarySyncInFlightRef.current = true;
 
       try {
-        const requestDiaryEntries: DiaryEntry[] = diaryEntries.map((entry) => ({ ...entry }));
+        const requestDiaryEntries: DiaryEntry[] = managedDiaryEntries.map((entry) => ({ ...entry }));
+        const requestOriginalDiaryById = new Map(requestDiaryEntries.map((entry) => [entry.id, entry] as const));
         const requestDiaryIds = requestDiaryEntries.map((entry) => entry.id);
         const uploadResults = await Promise.all(
           requestDiaryEntries.map(async (entry) => {
-            if (!entry.photoUrl?.startsWith("data:")) {
+            if (!isDiaryLocalPhotoUrl(entry.photoUrl)) {
               return {
                 id: entry.id,
                 photoPath: entry.photoPath ?? null,
@@ -1359,11 +1410,24 @@ export default function App() {
           const ownerEmail = entry.savedByEmail ?? null;
 
           if (result?.uploaded) {
+            const resolvedPhotoPath = result.photoPath ?? entry.photoPath;
+            if (!resolvedPhotoPath) {
+              // local data photo cannot be marked clean synced without a remote photo path
+              console.warn("Supabase diary photo upload completed without a photo path; keeping entry pending.");
+              return {
+                ...entry,
+                createdBy: ownerId ?? undefined,
+                savedByUserId: ownerId ?? undefined,
+                savedByEmail: ownerEmail ?? undefined,
+                syncStatus: "pending" as SyncStatus,
+              };
+            }
+
             return {
               ...entry,
               createdBy: ownerId ?? undefined,
-              photoPath: result.photoPath ?? entry.photoPath,
-              photoUrl: result.photoUrl,
+              photoPath: resolvedPhotoPath,
+              photoUrl: result.photoUrl ?? undefined,
               savedByUserId: ownerId ?? undefined,
               savedByEmail: ownerEmail ?? undefined,
               syncStatus: "synced" as SyncStatus,
@@ -1375,7 +1439,7 @@ export default function App() {
             createdBy: ownerId ?? undefined,
             savedByUserId: ownerId ?? undefined,
             savedByEmail: ownerEmail ?? undefined,
-            syncStatus: (entry.photoUrl?.startsWith("data:") ? "pending" : "synced") as SyncStatus,
+            syncStatus: (isDiaryLocalPhotoUrl(entry.photoUrl) ? "pending" : "synced") as SyncStatus,
           };
         });
 
@@ -1390,23 +1454,27 @@ export default function App() {
           .upsert(writePayload, { onConflict: "id" });
 
         if (upsertError) {
+          // dirty state persisted before return
           console.warn("Supabase diary sync failed:", upsertError.message);
           return;
         }
 
-        if (removedIds.length > 0) {
+        const requestRemovedIds = removedIds.slice();
+
+        if (requestRemovedIds.length > 0) {
           const { error: deleteError } = await supabase
             .from(supabaseDiaryTable)
             .delete()
-            .in("id", removedIds);
+            .in("id", requestRemovedIds);
 
           if (deleteError) {
+            // dirty state persisted before return
             console.warn("Supabase diary delete failed:", deleteError.message);
             return;
           }
         }
 
-        const removedPhotoPaths = removedIds
+        const removedPhotoPaths = requestRemovedIds
           .map((id) => diarySyncedEntriesRef.current[id]?.photoPath)
           .filter((value): value is string => Boolean(value));
 
@@ -1419,7 +1487,8 @@ export default function App() {
 
         const requestWrittenDiary = nextDiary.map((entry) => ({
           ...entry,
-          syncStatus: (entry.photoUrl?.startsWith("data:") ? "pending" : "synced") as SyncStatus,
+          // local data photo cannot be marked clean synced
+          syncStatus: (isDiaryLocalPhotoUrl(entry.photoUrl) ? "pending" : "synced") as SyncStatus,
         }));
         const requestWrittenDiarySignature = diarySignature(requestWrittenDiary);
         const requestWrittenDiaryById = new Map(requestWrittenDiary.map((entry) => [entry.id, entry] as const));
@@ -1433,17 +1502,24 @@ export default function App() {
           let hasMismatch = false;
           const currentById = new Map(current.map((entry) => [entry.id, entry] as const));
           const next = current.map((entry) => {
-            const requestEntry = requestWrittenDiaryById.get(entry.id);
-            if (!requestEntry) {
+            const originalRequestEntry = requestOriginalDiaryById.get(entry.id);
+            if (!originalRequestEntry) {
               return entry;
             }
 
-            if (diarySignature([entry]) !== diarySignature([requestEntry])) {
+            if (diarySignature([entry]) !== diarySignature([originalRequestEntry])) {
               hasMismatch = true;
               return entry;
             }
 
-            return { ...entry, syncStatus: "synced" };
+            const writtenEntry = requestWrittenDiaryById.get(entry.id);
+            if (!writtenEntry) {
+              hasMismatch = true;
+              return entry;
+            }
+
+            // successful request baseline persisted; unchanged local state is replaced with uploaded/written result
+            return writtenEntry;
           });
 
           for (const requestEntry of requestWrittenDiary) {
@@ -1454,7 +1530,9 @@ export default function App() {
           }
 
           if (hasMismatch) {
+            // newer local state preserved and queued
             diarySyncQueuedRef.current = true;
+            saveDiarySnapshot(next, requestWrittenDiarySignature, true, requestWrittenDiaryIds);
             return next;
           }
 
