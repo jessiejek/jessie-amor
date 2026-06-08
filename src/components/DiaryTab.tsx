@@ -50,7 +50,7 @@ const diaryTypes: DiaryEntryType[] = [
   "Other",
 ];
 
-const ratingOptions = [1, 2, 3, 4, 5];
+const starScale = [1, 2, 3, 4, 5];
 
 const getLocalDateInputValue = (value = new Date()) => {
   const year = value.getFullYear();
@@ -164,8 +164,77 @@ const getRevisitPillClass = (value: boolean) =>
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
     : "border-stone-200 bg-stone-100 text-stone-600";
 
+const getRatingLabel = (rating: number) => {
+  if (rating === 0) return "No rating";
+  if (rating <= 1) return "Terrible";
+  if (rating <= 2) return "Poor";
+  if (rating <= 3) return "Average";
+  if (rating <= 4) return "Good";
+  return "Excellent";
+};
+
+const getRatingTone = (rating: number) => {
+  if (rating <= 0) {
+    return {
+      scoreText: "text-stone-500",
+      fillText: "text-stone-400",
+      fillBg: "bg-stone-100",
+      border: "border-stone-200",
+      labelText: "text-stone-500",
+    };
+  }
+
+  if (rating <= 1) {
+    return {
+      scoreText: "text-rose-700",
+      fillText: "text-rose-700",
+      fillBg: "bg-rose-50",
+      border: "border-rose-200",
+      labelText: "text-rose-600",
+    };
+  }
+
+  if (rating <= 2) {
+    return {
+      scoreText: "text-orange-700",
+      fillText: "text-orange-700",
+      fillBg: "bg-orange-50",
+      border: "border-orange-200",
+      labelText: "text-orange-600",
+    };
+  }
+
+  if (rating <= 3) {
+    return {
+      scoreText: "text-amber-700",
+      fillText: "text-amber-700",
+      fillBg: "bg-amber-50",
+      border: "border-amber-200",
+      labelText: "text-amber-600",
+    };
+  }
+
+  if (rating <= 4) {
+    return {
+      scoreText: "text-lime-700",
+      fillText: "text-lime-700",
+      fillBg: "bg-lime-50",
+      border: "border-lime-200",
+      labelText: "text-lime-600",
+    };
+  }
+
+  return {
+    scoreText: "text-emerald-700",
+    fillText: "text-emerald-700",
+    fillBg: "bg-emerald-50",
+    border: "border-emerald-200",
+    labelText: "text-emerald-600",
+  };
+};
+
 const renderStars = (rating: number, className = "h-4 w-4") =>
-  ratingOptions.map((starValue) => (
+  starScale.map((starValue) => (
     <Star
       key={starValue}
       size={14}
@@ -194,6 +263,7 @@ export default function DiaryTab({
   const editingEntry = editingId ? diaryEntries.find((entry) => entry.id === editingId) ?? null : null;
 
   const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
+  const ratingTone = getRatingTone(form.rating);
 
   const filteredEntries = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -312,7 +382,7 @@ export default function DiaryTab({
       title: trimmedTitle,
       description: trimmedDescription,
       type: form.type,
-      rating: Math.max(1, Math.min(5, Math.round(form.rating))),
+      rating: Math.max(0, Math.min(5, Number(form.rating.toFixed(1)))),
       dateVisited: form.dateVisited,
       locationName: trimmedLocation,
       cityOrCountry: form.cityOrCountry.trim() || undefined,
@@ -526,26 +596,61 @@ export default function DiaryTab({
 
             <div className="md:col-span-2">
               <span className="mb-1 block text-[13px] font-semibold text-stone-600">Rating</span>
-              <div className="flex flex-wrap items-center gap-2">
-                {ratingOptions.map((rating) => {
-                  const active = rating <= form.rating;
-                  return (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => canEdit && setForm((current) => ({ ...current, rating }))}
-                      disabled={!canEdit}
-                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-2 text-[13px] font-semibold transition-colors ${
-                        active
-                          ? "border-amber-200 bg-amber-50 text-amber-700"
-                          : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-                      } ${!canEdit ? "cursor-not-allowed opacity-70" : ""}`}
-                    >
-                      <Star size={14} fill={active ? "currentColor" : "none"} strokeWidth={active ? 0 : 2} />
-                      {rating}
-                    </button>
-                  );
-                })}
+              <div className="space-y-3">
+                <div className="flex items-end gap-2">
+                  <span className={`text-2xl font-semibold ${ratingTone.scoreText}`}>{form.rating.toFixed(1)}</span>
+                  <span className="pb-0.5 text-[13px] text-stone-400">/ 5</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {Array.from({ length: 5 }, (_, index) => {
+                    const starNumber = index + 1;
+                    const fillPercent = Math.max(0, Math.min(1, form.rating - (starNumber - 1))) * 100;
+                    const isActive = fillPercent > 0;
+
+                    return (
+                      <div
+                        key={starNumber}
+                        className={`relative overflow-hidden rounded-full border px-3 py-2 ${
+                          isActive ? `${ratingTone.border} bg-white` : "border-stone-200 bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`absolute inset-y-0 left-0 ${ratingTone.fillBg}`}
+                          style={{ width: `${fillPercent}%` }}
+                        />
+                        <div className="relative flex items-center gap-1 text-[13px] font-semibold text-stone-400">
+                          <Star className="h-[14px] w-[14px] shrink-0" fill="currentColor" strokeWidth={0} />
+                          <span>{starNumber}</span>
+                        </div>
+                        <div
+                          className="absolute inset-y-0 left-0 overflow-hidden"
+                          style={{ width: `${fillPercent}%` }}
+                        >
+                          <div className={`flex h-full items-center gap-1 px-3 py-2 text-[13px] font-semibold ${ratingTone.fillText}`}>
+                            <Star className="h-[14px] w-[14px] shrink-0" fill="currentColor" strokeWidth={0} />
+                            <span>{starNumber}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={form.rating}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      rating: Number(Number(event.target.value).toFixed(1)),
+                    }))
+                  }
+                  disabled={!canEdit}
+                  className={`w-full accent-[#0B3530] ${!canEdit ? "cursor-not-allowed opacity-70" : ""}`}
+                />
+                <p className={`text-[13px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</p>
               </div>
             </div>
 
@@ -716,7 +821,7 @@ export default function DiaryTab({
               className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
             >
               <option value="All">All ratings</option>
-              {ratingOptions.map((rating) => (
+              {starScale.map((rating) => (
                 <option key={rating} value={String(rating)}>
                   {rating} stars
                 </option>
