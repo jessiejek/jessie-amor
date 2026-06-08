@@ -328,6 +328,8 @@ export default function DiaryTab({
   const [photoError, setPhotoError] = useState("");
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const ratingTrackRef = useRef<HTMLDivElement | null>(null);
+  const isRatingDraggingRef = useRef(false);
 
   const editingEntry = editingId ? diaryEntries.find((entry) => entry.id === editingId) ?? null : null;
   const canManageEntry = (entry?: DiaryEntry | null) => {
@@ -341,8 +343,39 @@ export default function DiaryTab({
     setForm((current) => ({ ...current, rating: normalizeDiaryRating(rating) }));
   };
 
-  const handleRatingRangeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRatingFromValue(Number(event.target.value));
+  const getRatingFromClientX = (clientX: number) => {
+    const track = ratingTrackRef.current;
+    if (!track) return null;
+
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return null;
+
+    const ratio = (clientX - rect.left) / rect.width;
+    const clampedRatio = Math.max(0, Math.min(1, ratio));
+    return normalizeDiaryRating(1 + clampedRatio * 4);
+  };
+
+  const handleRatingPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canEdit) return;
+    const rating = getRatingFromClientX(event.clientX);
+    if (rating === null) return;
+
+    isRatingDraggingRef.current = true;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setRatingFromValue(rating);
+    event.preventDefault();
+  };
+
+  const handleRatingPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canEdit || !isRatingDraggingRef.current) return;
+    const rating = getRatingFromClientX(event.clientX);
+    if (rating === null) return;
+    setRatingFromValue(rating);
+    event.preventDefault();
+  };
+
+  const stopRatingDrag = () => {
+    isRatingDraggingRef.current = false;
   };
 
   const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
@@ -695,7 +728,41 @@ export default function DiaryTab({
                   </div>
                   <span className={`text-[11px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</span>
                 </div>
-                <div className="relative grid w-full grid-cols-5 gap-2 select-none">
+                <div
+                  ref={ratingTrackRef}
+                  className="relative grid w-full grid-cols-5 gap-2 select-none touch-none"
+                  role="slider"
+                  tabIndex={canEdit ? 0 : -1}
+                  aria-label="Diary rating"
+                  aria-valuemin={1}
+                  aria-valuemax={5}
+                  aria-valuenow={Number(form.rating.toFixed(1))}
+                  aria-valuetext={`${formatDiaryRating(form.rating)} out of 5`}
+                  onPointerDown={handleRatingPointerDown}
+                  onPointerMove={handleRatingPointerMove}
+                  onPointerUp={stopRatingDrag}
+                  onPointerCancel={stopRatingDrag}
+                  onLostPointerCapture={stopRatingDrag}
+                  onKeyDown={(event) => {
+                    if (!canEdit) return;
+                    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setRatingFromValue(form.rating - 0.1);
+                    }
+                    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setRatingFromValue(form.rating + 0.1);
+                    }
+                    if (event.key === "Home") {
+                      event.preventDefault();
+                      setRatingFromValue(1);
+                    }
+                    if (event.key === "End") {
+                      event.preventDefault();
+                      setRatingFromValue(5);
+                    }
+                  }}
+                >
                   {Array.from({ length: 5 }, (_, index) => {
                     const starNumber = index + 1;
                     const starTone = getRatingStarTone(form.rating);
@@ -721,18 +788,6 @@ export default function DiaryTab({
                       </div>
                     );
                   })}
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="0.1"
-                    value={form.rating}
-                    onChange={handleRatingRangeChange}
-                    onInput={handleRatingRangeChange}
-                    disabled={!canEdit}
-                    aria-label="Diary rating"
-                    className="absolute inset-0 z-10 cursor-pointer opacity-0"
-                  />
                 </div>
                 <p className="text-[11px] text-stone-400">Click or drag across the stars to set a decimal rating.</p>
               </div>
