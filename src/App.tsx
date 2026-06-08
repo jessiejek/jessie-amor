@@ -272,6 +272,7 @@ const diarySignature = (entries: DiaryEntry[]) =>
   }));
 
 const getExpenseOwnerId = (expense: Expense) => expense.createdBy ?? expense.savedByUserId ?? null;
+const getChecklistOwnerId = (item: ChecklistItem) => item.createdBy ?? item.savedByUserId ?? null;
 const getDiaryOwnerId = (entry: DiaryEntry) => entry.createdBy ?? entry.savedByUserId ?? null;
 
 const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
@@ -412,6 +413,7 @@ export default function App() {
   const [notesSyncNonce, setNotesSyncNonce] = useState(0);
   const [diarySyncNonce, setDiarySyncNonce] = useState(0);
   const expenseSnapshotOwnerRef = useRef<string>("");
+  const checklistSnapshotOwnerRef = useRef<string>("");
   const diarySnapshotOwnerRef = useRef<string>("");
   const currentUser: CurrentUserInfo | null = session?.user
     ? {
@@ -937,6 +939,29 @@ export default function App() {
   }, [expensesLoaded, currentUser, expenses]);
 
   useEffect(() => {
+    if (!checklistLoaded) return;
+
+    const ownerKey = currentUser ? `${currentUser.isAdmin ? "admin" : "user"}:${currentUser.userId}` : "";
+    if (checklistSnapshotOwnerRef.current !== ownerKey) {
+      checklistSnapshotOwnerRef.current = ownerKey;
+      const managedChecklist = currentUser
+        ? checklist.filter((item) => {
+            if (currentUser.isAdmin) return true;
+            return getChecklistOwnerId(item) === currentUser.userId;
+          })
+        : [];
+      const managedSignature = checklistSignature(managedChecklist);
+      const managedIds = managedChecklist.map((item) => item.id);
+      const managedHasPending = managedChecklist.some((item) => item.syncStatus === "pending");
+      checklistSignatureRef.current = managedSignature;
+      checklistDirtyRef.current = managedHasPending;
+      if (!managedHasPending) {
+        checklistIdsRef.current = managedIds;
+      }
+    }
+  }, [checklistLoaded, currentUser, checklist]);
+
+  useEffect(() => {
     if (!expensesLoaded) return;
 
     const managedExpenses = expenses.filter((expense) => {
@@ -1079,8 +1104,13 @@ export default function App() {
   useEffect(() => {
     if (!checklistLoaded) return;
 
-    const currentSignature = checklistSignature(checklist);
-    const currentIds = checklist.map((item) => item.id);
+    const managedChecklist = checklist.filter((item) => {
+      if (!currentUser) return false;
+      if (currentUser.isAdmin) return true;
+      return getChecklistOwnerId(item) === currentUser.userId;
+    });
+    const currentSignature = checklistSignature(managedChecklist);
+    const currentIds = managedChecklist.map((item) => item.id);
     const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
     const hasPendingLocalChanges = currentSignature !== checklistSignatureRef.current || removedIds.length > 0 || checklistDirtyRef.current;
 
@@ -1111,7 +1141,7 @@ export default function App() {
       checklistSyncInFlightRef.current = true;
 
       try {
-        const requestChecklist: ChecklistItem[] = checklist.map((item) => ({ ...item }));
+        const requestChecklist: ChecklistItem[] = managedChecklist.map((item) => ({ ...item }));
         const requestChecklistById = new Map(requestChecklist.map((item) => [item.id, item] as const));
         const requestChecklistIds = requestChecklist.map((item) => item.id);
         const requestChecklistSignature = checklistSignature(requestChecklist);
@@ -1145,9 +1175,19 @@ export default function App() {
         }
 
         setChecklist((current) => {
+          const currentManaged = current.filter((item) => {
+            if (!currentUser) return false;
+            if (currentUser.isAdmin) return true;
+            return getChecklistOwnerId(item) === currentUser.userId;
+          });
           let hasMismatch = false;
-          const currentById = new Map(current.map((item) => [item.id, item] as const));
+          const currentById = new Map(currentManaged.map((item) => [item.id, item] as const));
           const next = current.map((item) => {
+            const isManaged = currentUser
+              ? currentUser.isAdmin || getChecklistOwnerId(item) === currentUser.userId
+              : false;
+            if (!isManaged) return item;
+
             const requestItem = requestChecklistById.get(item.id);
             if (!requestItem) {
               return item;
@@ -1190,7 +1230,7 @@ export default function App() {
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [checklist, checklistLoaded, authReady, session, isOnline, checklistSyncNonce]);
+  }, [checklist, checklistLoaded, authReady, session, isOnline, checklistSyncNonce, currentUser]);
 
   useEffect(() => {
     if (!notesLoaded) return;
