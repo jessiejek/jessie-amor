@@ -280,6 +280,54 @@ const hashString = (value: string) => {
   return hash.toString(16);
 };
 
+const isPendingLocalSync = (status?: SyncStatus) => status !== "synced";
+
+const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
+  localItems: T[],
+  remoteItems: T[],
+  syncedIds: string[] = [],
+) => {
+  const localById = new Map(localItems.map((item) => [item.id, item] as const));
+  const deletedIds = new Set(syncedIds.filter((id) => !localById.has(id)));
+  const merged: T[] = [];
+  const seen = new Set<string>();
+
+  for (const remoteItem of remoteItems) {
+    if (deletedIds.has(remoteItem.id)) continue;
+
+    const localItem = localById.get(remoteItem.id);
+    if (localItem && isPendingLocalSync(localItem.syncStatus)) {
+      merged.push(localItem);
+      seen.add(localItem.id);
+      continue;
+    }
+
+    if (localItem) {
+      merged.push(remoteItem);
+      seen.add(remoteItem.id);
+      continue;
+    }
+
+    merged.push(remoteItem);
+    seen.add(remoteItem.id);
+  }
+
+  for (const localItem of localItems) {
+    if (seen.has(localItem.id)) continue;
+    if (isPendingLocalSync(localItem.syncStatus)) {
+      merged.push(localItem);
+    }
+  }
+
+  const hasLocalPending = Boolean(deletedIds.size) || localItems.some((item) => isPendingLocalSync(item.syncStatus));
+
+  return {
+    merged,
+    hasLocalPending,
+    deletedIds: Array.from(deletedIds),
+  };
+};
+
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
 export default function App() {
@@ -339,6 +387,7 @@ export default function App() {
   const diaryDirtyRef = useRef<boolean>(initialDiaryCache?.dirty ?? false);
   const expenseIdsRef = useRef<string[]>(initialExpenseCache?.syncedIds ?? initialExpenseItems.map((expense) => expense.id));
   const checklistIdsRef = useRef<string[]>(initialChecklistCache?.syncedIds ?? initialChecklistItems.map((item) => item.id));
+  const notesIdsRef = useRef<string[]>(initialNotesCache?.syncedIds ?? initialNoteItems.map((note) => note.id));
   const diaryIdsRef = useRef<string[]>(initialDiaryCache?.syncedIds ?? initialDiaryItems.map((entry) => entry.id));
   const diarySyncedEntriesRef = useRef<Record<string, DiaryEntry>>(
     Object.fromEntries(initialDiaryItems.map((entry) => [entry.id, entry])),
@@ -401,14 +450,18 @@ export default function App() {
     });
   };
 
-  const saveNotesSnapshot = (nextNotes: TravelNote[], syncedSignature: string, dirty: boolean) => {
+  const saveNotesSnapshot = (nextNotes: TravelNote[], syncedSignature: string, dirty: boolean, syncedIds: string[] = notesIdsRef.current) => {
     notesSignatureRef.current = syncedSignature;
     notesDirtyRef.current = dirty;
     writeCachedDataset(notesCacheKey, {
       data: nextNotes,
       syncedSignature,
       dirty,
+      syncedIds,
     });
+    if (!dirty) {
+      notesIdsRef.current = syncedIds;
+    }
   };
 
   const saveDiarySnapshot = (nextDiary: DiaryEntry[], syncedSignature: string, dirty: boolean, syncedIds: string[] = diaryIdsRef.current) => {
@@ -539,34 +592,71 @@ export default function App() {
 
       if (expenseError) {
         console.warn("Supabase expense load failed:", expenseError.message);
-      } else if (!expenseDirtyRef.current) {
+      } else {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
-        const syncedExpenses = forceSyncStatus<Expense>(remoteExpenses, "synced");
-        const remoteSignature = expenseSignature(syncedExpenses);
-        persistExpenseCache(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
-        setExpenses(syncedExpenses);
+        const { merged, hasLocalPending } = mergeBootstrapItems<Expense>(
+          initialExpenseCache?.data ?? [],
+          forceSyncStatus<Expense>(remoteExpenses, "synced"),
+          initialExpenseCache?.syncedIds ?? expenseIdsRef.current,
+        );
+        if (hasLocalPending) {
+          const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
+          persistExpenseCache(merged, syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
+          setExpenseSyncSnapshot(syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
+          setExpenses(merged);
+        } else {
+          const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
+          const remoteSignature = expenseSignature(syncedExpenses);
+          persistExpenseCache(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+          setExpenseSyncSnapshot(remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+          setExpenses(syncedExpenses);
+        }
       }
 
       if (checklistError) {
         console.warn("Supabase checklist load failed:", checklistError.message);
-      } else if (!checklistDirtyRef.current) {
+      } else {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
-        const syncedChecklist = forceSyncStatus<ChecklistItem>(remoteChecklist, "synced");
-        const remoteSignature = checklistSignature(syncedChecklist);
-        saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
-        setChecklist(syncedChecklist);
+        const { merged, hasLocalPending } = mergeBootstrapItems<ChecklistItem>(
+          initialChecklistCache?.data ?? [],
+          forceSyncStatus<ChecklistItem>(remoteChecklist, "synced"),
+          initialChecklistCache?.syncedIds ?? checklistIdsRef.current,
+        );
+        if (hasLocalPending) {
+          const syncedSignature = checklistSignatureRef.current || checklistSignature(merged);
+          saveChecklistSnapshot(merged, syncedSignature, true, initialChecklistCache?.syncedIds ?? checklistIdsRef.current);
+          checklistDirtyRef.current = true;
+          setChecklist(merged);
+        } else {
+          const syncedChecklist = forceSyncStatus<ChecklistItem>(merged, "synced");
+          const remoteSignature = checklistSignature(syncedChecklist);
+          saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
+          setChecklist(syncedChecklist);
+        }
       }
 
       if (notesError) {
         console.warn("Supabase notes load failed:", notesError.message);
-      } else if (!notesDirtyRef.current) {
+      } else {
         const remoteNotes = notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes)
           ? (notesData as SupabaseNotesRow).notes
           : [];
-        const syncedNotes = forceSyncStatus<TravelNote>(remoteNotes, "synced");
-        const remoteSignature = notesSignature(syncedNotes);
-        saveNotesSnapshot(syncedNotes, remoteSignature, false);
-        setNotes(syncedNotes);
+        const { merged, hasLocalPending } = mergeBootstrapItems<TravelNote>(
+          initialNotesCache?.data ?? [],
+          forceSyncStatus<TravelNote>(remoteNotes, "synced"),
+          initialNotesCache?.syncedIds ?? notesIdsRef.current,
+        );
+        if (hasLocalPending) {
+          const syncedSignature = notesSignatureRef.current || notesSignature(merged);
+          saveNotesSnapshot(merged, syncedSignature, true, initialNotesCache?.syncedIds ?? notesIdsRef.current);
+          notesDirtyRef.current = true;
+          setNotes(merged);
+        } else {
+          const syncedNotes = forceSyncStatus<TravelNote>(merged, "synced");
+          const remoteSignature = notesSignature(syncedNotes);
+          saveNotesSnapshot(syncedNotes, remoteSignature, false, syncedNotes.map((note) => note.id));
+          setNotes(syncedNotes);
+        }
       }
 
       setExpensesLoaded(true);
@@ -652,7 +742,7 @@ export default function App() {
 
             if (payload.eventType === "DELETE") {
               const next: TravelNote[] = [];
-              saveNotesSnapshot(next, notesSignature(next), false);
+              saveNotesSnapshot(next, notesSignature(next), false, []);
               setNotes((current) => {
                 if (notesSignature(current) === notesSignature(next)) return current;
                 return next;
@@ -665,7 +755,7 @@ export default function App() {
             const incomingNotes = forceSyncStatus<TravelNote>(row.notes, "synced");
             setNotes((current) => {
               if (notesSignature(current) === notesSignature(incomingNotes)) return current;
-              saveNotesSnapshot(incomingNotes, notesSignature(incomingNotes), false);
+              saveNotesSnapshot(incomingNotes, notesSignature(incomingNotes), false, incomingNotes.map((note) => note.id));
               return incomingNotes;
             });
           },
@@ -729,12 +819,22 @@ export default function App() {
         return;
       }
 
-      if (!diaryDirtyRef.current) {
-        const remoteRows = (data ?? []) as SupabaseDiaryRow[];
-        const hydratedRows = await Promise.all(remoteRows.map(async (row) => hydrateDiaryEntry(row)));
-        if (cancelled) return;
+      const remoteRows = (data ?? []) as SupabaseDiaryRow[];
+      const hydratedRows = await Promise.all(remoteRows.map(async (row) => hydrateDiaryEntry(row)));
+      if (cancelled) return;
 
-        const syncedDiary = forceSyncStatus<DiaryEntry>(hydratedRows, "synced");
+      const { merged, hasLocalPending } = mergeBootstrapItems<DiaryEntry>(
+        initialDiaryCache?.data ?? [],
+        forceSyncStatus<DiaryEntry>(hydratedRows, "synced"),
+        initialDiaryCache?.syncedIds ?? diaryIdsRef.current,
+      );
+
+      if (hasLocalPending) {
+        const syncedSignature = diarySignatureRef.current || diarySignature(merged);
+        saveDiarySnapshot(merged, syncedSignature, true, initialDiaryCache?.syncedIds ?? diaryIdsRef.current);
+        setDiaryEntries(merged);
+      } else {
+        const syncedDiary = forceSyncStatus<DiaryEntry>(merged, "synced");
         const remoteSignature = diarySignature(syncedDiary);
         saveDiarySnapshot(syncedDiary, remoteSignature, false, syncedDiary.map((entry) => entry.id));
         setDiaryEntries((current) => {
@@ -1084,11 +1184,11 @@ export default function App() {
     }
 
     if (currentSignature === notesSignatureRef.current) {
-      saveNotesSnapshot(notes, currentSignature, false);
+      saveNotesSnapshot(notes, currentSignature, false, notes.map((note) => note.id));
       return;
     }
 
-    saveNotesSnapshot(notes, notesSignatureRef.current, true);
+    saveNotesSnapshot(notes, notesSignatureRef.current, true, notesIdsRef.current);
 
     if (!supabase || !authReady || !session || !isOnline) return;
 
@@ -1123,7 +1223,7 @@ export default function App() {
           }
 
           const syncedNotes = forceSyncStatus<TravelNote>(current, "synced");
-          saveNotesSnapshot(syncedNotes, requestNotesSignature, false);
+          saveNotesSnapshot(syncedNotes, requestNotesSignature, false, syncedNotes.map((note) => note.id));
           return syncedNotes;
         });
       } finally {
