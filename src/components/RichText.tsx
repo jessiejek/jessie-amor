@@ -20,7 +20,7 @@ export default function RichText({ segments }: RichTextProps) {
         return (
           <span key={`${segment.kind}-${index}`} className="inline-flex items-center">
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(segment.mapQuery)}`}
+              href={`https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(segment.mapQuery)}&travelmode=driving`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-md border border-[#D8E6E2] bg-white px-1.5 py-0.5 font-medium text-[#0B3530] underline decoration-[#88B04B]/70 underline-offset-2 transition-colors hover:border-[#88B04B]/60 hover:bg-[#F5FAF0] hover:text-[#18534C]"

@@ -75,6 +75,9 @@ const IMAGE_LABELS: Record<string, string> = {
   "NIGHT ILLUMINATION": "Night Illumination",
 };
 
+const getMapsUrl = (query: string) =>
+  `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(query)}&travelmode=driving`;
+
 export default function DailyItineraryView({ days, onInfoClick }: DailyItineraryViewProps) {
   const [activeMobileDay, setActiveMobileDay] = useState<number>(days[0]?.day ?? 0);
 
@@ -82,15 +85,16 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
     () => days.find((day) => day.day === activeMobileDay) ?? days[0] ?? null,
     [activeMobileDay, days],
   );
+  const selectedDayIndex = selectedDay ? days.findIndex((day) => day.day === selectedDay.day) : -1;
 
-  const renderDayArticle = (day: DaySectionData, mobileOnly = false) => (
+  const renderDayArticle = (day: DaySectionData, displayDayNumber: number, mobileOnly = false) => (
     <article
       key={day.day}
-      className={`space-y-5 ${mobileOnly ? "" : "hidden md:block"}`}
+      className={`space-y-5 ${mobileOnly ? "block md:hidden" : "hidden md:block"}`}
     >
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0B3530] shadow-xs">
-          <span className="text-lg font-serif font-bold leading-none text-white">{day.day}</span>
+          <span className="text-lg font-serif font-bold leading-none text-white">{displayDayNumber}</span>
         </div>
         <div>
           <h3 className="text-lg font-serif font-bold text-stone-850">{day.title}</h3>
@@ -146,7 +150,17 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
                     </div>
 
                     <div className="space-y-1">
-                      <h4 className="text-sm font-semibold font-serif text-stone-800">{item.title}</h4>
+                      <h4 className="text-sm font-semibold font-serif text-stone-800">
+                        <a
+                          href={getMapsUrl(item.mapQuery)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 underline decoration-[#88B04B]/70 underline-offset-2 transition-colors hover:text-[#18534C]"
+                          aria-label={`Open ${item.title} in Google Maps`}
+                        >
+                          {item.title}
+                        </a>
+                      </h4>
                       <p className="text-xs leading-relaxed text-stone-500">
                         <RichText segments={item.description} />
                       </p>
@@ -186,6 +200,17 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
                     ) : null}
                   </div>
                 </div>
+                <div className="mt-3 flex justify-end">
+                  <a
+                    href={getMapsUrl(item.mapQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-500 transition-colors hover:border-[#88B04B]/50 hover:text-[#0B3530]"
+                    aria-label={`Open ${item.title} in Google Maps`}
+                  >
+                    Open in Maps
+                  </a>
+                </div>
               </div>
             </div>
           );
@@ -223,6 +248,7 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
         <div className="flex gap-2 overflow-x-auto pb-1">
           {days.map((day) => {
             const isActive = day.day === activeMobileDay;
+            const displayDayNumber = days.findIndex((candidate) => candidate.day === day.day) + 1;
             return (
               <button
                 key={day.day}
@@ -235,7 +261,7 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
                 }`}
               >
                 <div className={`text-[10px] font-mono uppercase tracking-[0.2em] ${isActive ? "text-[#88B04B]" : "text-stone-400"}`}>
-                  Day {day.day}
+                  Day {displayDayNumber}
                 </div>
                 <div className="mt-1 text-[13px] font-semibold leading-snug break-words">
                   {day.title}
@@ -246,9 +272,12 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
         </div>
       </div>
 
-      <div className="space-y-12">
-        {selectedDay ? renderDayArticle(selectedDay, true) : null}
-        {days.map((day) => renderDayArticle(day))}
+      <div className="space-y-12 md:hidden">
+        {selectedDay ? renderDayArticle(selectedDay, selectedDayIndex + 1, true) : null}
+      </div>
+
+      <div className="hidden space-y-12 md:block">
+        {days.map((day, index) => renderDayArticle(day, index + 1))}
       </div>
     </section>
   );
