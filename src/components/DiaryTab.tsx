@@ -770,7 +770,7 @@ export default function DiaryTab({
                 <span className="block text-[11px] text-stone-500">Mark places we would happily return to on the next trip.</span>
               </div>
             </label>
-            <div className="md:col-span-2 flex items-center gap-2">
+            <div className="hidden items-center gap-2 md:col-span-2 md:flex">
               {editingId && (
                 <button
                   type="button"
@@ -818,6 +818,30 @@ export default function DiaryTab({
                   {formPreview}
                 </div>
               )}
+
+              <div className="mt-3 flex items-center gap-2 md:hidden">
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="flex-1 rounded-[10px] border border-stone-200 px-4 py-3 text-[13px] font-semibold text-stone-600 transition-colors hover:bg-stone-50"
+                  >
+                    Cancel edit
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={!canEdit}
+                  className={`inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-[13px] font-bold transition-colors ${
+                    canEdit
+                      ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
+                      : "cursor-not-allowed bg-stone-100 text-stone-400"
+                  }`}
+                >
+                  {editingId ? <PencilLine size={15} /> : <Plus size={15} />}
+                  Save memory
+                </button>
+              </div>
             </div>
 
             <div className="rounded-[16px] border border-stone-200 bg-white p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
