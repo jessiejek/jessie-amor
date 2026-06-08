@@ -17,5 +17,8 @@ interface ImportMeta {
 }
 
 declare module "virtual:pwa-register" {
-  export function registerSW(options?: { immediate?: boolean }): () => void;
+  import type { RegisterSWOptions } from "vite-plugin-pwa/types";
+
+  export type { RegisterSWOptions };
+  export function registerSW(options?: RegisterSWOptions): (reloadPage?: boolean) => Promise<void>;
 }
