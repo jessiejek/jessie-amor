@@ -224,7 +224,8 @@ const notesPayload = (notes: TravelNote[]) => ({
 const notesSignature = (notes: TravelNote[]) => JSON.stringify(notesPayload(notes));
 const normalizeDiaryRating = (rating: number) => {
   const numericRating = Number.isFinite(rating) ? rating : 0;
-  return Math.max(1, Math.min(5, Math.round(numericRating)));
+  const clampedRating = Math.max(1, Math.min(5, numericRating));
+  return Math.round(clampedRating * 10) / 10;
 };
 
 const diaryEntryToRow = (entry: DiaryEntry): Omit<SupabaseDiaryRow, "trip_key"> => ({

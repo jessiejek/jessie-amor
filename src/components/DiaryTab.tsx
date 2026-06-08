@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarDays,
   Camera,
+  CloudUpload,
   Image as ImageIcon,
   MapPin,
   PencilLine,
@@ -77,7 +78,13 @@ const createEmptyForm = (): DiaryFormState => ({
 
 const normalizeDiaryRating = (rating: number) => {
   const numericRating = Number.isFinite(rating) ? rating : 0;
-  return Math.max(1, Math.min(5, Math.round(numericRating)));
+  const clampedRating = Math.max(1, Math.min(5, numericRating));
+  return Math.round(clampedRating * 10) / 10;
+};
+
+const formatDiaryRating = (rating: number) => {
+  const normalized = normalizeDiaryRating(rating);
+  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
 };
 
 const compressImageFileToDataUrl = async (file: File) => {
@@ -251,16 +258,62 @@ const getRatingTone = (rating: number) => {
   };
 };
 
+const getRatingStarTone = (rating: number) => {
+  if (rating <= 1) {
+    return {
+      border: "border-rose-200",
+      activeBg: "bg-rose-50",
+      activeText: "text-rose-600",
+    };
+  }
+
+  if (rating <= 2) {
+    return {
+      border: "border-orange-200",
+      activeBg: "bg-orange-50",
+      activeText: "text-orange-600",
+    };
+  }
+
+  if (rating <= 3) {
+    return {
+      border: "border-amber-200",
+      activeBg: "bg-amber-50",
+      activeText: "text-amber-600",
+    };
+  }
+
+  if (rating <= 4) {
+    return {
+      border: "border-lime-200",
+      activeBg: "bg-lime-50",
+      activeText: "text-lime-600",
+    };
+  }
+
+  return {
+    border: "border-emerald-200",
+    activeBg: "bg-emerald-50",
+    activeText: "text-emerald-600",
+  };
+};
+
 const renderStars = (rating: number, className = "h-4 w-4") =>
-  starScale.map((starValue) => (
-    <Star
+  starScale.map((starValue) => {
+    const starTone = getRatingStarTone(rating);
+    return (
+    <span
       key={starValue}
-      size={14}
-      className={className}
-      fill={starValue <= rating ? "currentColor" : "none"}
-      strokeWidth={starValue <= rating ? 0 : 2}
-    />
-  ));
+      className={starValue <= rating ? starTone.activeText : "text-stone-300"}
+    >
+      <Star
+        size={14}
+        className={className}
+        fill={starValue <= rating ? "currentColor" : "none"}
+        strokeWidth={starValue <= rating ? 0 : 2}
+      />
+    </span>
+  )});
 
 export default function DiaryTab({
   diaryEntries,
@@ -288,6 +341,9 @@ export default function DiaryTab({
 
   const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
   const ratingTone = getRatingTone(form.rating);
+  const draftLocationSummary = form.locationName.trim() || "Pending";
+  const draftDateSummary = form.dateVisited ? formatDateLabel(form.dateVisited) : "Pending";
+  const draftRevisitSummary = form.wouldRevisit ? "Yes" : "No";
 
   const filteredEntries = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -466,20 +522,22 @@ export default function DiaryTab({
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl animate-in fade-in duration-300 px-4 py-4 md:px-8">
-      <section className="mb-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-xs">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div
+      className="mx-auto w-full max-w-6xl animate-in fade-in duration-300 px-4 py-4 md:px-8"
+      style={{ fontFamily: '"Plus Jakarta Sans", var(--font-sans)' }}
+    >
+      <section className="mb-4 rounded-[14px] border border-stone-200 bg-white p-5 shadow-[0_10px_30px_rgba(6,45,39,0.06)]">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
-            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-              <BookOpen size={14} />
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
+              <BookOpen size={12} />
               Travel diary
             </div>
-            <h2 className="mt-2 text-2xl font-serif font-bold text-[#0B3530] md:text-3xl">
+            <h2 className="mt-2 text-[38px] font-extrabold leading-[1.02] tracking-[-0.04em] text-[#0b1f1c] md:max-w-[820px]">
               Save the Malaysia and Singapore memories we want to remember.
             </h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-stone-500">
-              Capture meals, landmarks, hotel stays, transport wins, and little trip moments with photos, ratings,
-              and tags that sync with the rest of the itinerary when you are online.
+            <p className="mt-3 max-w-3xl text-[13px] leading-6 text-[#7a8785]">
+              Capture meals, landmarks, hotel stays, transport wins, and little trip moments with photos, ratings, and tags that sync with the rest of the itinerary when you are online.
             </p>
           </div>
 
@@ -487,9 +545,9 @@ export default function DiaryTab({
             type="button"
             onClick={focusForm}
             disabled={!canEdit}
-            className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[14px] font-semibold transition-colors ${
+            className={`inline-flex w-full items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-[14px] font-bold transition-colors md:w-auto md:min-w-[136px] ${
               canEdit
-                ? "bg-[#0B3530] text-white hover:bg-[#18534C]"
+                ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
                 : "cursor-not-allowed bg-stone-100 text-stone-400"
             }`}
           >
@@ -521,48 +579,38 @@ export default function DiaryTab({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-xs"
+        className="mb-5 rounded-[14px] border border-stone-200 bg-white p-4 shadow-[0_10px_30px_rgba(6,45,39,0.06)]"
       >
-        <div className="mb-4 flex flex-col gap-2 border-b border-stone-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-              <Camera size={14} />
-              {editingId ? "Edit memory" : "Add memory"}
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
+              <Camera size={12} />
+              Add memory
             </div>
-            <h3 className="mt-1 text-lg font-serif font-bold text-[#0B3530]">
+            <h3 className="mt-2 text-[24px] font-bold tracking-[-0.03em] text-[#0b1f1c]">
               {editingId ? "Refine this trip memory" : "Create a new diary entry"}
             </h3>
           </div>
 
-          <div className="flex items-center gap-2">
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-full border border-stone-200 px-4 py-2 text-[13px] font-semibold text-stone-600 transition-colors hover:bg-stone-50"
-              >
-                Cancel edit
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={!canEdit}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors ${
-                canEdit
-                  ? "bg-[#0B3530] text-white hover:bg-[#18534C]"
-                  : "cursor-not-allowed bg-stone-100 text-stone-400"
-              }`}
-            >
-              {editingId ? <PencilLine size={15} /> : <Plus size={15} />}
-              {editingId ? "Update memory" : "Add memory"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={focusForm}
+            disabled={!canEdit}
+            className={`hidden items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-[14px] font-semibold transition-colors md:inline-flex ${
+              canEdit
+                ? "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                : "cursor-not-allowed bg-stone-100 text-stone-400"
+            }`}
+          >
+            <Plus size={14} />
+            Add memory
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)] md:items-start">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="md:col-span-2">
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Title</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Title</span>
               <input
                 ref={titleInputRef}
                 type="text"
@@ -570,19 +618,19 @@ export default function DiaryTab({
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 disabled={!canEdit}
                 placeholder="Kaya toast at sunrise, Batu Caves, Marina Bay walk..."
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
                 maxLength={120}
                 required
               />
             </label>
 
             <label>
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Type</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Type</span>
               <select
                 value={form.type}
                 onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as DiaryEntryType }))}
                 disabled={!canEdit}
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
               >
                 {diaryTypes.map((type) => (
                   <option key={type} value={type}>
@@ -593,82 +641,73 @@ export default function DiaryTab({
             </label>
 
             <label>
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Date visited</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Date visited</span>
               <input
                 type="date"
                 value={form.dateVisited}
                 onChange={(event) => setForm((current) => ({ ...current, dateVisited: event.target.value }))}
                 disabled={!canEdit}
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
                 required
               />
             </label>
 
             <label>
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Location name</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Location name</span>
               <input
                 type="text"
                 value={form.locationName}
                 onChange={(event) => setForm((current) => ({ ...current, locationName: event.target.value }))}
                 disabled={!canEdit}
                 placeholder="Jalan Alor, Marina Bay Sands, KL Sentral..."
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
                 maxLength={120}
                 required
               />
             </label>
 
             <label className="md:col-span-2">
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Country or city</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Country or city</span>
               <input
                 type="text"
                 value={form.cityOrCountry}
                 onChange={(event) => setForm((current) => ({ ...current, cityOrCountry: event.target.value }))}
                 disabled={!canEdit}
                 placeholder="Kuala Lumpur, Malaysia"
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
                 maxLength={80}
               />
             </label>
 
             <div className="md:col-span-2">
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Rating</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Rating</span>
               <div className="space-y-3">
-                <div className="flex items-end gap-2">
-                  <span className={`text-2xl font-semibold ${ratingTone.scoreText}`}>{form.rating}</span>
-                  <span className="pb-0.5 text-[13px] text-stone-400">/ 5</span>
+                <div className="flex items-end justify-between gap-2">
+                  <div className="flex items-end gap-2">
+                    <span className={`text-3xl font-semibold ${ratingTone.scoreText}`}>{formatDiaryRating(form.rating)}</span>
+                    <span className="pb-0.5 text-[13px] text-stone-400">/ 5</span>
+                  </div>
+                  <span className={`text-[11px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid w-full grid-cols-5 gap-2">
                   {Array.from({ length: 5 }, (_, index) => {
                     const starNumber = index + 1;
-                    const fillPercent = Math.max(0, Math.min(1, form.rating - (starNumber - 1))) * 100;
-                    const isActive = fillPercent > 0;
-
+                    const starTone = getRatingStarTone(form.rating);
                     return (
-                      <div
+                      <button
                         key={starNumber}
-                        className={`relative overflow-hidden rounded-full border px-3 py-2 ${
-                          isActive ? `${ratingTone.border} bg-white` : "border-stone-200 bg-white"
+                        type="button"
+                        onClick={() => canEdit && setForm((current) => ({ ...current, rating: starNumber }))}
+                        disabled={!canEdit}
+                        className={`inline-flex h-11 w-full items-center justify-center rounded-full border transition-colors ${
+                          starNumber <= form.rating
+                            ? `${starTone.border} ${starTone.activeBg} ${starTone.activeText}`
+                            : "border-stone-200 bg-white text-stone-400"
                         }`}
+                        aria-label={`Rate ${starNumber} stars`}
                       >
-                        <div
-                          className={`absolute inset-y-0 left-0 ${ratingTone.fillBg}`}
-                          style={{ width: `${fillPercent}%` }}
-                        />
-                        <div className="relative flex items-center gap-1 text-[13px] font-semibold text-stone-400">
-                          <Star className="h-[14px] w-[14px] shrink-0" fill="currentColor" strokeWidth={0} />
-                          <span>{starNumber}</span>
-                        </div>
-                        <div
-                          className="absolute inset-y-0 left-0 overflow-hidden"
-                          style={{ width: `${fillPercent}%` }}
-                        >
-                          <div className={`flex h-full items-center gap-1 px-3 py-2 text-[13px] font-semibold ${ratingTone.fillText}`}>
-                            <Star className="h-[14px] w-[14px] shrink-0" fill="currentColor" strokeWidth={0} />
-                            <span>{starNumber}</span>
-                          </div>
-                        </div>
-                      </div>
+                        <Star className="h-[16px] w-[16px]" fill={starNumber <= form.rating ? "currentColor" : "none"} strokeWidth={starNumber <= form.rating ? 0 : 2} />
+                      </button>
                     );
                   })}
                 </div>
@@ -676,7 +715,7 @@ export default function DiaryTab({
                   type="range"
                   min="1"
                   max="5"
-                  step="1"
+                  step="0.1"
                   value={form.rating}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -687,37 +726,38 @@ export default function DiaryTab({
                   disabled={!canEdit}
                   className={`w-full accent-[#0B3530] ${!canEdit ? "cursor-not-allowed opacity-70" : ""}`}
                 />
-                <p className={`text-[13px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</p>
               </div>
             </div>
 
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Description</span>
+            <label className="rounded-[12px] border border-stone-200 bg-white p-3 shadow-[0_6px_20px_rgba(6,45,39,0.04)] md:col-span-2 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400 md:text-[12px] md:font-semibold md:normal-case md:tracking-normal md:text-stone-600">Description</span>
+              <span className="mb-2 block text-[12px] text-stone-600 md:hidden">Capture what made this memory worth keeping.</span>
               <textarea
                 value={form.description}
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                 disabled={!canEdit}
                 placeholder="What made this stop memorable? What should we remember next time?"
-                className="min-h-[130px] w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="min-h-[130px] w-full resize-none rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-3 text-[14px] leading-6 text-stone-800 outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff] md:min-h-[110px] md:py-2.5 md:text-[14px] md:leading-normal"
                 maxLength={1000}
                 required
               />
             </label>
 
             <label className="md:col-span-2">
-              <span className="mb-1 block text-[13px] font-semibold text-stone-600">Tags</span>
+              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Tags</span>
               <input
                 type="text"
                 value={form.tagsText}
                 onChange={(event) => setForm((current) => ({ ...current, tagsText: event.target.value }))}
                 disabled={!canEdit}
                 placeholder="food, cafe, sunset, family time"
-                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
+                maxLength={200}
               />
-              <p className="mt-1 text-[11px] text-stone-400">Separate tags with commas.</p>
+              <span className="mt-1 block text-[11px] text-stone-500">Separate tags with commas.</span>
             </label>
 
-            <label className="md:col-span-2 flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3 py-3">
+            <label className="md:col-span-2 flex items-start gap-3 rounded-[10px] border border-stone-200 bg-white px-3 py-3">
               <input
                 type="checkbox"
                 checked={form.wouldRevisit}
@@ -727,76 +767,88 @@ export default function DiaryTab({
               />
               <div>
                 <span className="block text-[13px] font-semibold text-stone-700">Would revisit?</span>
-                <span className="block text-[12px] text-stone-500">
-                  Mark places we would happily return to on the next trip.
-                </span>
+                <span className="block text-[11px] text-stone-500">Mark places we would happily return to on the next trip.</span>
               </div>
             </label>
+            <div className="md:col-span-2 flex items-center gap-2">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 rounded-[10px] border border-stone-200 px-4 py-3 text-[13px] font-semibold text-stone-600 transition-colors hover:bg-stone-50"
+                >
+                  Cancel edit
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!canEdit}
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-[13px] font-bold transition-colors ${
+                  canEdit
+                    ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
+                    : "cursor-not-allowed bg-stone-100 text-stone-400"
+                }`}
+              >
+                {editingId ? <PencilLine size={15} /> : <Plus size={15} />}
+                {editingId ? "Save memory" : "Save memory"}
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-              <div className="mb-3 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-                <ImageIcon size={14} />
+          <div className="space-y-3">
+            <div className="rounded-[16px] border border-stone-200 bg-white p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
+              <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
+                <CloudUpload size={12} />
                 Photo upload
               </div>
-
+              <div className="mb-2 text-[12px] font-semibold text-stone-700">Choose a photo</div>
               <label className="block">
-                <span className="mb-1 block text-[13px] font-semibold text-stone-600">Choose a photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  disabled={!canEdit}
-                  className="block w-full cursor-pointer rounded-xl border border-stone-200 bg-white px-3 py-2 text-[14px] outline-none file:mr-3 file:rounded-full file:border-0 file:bg-[#0B3530] file:px-3 file:py-1.5 file:text-[13px] file:font-semibold file:text-white"
-                />
+                <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={!canEdit} className="sr-only" />
+                <div className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-[10px] border border-dashed border-stone-300 bg-white px-4 text-center md:min-h-[88px]">
+                  <CloudUpload size={24} className="text-[#062d27]" />
+                  <div className="mt-2 text-[13px] font-semibold text-[#0b1f1c]">Tap to choose photo</div>
+                  <p className="mt-1 text-[10px] text-stone-500">Images are compressed locally before sync. Supabase uploads happen only when you are signed in and online.</p>
+                </div>
               </label>
-
-              <p className="mt-2 text-[11px] text-stone-500">
-                Images are compressed locally before sync. Supabase uploads happen only when you are signed in and online.
-              </p>
 
               {photoError && <p className="mt-2 text-[12px] text-rose-600">{photoError}</p>}
 
               {form.photoUrl && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+                <div className="mt-3 overflow-hidden rounded-[10px] border border-stone-200 bg-white">
                   {formPreview}
                 </div>
               )}
             </div>
 
-            <div className="rounded-2xl border border-stone-200 bg-white p-4">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-                <CalendarDays size={14} />
+            <div className="rounded-[16px] border border-stone-200 bg-white p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
+              <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
+                <CalendarDays size={12} />
                 Draft summary
               </div>
-
-              <div className="mt-3 space-y-2 text-[13px] text-stone-600">
-                <div className="flex items-center justify-between gap-3">
+              <div className="space-y-2 text-[12px] text-stone-600">
+                <div className="flex items-start justify-between gap-3">
                   <span className="font-semibold text-stone-700">Location</span>
-                  <span className="text-right">{form.locationName || "Pending"}</span>
+                  <span className="text-right">{draftLocationSummary}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <span className="font-semibold text-stone-700">Date visited</span>
-                  <span className="text-right">{form.dateVisited ? formatDateLabel(form.dateVisited) : "Pending"}</span>
+                  <span className="text-right">{draftDateSummary}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <span className="font-semibold text-stone-700">Revisit</span>
-                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getRevisitPillClass(form.wouldRevisit)}`}>
-                    {form.wouldRevisit ? "Yes" : "No"}
-                  </span>
+                  <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[11px] font-semibold text-stone-600">{draftRevisitSummary}</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-stone-200 bg-white p-4">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-                <MapPin size={14} />
+            <div className="rounded-[16px] border border-[#dff2ea] bg-[#f2faf6] p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
+                <MapPin size={12} />
                 Sync notes
               </div>
-              <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
+              <p className="text-[12px] leading-5 text-[#58716b]">
                 {canEdit
-                  ? "Saving will keep the memory on this device first, then push it to Supabase when the connection is ready."
+                  ? "Saving will keep the memory on this device first, then push it to the cloud."
                   : "Read-only mode keeps local cache entries visible, but editing is disabled until sign-in."}
               </p>
             </div>
@@ -804,42 +856,42 @@ export default function DiaryTab({
         </div>
       </form>
 
-      <section className="mb-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
+      <section className="mb-5 rounded-[14px] border border-stone-200 bg-white p-4 shadow-[0_10px_30px_rgba(6,45,39,0.06)]">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-              <Search size={14} />
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#6d7f79]">
+              <Search size={12} />
               Filters
             </div>
-            <h3 className="mt-1 text-lg font-serif font-bold text-[#0B3530]">Search the travel diary</h3>
+            <h3 className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-[#0b1f1c]">Search the travel diary</h3>
           </div>
 
-          <div className="text-[12px] text-stone-500">
+          <div className="text-[12px] text-stone-500 md:text-right">
             {filteredEntries.length} memor{filteredEntries.length === 1 ? "y" : "ies"} shown
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_0.85fr_0.85fr]">
           <label className="md:col-span-1">
-            <span className="mb-1 block text-[13px] font-semibold text-stone-600">Search</span>
+            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Search</span>
             <div className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Title, location, tags, description..."
-                className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] py-2.5 pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
               />
             </div>
           </label>
 
           <label>
-            <span className="mb-1 block text-[13px] font-semibold text-stone-600">Type</span>
+            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Type</span>
             <select
               value={filterType}
               onChange={(event) => setFilterType(event.target.value as DiaryEntryType | "All")}
-              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+              className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
             >
               <option value="All">All types</option>
               {diaryTypes.map((type) => (
@@ -851,11 +903,11 @@ export default function DiaryTab({
           </label>
 
           <label>
-            <span className="mb-1 block text-[13px] font-semibold text-stone-600">Rating</span>
+            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Rating</span>
             <select
               value={filterRating}
               onChange={(event) => setFilterRating(event.target.value)}
-              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0B3530]"
+              className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
             >
               <option value="All">All ratings</option>
               {starScale.map((rating) => (
@@ -870,26 +922,25 @@ export default function DiaryTab({
 
       <section>
         {filteredEntries.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-stone-200 bg-white px-5 py-10 text-center text-[14px] text-stone-500 shadow-xs">
+          <div className="rounded-[14px] border border-dashed border-stone-200 bg-white px-5 py-10 text-center text-[14px] text-stone-500 shadow-xs">
             {diaryEntries.length === 0
               ? "No memories yet. Add your first travel diary entry."
               : "No memories match your current filters."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-4 md:space-y-5">
             {filteredEntries.map((entry) => {
               const typeClass = getTypePillClass(entry.type);
-              const isPending = entry.syncStatus === "pending";
               const locationLabel = entry.cityOrCountry
-                ? `${entry.locationName} - ${entry.cityOrCountry}`
+                ? `${entry.locationName}, ${entry.cityOrCountry}`
                 : entry.locationName;
 
               return (
                 <article
                   key={entry.id}
-                  className="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs transition-shadow hover:shadow-md"
+                  className="group overflow-hidden rounded-[14px] border border-stone-200 bg-white shadow-[0_10px_30px_rgba(6,45,39,0.06)] transition-shadow hover:shadow-[0_14px_34px_rgba(6,45,39,0.1)] md:grid md:grid-cols-[340px_minmax(0,1fr)]"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-stone-100 md:aspect-auto md:h-full md:min-h-[320px]">
                     {entry.photoUrl ? (
                       <img
                         src={entry.photoUrl}
@@ -904,7 +955,7 @@ export default function DiaryTab({
                     )}
 
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${typeClass}`}>
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${typeClass}`}>
                         {entry.type}
                       </span>
                       <div className="flex items-center gap-2">
@@ -918,20 +969,20 @@ export default function DiaryTab({
                             <button
                               type="button"
                               onClick={() => startEdit(entry)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/85 text-stone-700 shadow-sm backdrop-blur transition-colors hover:bg-white"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-stone-700 shadow-sm backdrop-blur transition-colors hover:bg-white"
                               aria-label={`Edit ${entry.title}`}
                               title="Edit entry"
                             >
-                              <PencilLine size={14} />
+                              <PencilLine size={12} />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDelete(entry.id)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/85 text-rose-600 shadow-sm backdrop-blur transition-colors hover:bg-rose-50"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-rose-600 shadow-sm backdrop-blur transition-colors hover:bg-rose-50"
                               aria-label={`Delete ${entry.title}`}
                               title="Delete entry"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         )}
@@ -939,31 +990,36 @@ export default function DiaryTab({
                     </div>
                   </div>
 
-                  <div className="space-y-4 p-4">
+                  <div className="space-y-3 p-4 md:flex md:flex-col md:justify-between md:p-5">
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <h4 className="line-clamp-2 text-[16px] font-semibold leading-snug text-stone-800">
+                        <h4 className="line-clamp-2 text-[22px] font-semibold leading-tight tracking-[-0.03em] text-stone-900 md:text-[28px]">
                           {entry.title}
                         </h4>
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-amber-500">
-                        {renderStars(entry.rating)}
-                        <span className="ml-1 text-[12px] font-semibold text-stone-500">{entry.rating}/5</span>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-emerald-500">
+                        {renderStars(entry.rating, "h-3.5 w-3.5")}
+                        <span className="ml-1 text-[11px] font-semibold text-stone-500">{formatDiaryRating(entry.rating)}/5</span>
                       </div>
                     </div>
 
-                    <p className="line-clamp-3 text-[14px] leading-relaxed text-stone-500">
-                      {entry.description}
-                    </p>
+                    <div className="rounded-[12px] border border-stone-200 bg-stone-50 px-3 py-3 md:rounded-[12px] md:border md:border-stone-200">
+                      <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">
+                        Description
+                      </div>
+                      <p className="whitespace-pre-wrap break-words text-[14px] leading-6 text-stone-700 md:text-[14px] md:text-stone-700">
+                        {entry.description}
+                      </p>
+                    </div>
 
-                    <div className="grid grid-cols-1 gap-2 text-[13px] text-stone-600">
+                    <div className="grid grid-cols-1 gap-1.5 text-[12px] text-stone-600">
                       <div className="flex items-start gap-2">
-                        <CalendarDays size={14} className="mt-0.5 shrink-0 text-[#88B04B]" />
+                        <CalendarDays size={13} className="mt-0.5 shrink-0 text-[#88B04B]" />
                         <span>{formatDateLabel(entry.dateVisited)}</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <MapPin size={14} className="mt-0.5 shrink-0 text-[#88B04B]" />
+                        <MapPin size={13} className="mt-0.5 shrink-0 text-[#88B04B]" />
                         <span>{locationLabel}</span>
                       </div>
                     </div>
@@ -973,7 +1029,7 @@ export default function DiaryTab({
                         {entry.tags.map((tagValue) => (
                           <span
                             key={`${entry.id}-${tagValue}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-medium text-stone-600"
+                            className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
                           >
                             <Tag size={11} />
                             {tagValue}
@@ -982,7 +1038,7 @@ export default function DiaryTab({
                       </div>
                     )}
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3 text-[11px] text-stone-400">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3 text-[10px] text-stone-400">
                       <div className="flex flex-col gap-1">
                         <span className="font-mono uppercase tracking-wider">
                           Saved by {formatSavedBy(entry.savedByEmail, entry.savedByUserId)}
@@ -993,7 +1049,7 @@ export default function DiaryTab({
                       </div>
 
                       <span
-                        className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${getRevisitPillClass(
+                        className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getRevisitPillClass(
                           entry.wouldRevisit,
                         )}`}
                       >
