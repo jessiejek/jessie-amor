@@ -181,13 +181,28 @@ const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
     return copy;
   };
 
-  const mergeDiaryRow = (current: DiaryEntry[], row: DiaryEntry) => {
-    const index = current.findIndex((entry) => entry.id === row.id);
-    if (index === -1) return [...current, row];
-    const copy = [...current];
-    copy[index] = row;
-    return copy;
-  };
+const mergeDiaryRow = (current: DiaryEntry[], row: DiaryEntry) => {
+  const index = current.findIndex((entry) => entry.id === row.id);
+  if (index === -1) return [...current, row];
+  const copy = [...current];
+  copy[index] = row;
+  return copy;
+};
+
+const isDiaryEntryProtectedFromRealtime = (
+  entry: DiaryEntry,
+  syncedEntry?: DiaryEntry,
+) => {
+  if (entry.syncStatus === "pending" || isDiaryLocalPhotoUrl(entry.photoUrl)) {
+    return true;
+  }
+
+  if (!syncedEntry) {
+    return false;
+  }
+
+  return diarySignature([entry]) !== diarySignature([syncedEntry]);
+};
 
 const expenseCacheKey = makeOfflineCacheKey(tripKey, "expenses");
 const checklistCacheKey = makeOfflineCacheKey(tripKey, "checklist");
@@ -515,6 +530,7 @@ export default function App() {
       .getSession()
       .then(({ data }) => {
         if (!mounted) return;
+        void supabase.realtime.setAuth(data.session?.access_token ?? "");
         setSession(data.session);
         setAuthReady(true);
       })
@@ -524,6 +540,7 @@ export default function App() {
       });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void supabase.realtime.setAuth(nextSession?.access_token ?? "");
       setSession(nextSession);
     });
 
@@ -872,18 +889,28 @@ export default function App() {
         .channel(`trip-diary-sync-${tripKey}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: supabaseDiaryTable, filter: `trip_key=eq.${tripKey}` },
+          { event: "*", schema: "public", table: supabaseDiaryTable },
           (payload) => {
-            if (diaryDirtyRef.current) return;
-
             if (payload.eventType === "DELETE") {
               const deletedId = String(payload.old?.id ?? "");
               if (!deletedId) return;
               setDiaryEntries((current) => {
-                const next = forceSyncStatus<DiaryEntry>(current.filter((entry) => entry.id !== deletedId), "synced");
+                const existingEntry = current.find((entry) => entry.id === deletedId);
+                if (!existingEntry) return current;
+
+                const syncedEntry = diarySyncedEntriesRef.current[deletedId];
+                if (isDiaryEntryProtectedFromRealtime(existingEntry, syncedEntry)) {
+                  return current;
+                }
+
+                const next = current.filter((entry) => entry.id !== deletedId);
                 if (diarySignature(current) === diarySignature(next)) return current;
-                const nextSignature = diarySignature(next);
-                saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                if (diaryDirtyRef.current) {
+                  saveDiarySnapshot(next, diarySignatureRef.current, true, diaryIdsRef.current);
+                } else {
+                  const nextSignature = diarySignature(next);
+                  saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                }
                 return next;
               });
               return;
@@ -891,16 +918,28 @@ export default function App() {
 
             const row = payload.new as SupabaseDiaryRow | undefined;
             if (!row) return;
+            if (row.trip_key !== tripKey) return;
 
             void (async () => {
               const hydratedRow = await hydrateDiaryEntry(row);
-              if (diaryDirtyRef.current) return;
+              const incomingEntry = { ...hydratedRow, syncStatus: "synced" as SyncStatus };
 
               setDiaryEntries((current) => {
-                const next = forceSyncStatus<DiaryEntry>(mergeDiaryRow(current, hydratedRow), "synced");
+                const existingEntry = current.find((entry) => entry.id === incomingEntry.id);
+                const syncedEntry = existingEntry ? diarySyncedEntriesRef.current[incomingEntry.id] : undefined;
+
+                if (existingEntry && isDiaryEntryProtectedFromRealtime(existingEntry, syncedEntry)) {
+                  return current;
+                }
+
+                const next = mergeDiaryRow(current, incomingEntry);
                 if (diarySignature(current) === diarySignature(next)) return current;
-                const nextSignature = diarySignature(next);
-                saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                if (diaryDirtyRef.current) {
+                  saveDiarySnapshot(next, diarySignatureRef.current, true, diaryIdsRef.current);
+                } else {
+                  const nextSignature = diarySignature(next);
+                  saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
+                }
                 return next;
               });
             })();
