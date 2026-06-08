@@ -45,10 +45,22 @@ export default function NotesTab({
     return currentUser.isAdmin || ownerId === currentUser.userId;
   };
 
-  const getSyncPillClass = (value?: SyncStatus) => {
-    return value === "pending"
-      ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
-      : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
+  const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+    if (value === "syncing") {
+      return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
+    }
+
+    if (value === "synced") {
+      return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
+    }
+
+    return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
+  };
+
+  const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+    if (value === "syncing") return "Syncing";
+    if (value === "synced") return "Synced";
+    return "Pending sync";
   };
 
   const handleAddNote = (e: React.FormEvent) => {
@@ -213,15 +225,11 @@ export default function NotesTab({
                       <span className="block text-[11px] font-mono uppercase tracking-wider text-stone-400">
                         {formatSavedBy(item.savedByEmail, item.savedByUserId)}
                       </span>
-                      {item.syncStatus === "pending" ? (
-                        <span className={getSyncPillClass(item.syncStatus)}>Local</span>
-                      ) : (
-                        <span
-                          className={getSyncPillClass(item.syncStatus)}
-                          title="Synced"
-                          aria-label="Synced"
-                        />
-                      )}
+                      <span
+                        className={getSyncDotClass(item.syncStatus)}
+                        title={getSyncDotLabel(item.syncStatus)}
+                        aria-label={getSyncDotLabel(item.syncStatus)}
+                      />
                     </div>
                   )}
                 </div>
@@ -331,15 +339,11 @@ export default function NotesTab({
                   {(note.savedByEmail || note.savedByUserId) && (
                     <span className="text-[11px] uppercase tracking-wider">{formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
                   )}
-                  {note.syncStatus === "pending" ? (
-                    <span className={getSyncPillClass(note.syncStatus)}>Local</span>
-                  ) : (
-                    <span
-                      className={getSyncPillClass(note.syncStatus)}
-                      title="Synced"
-                      aria-label="Synced"
-                    />
-                  )}
+                  <span
+                    className={getSyncDotClass(note.syncStatus)}
+                    title={getSyncDotLabel(note.syncStatus)}
+                    aria-label={getSyncDotLabel(note.syncStatus)}
+                  />
                   <Bookmark size={10} className="text-[#88B04B]" />
                 </div>
               </div>

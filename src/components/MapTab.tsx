@@ -116,10 +116,23 @@ const formatSavedBy = (email?: string, userId?: string) => {
   return "Unknown";
 };
 
-const getSyncPillClass = (value?: SyncStatus) =>
-  value === "pending"
-    ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
-    : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
+const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+  if (value === "syncing") {
+    return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
+  }
+
+  if (value === "synced") {
+    return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
+  }
+
+  return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
+};
+
+const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+  if (value === "syncing") return "Syncing";
+  if (value === "synced") return "Synced";
+  return "Pending sync";
+};
 
 type SupabaseMapRow = {
   trip_key: string;
@@ -842,15 +855,11 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
                             {formatSavedBy(destination.savedByEmail, destination.savedByUserId)}
                           </span>
                         )}
-                        {destination.syncStatus === "pending" ? (
-                          <span className={getSyncPillClass(destination.syncStatus)}>Local</span>
-                        ) : (
-                          <span
-                            className={getSyncPillClass(destination.syncStatus)}
-                            title="Synced"
-                            aria-label="Synced"
-                          />
-                        )}
+                        <span
+                          className={getSyncDotClass(destination.syncStatus)}
+                          title={getSyncDotLabel(destination.syncStatus)}
+                          aria-label={getSyncDotLabel(destination.syncStatus)}
+                        />
                       </div>
                     </div>
                   </button>

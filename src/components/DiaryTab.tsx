@@ -136,10 +136,23 @@ const formatTimestamp = (value: string) => {
   });
 };
 
-const getSyncPillClass = (value?: SyncStatus) =>
-  value === "pending"
-    ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800"
-    : "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]";
+const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+  if (value === "syncing") {
+    return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
+  }
+
+  if (value === "synced") {
+    return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
+  }
+
+  return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
+};
+
+const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+  if (value === "syncing") return "Syncing";
+  if (value === "synced") return "Synced";
+  return "Pending sync";
+};
 
 const getTypePillClass = (value: DiaryEntryType) => {
   switch (value) {
@@ -891,11 +904,11 @@ export default function DiaryTab({
                         {entry.type}
                       </span>
                       <div className="flex items-center gap-2">
-                        {isPending ? (
-                          <span className={getSyncPillClass(entry.syncStatus)}>Local</span>
-                        ) : (
-                          <span className={getSyncPillClass(entry.syncStatus)} aria-label="Synced" title="Synced" />
-                        )}
+                        <span
+                          className={getSyncDotClass(entry.syncStatus)}
+                          aria-label={getSyncDotLabel(entry.syncStatus)}
+                          title={getSyncDotLabel(entry.syncStatus)}
+                        />
                         {canManageEntry(entry) && (
                           <div className="flex items-center gap-1">
                             <button
