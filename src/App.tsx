@@ -436,6 +436,16 @@ export default function App() {
     }
   };
 
+  const saveExpenseSnapshot = (
+    nextExpenses: Expense[],
+    syncedSignature: string,
+    dirty: boolean,
+    syncedIds: string[] = expenseIdsRef.current,
+  ) => {
+    setExpenseSyncSnapshot(syncedSignature, dirty, syncedIds);
+    persistExpenseCache(nextExpenses, syncedSignature, dirty, syncedIds);
+  };
+
   const saveChecklistSnapshot = (nextChecklist: ChecklistItem[], syncedSignature: string, dirty: boolean, syncedIds: string[] = checklistIdsRef.current) => {
     checklistSignatureRef.current = syncedSignature;
     checklistDirtyRef.current = dirty;
@@ -601,14 +611,12 @@ export default function App() {
         );
         if (hasLocalPending) {
           const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
-          persistExpenseCache(merged, syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
-          setExpenseSyncSnapshot(syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
+          saveExpenseSnapshot(merged, syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
           setExpenses(merged);
         } else {
           const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
           const remoteSignature = expenseSignature(syncedExpenses);
-          persistExpenseCache(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
-          setExpenseSyncSnapshot(remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+          saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
           setExpenses(syncedExpenses);
         }
       }
@@ -683,7 +691,7 @@ export default function App() {
                 const next = forceSyncStatus<Expense>(current.filter((expense) => expense.id !== deletedId), "synced");
                 if (expenseSignature(current) === expenseSignature(next)) return current;
                 const nextSignature = expenseSignature(next);
-                persistExpenseCache(next, nextSignature, false, next.map((expense) => expense.id));
+                saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
                 return next;
               });
               return;
@@ -697,7 +705,7 @@ export default function App() {
               if (existing && expenseSignature([existing]) === expenseSignature([incoming])) return current;
               const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
               const nextSignature = expenseSignature(next);
-              persistExpenseCache(next, nextSignature, false, next.map((expense) => expense.id));
+              saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
               return next;
             });
           },
@@ -947,7 +955,7 @@ export default function App() {
       currentSignature !== expenseSignatureRef.current;
 
     if (shouldRealignToManagedState) {
-      setExpenseSyncSnapshot(currentSignature, false, currentIds);
+      saveExpenseSnapshot(expenses, currentSignature, false, currentIds);
       return;
     }
 
@@ -956,12 +964,12 @@ export default function App() {
       return;
     }
 
-    setExpenseSyncSnapshot(expenseSignatureRef.current, true, expenseIdsRef.current);
+    saveExpenseSnapshot(expenses, expenseSignatureRef.current, true, expenseIdsRef.current);
 
     if (!supabase || !authReady || !session || !isOnline) return;
 
     if (payload.length === 0 && removedIds.length === 0) {
-      setExpenseSyncSnapshot(currentSignature, false, currentIds);
+      saveExpenseSnapshot(expenses, currentSignature, false, currentIds);
       return;
     }
 
@@ -1038,12 +1046,12 @@ export default function App() {
 
           if (hasMismatch) {
             expenseSyncQueuedRef.current = true;
+            saveExpenseSnapshot(next, requestExpenseSignature, true, requestExpenseIds);
             return next;
           }
 
           const syncedExpenses = next;
-          persistExpenseCache(syncedExpenses, requestExpenseSignature, false, requestExpenseIds);
-          setExpenseSyncSnapshot(requestExpenseSignature, false, requestExpenseIds);
+          saveExpenseSnapshot(syncedExpenses, requestExpenseSignature, false, requestExpenseIds);
           return syncedExpenses;
         });
       } finally {
