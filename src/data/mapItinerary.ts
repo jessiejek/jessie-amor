@@ -9,6 +9,7 @@ export interface MapDestination {
   lng: number;
   time: string;
   notes: string;
+  createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
   syncStatus?: SyncStatus;
@@ -167,6 +168,9 @@ export const normalizeMapItinerary = (raw: unknown): MapItineraryData => {
                 lng,
                 time: asciiText(String(destination.time || "09:00 AM")),
                 notes: asciiText(String(destination.notes || "")),
+                createdBy: typeof destination.createdBy === "string" ? destination.createdBy : undefined,
+                savedByUserId: typeof destination.savedByUserId === "string" ? destination.savedByUserId : undefined,
+                savedByEmail: typeof destination.savedByEmail === "string" ? destination.savedByEmail : undefined,
               };
             })
         : [],

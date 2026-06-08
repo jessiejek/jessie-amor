@@ -9,9 +9,10 @@ interface NotesTabProps {
   setChecklist: React.Dispatch<React.SetStateAction<ChecklistItem[]>>;
   isOnline?: boolean;
   canEdit?: boolean;
-  currentSavedBy?: {
+  currentUser?: {
     userId: string;
     email: string;
+    isAdmin: boolean;
   } | null;
 }
 
@@ -22,7 +23,7 @@ export default function NotesTab({
   setChecklist,
   isOnline = true,
   canEdit = false,
-  currentSavedBy = null,
+  currentUser = null,
 }: NotesTabProps) {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -33,6 +34,15 @@ export default function NotesTab({
     if (email) return email.split("@")[0];
     if (userId) return userId.slice(0, 8);
     return "Unknown";
+  };
+
+  const getOwnerId = (entry?: { createdBy?: string; savedByUserId?: string | null } | null) =>
+    entry?.createdBy ?? entry?.savedByUserId ?? null;
+
+  const canManageEntry = (entry?: { createdBy?: string; savedByUserId?: string | null } | null) => {
+    if (!currentUser) return false;
+    const ownerId = getOwnerId(entry);
+    return currentUser.isAdmin || ownerId === currentUser.userId;
   };
 
   const getSyncPillClass = (value?: SyncStatus) => {
@@ -52,8 +62,9 @@ export default function NotesTab({
       content: noteContent,
       category: noteCategory,
       createdAt: new Date().toISOString(),
-      savedByUserId: currentSavedBy?.userId,
-      savedByEmail: currentSavedBy?.email,
+      createdBy: currentUser?.userId,
+      savedByUserId: currentUser?.userId,
+      savedByEmail: currentUser?.email,
       syncStatus: "pending",
     };
 
@@ -64,18 +75,21 @@ export default function NotesTab({
 
   const handleDeleteNote = (id: string) => {
     if (!canEdit) return;
+    const target = notes.find((note) => note.id === id);
+    if (!canManageEntry(target)) return;
     setNotes((prev) => prev.filter((n) => n.id !== id));
   };
 
   const handleToggleCheck = (id: string) => {
     if (!canEdit) return;
     const updated = checklist.map((item) => {
-      if (item.id === id) {
+      if (item.id === id && canManageEntry(item)) {
         return {
           ...item,
           completed: !item.completed,
-          savedByUserId: currentSavedBy?.userId ?? item.savedByUserId,
-          savedByEmail: currentSavedBy?.email ?? item.savedByEmail,
+          createdBy: item.createdBy ?? item.savedByUserId,
+          savedByUserId: item.savedByUserId ?? item.createdBy,
+          savedByEmail: item.savedByEmail ?? undefined,
           syncStatus: "pending",
         };
       }
@@ -86,6 +100,8 @@ export default function NotesTab({
 
   const handleDeleteCheckItem = (id: string) => {
     if (!canEdit) return;
+    const target = checklist.find((item) => item.id === id);
+    if (!canManageEntry(target)) return;
     setChecklist((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -98,8 +114,9 @@ export default function NotesTab({
       id: "check-" + Date.now(),
       text: newCheckItem,
       completed: false,
-      savedByUserId: currentSavedBy?.userId,
-      savedByEmail: currentSavedBy?.email,
+      createdBy: currentUser?.userId,
+      savedByUserId: currentUser?.userId,
+      savedByEmail: currentUser?.email,
       syncStatus: "pending",
     };
 
@@ -167,19 +184,23 @@ export default function NotesTab({
               <div
                 key={item.id}
                 className={`relative flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
-                  canEdit ? "hover:bg-stone-50 cursor-pointer" : "cursor-default opacity-80"
+                  canEdit && canManageEntry(item) ? "hover:bg-stone-50 cursor-pointer" : "cursor-default opacity-80"
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => handleToggleCheck(item.id)}
-                  className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
-                    item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
-                  }`}
-                  aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
-                >
-                  <CheckCircle2 size={12} className="stroke-[3px]" />
-                </button>
+                {canManageEntry(item) ? (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCheck(item.id)}
+                    className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
+                      item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
+                    }`}
+                    aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
+                  >
+                    <CheckCircle2 size={12} className="stroke-[3px]" />
+                  </button>
+                ) : (
+                  <div className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-stone-200 bg-stone-100" aria-hidden="true" />
+                )}
 
                 <div className="min-w-0 flex-1 pr-8">
                   <span className={`block text-[14px] font-sans leading-relaxed ${
@@ -205,7 +226,7 @@ export default function NotesTab({
                   )}
                 </div>
 
-                {canEdit && (
+                {canManageEntry(item) && (
                   <button
                     type="button"
                     onClick={() => handleDeleteCheckItem(item.id)}
@@ -289,14 +310,15 @@ export default function NotesTab({
                     <span className={`px-2 py-0.5 rounded text-[14px] uppercase tracking-wider font-mono font-bold border ${getCatBadgeStyles(note.category)}`}>
                       {note.category}
                     </span>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      disabled={!canEdit}
-                      className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 absolute top-3 right-3"
-                      title="Delete Note"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {canManageEntry(note) && (
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 absolute top-3 right-3"
+                        title="Delete Note"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                   <h4 className="text-[14px] font-bold text-stone-800 font-sans mt-1 line-clamp-1">{note.title}</h4>
                   <p className="text-[13px] text-stone-500 font-sans leading-relaxed mt-2 line-clamp-4">

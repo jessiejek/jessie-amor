@@ -90,9 +90,10 @@ type SupabaseDiaryRow = {
   updated_at: string;
 };
 
-type SavedByInfo = {
+type CurrentUserInfo = {
   userId: string;
   email: string;
+  isAdmin: boolean;
 };
 
 const applySyncStatus = <T extends { syncStatus?: SyncStatus }>(items: T[], syncStatus: SyncStatus): T[] =>
@@ -112,7 +113,7 @@ const stripNoteSyncStatus = (note: TravelNote) => {
   return rest;
 };
 
-const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseExpenseRow => ({
+const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
   id: expense.id,
   trip_key: tripKey,
   day: expense.day,
@@ -122,8 +123,8 @@ const expenseToRow = (expense: Expense, savedBy: SavedByInfo | null): SupabaseEx
   paid_with: expense.paidWith,
   original_amount: expense.originalAmount ?? null,
   original_currency: expense.originalCurrency ?? null,
-  saved_by_user_id: savedBy?.userId ?? expense.savedByUserId ?? null,
-  saved_by_email: savedBy?.email ?? expense.savedByEmail ?? null,
+  saved_by_user_id: expense.createdBy ?? expense.savedByUserId ?? null,
+  saved_by_email: expense.savedByEmail ?? null,
   created_at: expense.createdAt ?? new Date().toISOString(),
   updated_at: new Date().toISOString(),
 });
@@ -137,18 +138,19 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   paidWith: row.paid_with,
   originalAmount: row.original_amount ?? undefined,
   originalCurrency: row.original_currency ?? undefined,
+  createdBy: row.saved_by_user_id ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
   createdAt: row.created_at ?? row.updated_at,
 });
 
-const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): SupabaseChecklistRow => ({
+const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
   id: item.id,
   trip_key: tripKey,
   text: item.text,
   completed: item.completed,
-  saved_by_user_id: savedBy?.userId ?? item.savedByUserId ?? null,
-  saved_by_email: savedBy?.email ?? item.savedByEmail ?? null,
+  saved_by_user_id: item.createdBy ?? item.savedByUserId ?? null,
+  saved_by_email: item.savedByEmail ?? null,
   updated_at: new Date().toISOString(),
 });
 
@@ -156,6 +158,7 @@ const checklistToRow = (item: ChecklistItem, savedBy: SavedByInfo | null): Supab
     id: row.id,
     text: row.text,
     completed: Boolean(row.completed),
+    createdBy: row.saved_by_user_id ?? undefined,
     savedByUserId: row.saved_by_user_id ?? undefined,
     savedByEmail: row.saved_by_email ?? undefined,
   });
@@ -191,35 +194,36 @@ const checklistCacheKey = makeOfflineCacheKey(tripKey, "checklist");
 const notesCacheKey = makeOfflineCacheKey(tripKey, "notes");
 const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
 
-const expenseSignature = (expenses: Expense[], savedBy: SavedByInfo | null) =>
+const expenseSignature = (expenses: Expense[]) =>
   JSON.stringify(expenses.map((expense) => {
-    const { updated_at: _updatedAt, ...row } = expenseToRow(expense, savedBy);
+    const { updated_at: _updatedAt, ...row } = expenseToRow(expense);
     return row;
   }));
 
-const checklistSignature = (items: ChecklistItem[], savedBy: SavedByInfo | null) =>
+const checklistSignature = (items: ChecklistItem[]) =>
   JSON.stringify(items.map((item) => {
-    const { updated_at: _updatedAt, ...row } = checklistToRow(item, savedBy);
+    const { updated_at: _updatedAt, ...row } = checklistToRow(item);
     return row;
   }));
 
-const notesPayload = (notes: TravelNote[], savedBy: SavedByInfo | null) => ({
+const notesPayload = (notes: TravelNote[]) => ({
   trip_key: tripKey,
   notes: notes.map((note) => {
     const rest = stripNoteSyncStatus(note);
     return {
       ...rest,
-      savedByUserId: savedBy?.userId ?? note.savedByUserId ?? undefined,
-      savedByEmail: savedBy?.email ?? note.savedByEmail ?? undefined,
+      createdBy: note.createdBy ?? note.savedByUserId ?? undefined,
+      savedByUserId: note.createdBy ?? note.savedByUserId ?? undefined,
+      savedByEmail: note.savedByEmail ?? undefined,
     };
   }),
-  saved_by_user_id: savedBy?.userId ?? null,
-  saved_by_email: savedBy?.email ?? null,
+  saved_by_user_id: notes[0]?.createdBy ?? notes[0]?.savedByUserId ?? null,
+  saved_by_email: notes[0]?.savedByEmail ?? null,
 });
 
-const notesSignature = (notes: TravelNote[], savedBy: SavedByInfo | null) => JSON.stringify(notesPayload(notes, savedBy));
+const notesSignature = (notes: TravelNote[]) => JSON.stringify(notesPayload(notes));
 
-const diaryEntryToRow = (entry: DiaryEntry, savedBy: SavedByInfo | null): Omit<SupabaseDiaryRow, "trip_key"> => ({
+const diaryEntryToRow = (entry: DiaryEntry): Omit<SupabaseDiaryRow, "trip_key"> => ({
   id: entry.id,
   title: entry.title,
   description: entry.description,
@@ -231,8 +235,8 @@ const diaryEntryToRow = (entry: DiaryEntry, savedBy: SavedByInfo | null): Omit<S
   tags: entry.tags,
   would_revisit: entry.wouldRevisit,
   photo_path: entry.photoPath ?? null,
-  saved_by_user_id: savedBy?.userId ?? entry.savedByUserId ?? null,
-  saved_by_email: savedBy?.email ?? entry.savedByEmail ?? null,
+  saved_by_user_id: entry.createdBy ?? entry.savedByUserId ?? null,
+  saved_by_email: entry.savedByEmail ?? null,
   created_at: entry.createdAt,
   updated_at: entry.updatedAt ?? entry.createdAt,
 });
@@ -250,17 +254,20 @@ const rowToDiaryEntry = (row: SupabaseDiaryRow, photoUrl?: string): DiaryEntry =
   wouldRevisit: Boolean(row.would_revisit),
   photoPath: row.photo_path ?? undefined,
   photoUrl,
+  createdBy: row.saved_by_user_id ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
 
-const diarySignature = (entries: DiaryEntry[], savedBy: SavedByInfo | null) =>
+const diarySignature = (entries: DiaryEntry[]) =>
   JSON.stringify(entries.map((entry) => {
-    const { updated_at: _updatedAt, ...row } = diaryEntryToRow(entry, savedBy);
+    const { updated_at: _updatedAt, ...row } = diaryEntryToRow(entry);
     return row;
   }));
+
+const getExpenseOwnerId = (expense: Expense) => expense.createdBy ?? expense.savedByUserId ?? null;
 
 const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
 
@@ -297,6 +304,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState<boolean>(!supabase);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [pullDistance, setPullDistance] = useState<number>(0);
@@ -321,10 +329,10 @@ export default function App() {
   const [notes, setNotes] = useState<TravelNote[]>(() => initialNoteItems);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => initialChecklistItems);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>(() => initialDiaryItems);
-  const expenseSignatureRef = useRef<string>(initialExpenseCache?.syncedSignature || expenseSignature(initialExpenseItems, null));
-  const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems, null));
-  const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems, null));
-  const diarySignatureRef = useRef<string>(initialDiaryCache?.syncedSignature || diarySignature(initialDiaryItems, null));
+  const expenseSignatureRef = useRef<string>(initialExpenseCache?.syncedSignature || expenseSignature(initialExpenseItems));
+  const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems));
+  const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems));
+  const diarySignatureRef = useRef<string>(initialDiaryCache?.syncedSignature || diarySignature(initialDiaryItems));
   const expenseDirtyRef = useRef<boolean>(initialExpenseCache?.dirty ?? false);
   const checklistDirtyRef = useRef<boolean>(initialChecklistCache?.dirty ?? false);
   const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
@@ -336,24 +344,36 @@ export default function App() {
     Object.fromEntries(initialDiaryItems.map((entry) => [entry.id, entry])),
   );
   const diaryPhotoRetryBlockRef = useRef<string>("");
-  const currentSavedBy: SavedByInfo | null = session?.user
+  const expenseSyncInFlightRef = useRef<boolean>(false);
+  const expenseSnapshotOwnerRef = useRef<string>("");
+  const currentUser: CurrentUserInfo | null = session?.user
     ? {
         userId: session.user.id,
         email: session.user.email ?? "",
+        isAdmin,
       }
     : null;
-  const saveExpenseSnapshot = (nextExpenses: Expense[], syncedSignature: string, dirty: boolean, syncedIds: string[] = expenseIdsRef.current) => {
-    expenseSignatureRef.current = syncedSignature;
-    expenseDirtyRef.current = dirty;
-    if (!dirty) {
-      expenseIdsRef.current = syncedIds;
-    }
+  const currentSavedBy = currentUser
+    ? {
+        userId: currentUser.userId,
+        email: currentUser.email,
+      }
+    : null;
+  const persistExpenseCache = (nextExpenses: Expense[], syncedSignature: string, dirty: boolean, syncedIds: string[] = nextExpenses.map((expense) => expense.id)) => {
     writeCachedDataset(expenseCacheKey, {
       data: nextExpenses,
       syncedSignature,
       dirty,
       syncedIds,
     });
+  };
+
+  const setExpenseSyncSnapshot = (syncedSignature: string, dirty: boolean, syncedIds: string[] = expenseIdsRef.current) => {
+    expenseSignatureRef.current = syncedSignature;
+    expenseDirtyRef.current = dirty;
+    if (!dirty) {
+      expenseIdsRef.current = syncedIds;
+    }
   };
 
   const saveChecklistSnapshot = (nextChecklist: ChecklistItem[], syncedSignature: string, dirty: boolean, syncedIds: string[] = checklistIdsRef.current) => {
@@ -430,6 +450,39 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!supabase || !session?.user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("is_admin")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Supabase profile load failed:", error.message);
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(Boolean(data?.is_admin));
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
     if (!supabase || !authReady) {
       setExpensesLoaded(true);
       setChecklistLoaded(true);
@@ -478,8 +531,8 @@ export default function App() {
       } else if (!expenseDirtyRef.current) {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
         const syncedExpenses = forceSyncStatus<Expense>(remoteExpenses, "synced");
-        const remoteSignature = expenseSignature(syncedExpenses, currentSavedBy);
-        saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+        const remoteSignature = expenseSignature(syncedExpenses);
+        persistExpenseCache(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
         setExpenses(syncedExpenses);
       }
 
@@ -488,7 +541,7 @@ export default function App() {
       } else if (!checklistDirtyRef.current) {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
         const syncedChecklist = forceSyncStatus<ChecklistItem>(remoteChecklist, "synced");
-        const remoteSignature = checklistSignature(syncedChecklist, currentSavedBy);
+        const remoteSignature = checklistSignature(syncedChecklist);
         saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
         setChecklist(syncedChecklist);
       }
@@ -500,7 +553,7 @@ export default function App() {
           ? (notesData as SupabaseNotesRow).notes
           : [];
         const syncedNotes = forceSyncStatus<TravelNote>(remoteNotes, "synced");
-        const remoteSignature = notesSignature(syncedNotes, currentSavedBy);
+        const remoteSignature = notesSignature(syncedNotes);
         saveNotesSnapshot(syncedNotes, remoteSignature, false);
         setNotes(syncedNotes);
       }
@@ -527,8 +580,8 @@ export default function App() {
               if (!deletedId) return;
               setExpenses((current) => {
                 const next = forceSyncStatus<Expense>(current.filter((expense) => expense.id !== deletedId), "synced");
-                const nextSignature = expenseSignature(next, currentSavedBy);
-                saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
+                const nextSignature = expenseSignature(next);
+                persistExpenseCache(next, nextSignature, false, next.map((expense) => expense.id));
                 return next;
               });
               return;
@@ -538,8 +591,8 @@ export default function App() {
             if (!row) return;
             setExpenses((current) => {
               const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
-              const nextSignature = expenseSignature(next, currentSavedBy);
-              saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
+              const nextSignature = expenseSignature(next);
+              persistExpenseCache(next, nextSignature, false, next.map((expense) => expense.id));
               return next;
             });
           },
@@ -555,7 +608,7 @@ export default function App() {
               if (!deletedId) return;
               setChecklist((current) => {
                 const next = forceSyncStatus<ChecklistItem>(current.filter((item) => item.id !== deletedId), "synced");
-                const nextSignature = checklistSignature(next, currentSavedBy);
+                const nextSignature = checklistSignature(next);
                 saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
                 return next;
               });
@@ -566,7 +619,7 @@ export default function App() {
             if (!row) return;
             setChecklist((current) => {
               const next = forceSyncStatus<ChecklistItem>(mergeChecklistRow(current, row), "synced");
-              const nextSignature = checklistSignature(next, currentSavedBy);
+              const nextSignature = checklistSignature(next);
               saveChecklistSnapshot(next, nextSignature, false, next.map((item) => item.id));
               return next;
             });
@@ -580,7 +633,7 @@ export default function App() {
 
             if (payload.eventType === "DELETE") {
               const next: TravelNote[] = [];
-              saveNotesSnapshot(next, notesSignature(next, currentSavedBy), false);
+              saveNotesSnapshot(next, notesSignature(next), false);
               setNotes(next);
               return;
             }
@@ -588,7 +641,7 @@ export default function App() {
             const row = payload.new as SupabaseNotesRow | undefined;
             if (!row || !Array.isArray(row.notes)) return;
             const next = forceSyncStatus<TravelNote>(row.notes, "synced");
-            saveNotesSnapshot(next, notesSignature(next, currentSavedBy), false);
+            saveNotesSnapshot(next, notesSignature(next), false);
             setNotes(next);
           },
         )
@@ -657,7 +710,7 @@ export default function App() {
         if (cancelled) return;
 
         const syncedDiary = forceSyncStatus<DiaryEntry>(hydratedRows, "synced");
-        const remoteSignature = diarySignature(syncedDiary, currentSavedBy);
+        const remoteSignature = diarySignature(syncedDiary);
         saveDiarySnapshot(syncedDiary, remoteSignature, false, syncedDiary.map((entry) => entry.id));
         setDiaryEntries(syncedDiary);
       }
@@ -682,7 +735,7 @@ export default function App() {
               if (!deletedId) return;
               setDiaryEntries((current) => {
                 const next = forceSyncStatus<DiaryEntry>(current.filter((entry) => entry.id !== deletedId), "synced");
-                const nextSignature = diarySignature(next, currentSavedBy);
+                const nextSignature = diarySignature(next);
                 saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
                 return next;
               });
@@ -698,7 +751,7 @@ export default function App() {
 
               setDiaryEntries((current) => {
                 const next = forceSyncStatus<DiaryEntry>(mergeDiaryRow(current, hydratedRow), "synced");
-                const nextSignature = diarySignature(next, currentSavedBy);
+                const nextSignature = diarySignature(next);
                 saveDiarySnapshot(next, nextSignature, false, next.map((entry) => entry.id));
                 return next;
               });
@@ -721,63 +774,119 @@ export default function App() {
   useEffect(() => {
     if (!expensesLoaded) return;
 
-    const payload = expenses.map((expense) => expenseToRow(expense, currentSavedBy));
-    const currentSignature = expenseSignature(expenses, currentSavedBy);
-    const currentIds = expenses.map((expense) => expense.id);
+    const ownerKey = currentUser ? `${currentUser.isAdmin ? "admin" : "user"}:${currentUser.userId}` : "";
+    if (expenseSnapshotOwnerRef.current !== ownerKey) {
+      expenseSnapshotOwnerRef.current = ownerKey;
+      const managedExpenses = currentUser
+        ? expenses.filter((expense) => {
+            if (currentUser.isAdmin) return true;
+            const ownerId = getExpenseOwnerId(expense);
+            return ownerId === currentUser.userId;
+          })
+        : [];
+      const managedSignature = expenseSignature(managedExpenses);
+      const managedIds = managedExpenses.map((expense) => expense.id);
+      const managedHasPending = managedExpenses.some((expense) => expense.syncStatus === "pending");
+      setExpenseSyncSnapshot(managedSignature, managedHasPending, managedHasPending ? expenseIdsRef.current : managedIds);
+    }
+  }, [expensesLoaded, currentUser, expenses]);
+
+  useEffect(() => {
+    if (!expensesLoaded) return;
+
+    const managedExpenses = expenses.filter((expense) => {
+      if (!currentUser) return false;
+      if (currentUser.isAdmin) return true;
+      const ownerId = getExpenseOwnerId(expense);
+      return ownerId === currentUser.userId;
+    });
+    const payload = managedExpenses.map((expense) => expenseToRow(expense));
+    const currentSignature = expenseSignature(managedExpenses);
+    const currentIds = managedExpenses.map((expense) => expense.id);
     const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
-    const hasPendingLocalChanges = currentSignature !== expenseSignatureRef.current || removedIds.length > 0 || expenseDirtyRef.current;
+    const hasPendingLocalChanges =
+      currentSignature !== expenseSignatureRef.current || removedIds.length > 0 || expenseDirtyRef.current;
 
     if (!hasPendingLocalChanges) return;
 
-    if (currentSignature === expenseSignatureRef.current && removedIds.length === 0) {
-      saveExpenseSnapshot(expenses, currentSignature, false, currentIds);
+    const managedHasPending = managedExpenses.some((expense) => expense.syncStatus === "pending");
+    const shouldRealignToManagedState =
+      !expenseDirtyRef.current &&
+      removedIds.length === 0 &&
+      !managedHasPending &&
+      currentSignature !== expenseSignatureRef.current;
+
+    if (shouldRealignToManagedState) {
+      setExpenseSyncSnapshot(currentSignature, false, currentIds);
       return;
     }
 
-    saveExpenseSnapshot(expenses, expenseSignatureRef.current, true, expenseIdsRef.current);
+    if (expenseSyncInFlightRef.current) {
+      return;
+    }
+
+    setExpenseSyncSnapshot(expenseSignatureRef.current, true, expenseIdsRef.current);
 
     if (!supabase || !authReady || !session || !isOnline) return;
 
+    if (payload.length === 0 && removedIds.length === 0) {
+      setExpenseSyncSnapshot(currentSignature, false, currentIds);
+      return;
+    }
+
+    expenseSyncInFlightRef.current = true;
     const timeout = window.setTimeout(async () => {
-      const writePayload = payload.map((row) => ({
-        ...row,
-        updated_at: new Date().toISOString(),
-      }));
+      try {
+        const writePayload = payload.map((row) => ({
+          ...row,
+          updated_at: new Date().toISOString(),
+        }));
 
-      const { error: upsertError } = await supabase
-        .from(supabaseExpenseTable)
-        .upsert(writePayload, { onConflict: "id" });
-
-      if (upsertError) {
-        console.warn("Supabase expense sync failed:", upsertError.message);
-        return;
-      }
-
-      if (removedIds.length > 0) {
-        const { error: deleteError } = await supabase
+        const { error: upsertError } = await supabase
           .from(supabaseExpenseTable)
-          .delete()
-          .in("id", removedIds);
+          .upsert(writePayload, { onConflict: "id" });
 
-        if (deleteError) {
-          console.warn("Supabase expense delete failed:", deleteError.message);
+        if (upsertError) {
+          console.warn("Supabase expense sync failed:", upsertError.message);
           return;
         }
-      }
 
-      const syncedExpenses = forceSyncStatus<Expense>(expenses, "synced");
-      setExpenses(syncedExpenses);
-      saveExpenseSnapshot(syncedExpenses, currentSignature, false, currentIds);
+        if (removedIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from(supabaseExpenseTable)
+            .delete()
+            .in("id", removedIds);
+
+          if (deleteError) {
+            console.warn("Supabase expense delete failed:", deleteError.message);
+            return;
+          }
+        }
+
+        const syncedExpenses = expenses.map((expense) =>
+          managedExpenses.some((managedExpense) => managedExpense.id === expense.id)
+            ? { ...expense, syncStatus: "synced" }
+            : expense,
+        );
+        setExpenses(syncedExpenses);
+        persistExpenseCache(syncedExpenses, expenseSignature(syncedExpenses), false, syncedExpenses.map((expense) => expense.id));
+        setExpenseSyncSnapshot(currentSignature, false, currentIds);
+      } finally {
+        expenseSyncInFlightRef.current = false;
+      }
     }, 300);
 
-    return () => window.clearTimeout(timeout);
-  }, [expenses, expensesLoaded, authReady, session, isOnline]);
+    return () => {
+      window.clearTimeout(timeout);
+      expenseSyncInFlightRef.current = false;
+    };
+  }, [expenses, expensesLoaded, authReady, session, isOnline, currentUser]);
 
   useEffect(() => {
     if (!checklistLoaded) return;
 
-    const payload = checklist.map((item) => checklistToRow(item, currentSavedBy));
-    const currentSignature = checklistSignature(checklist, currentSavedBy);
+    const payload = checklist.map((item) => checklistToRow(item));
+    const currentSignature = checklistSignature(checklist);
     const currentIds = checklist.map((item) => item.id);
     const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
     const hasPendingLocalChanges = currentSignature !== checklistSignatureRef.current || removedIds.length > 0 || checklistDirtyRef.current;
@@ -831,8 +940,8 @@ export default function App() {
   useEffect(() => {
     if (!notesLoaded) return;
 
-    const payload = notesPayload(notes, currentSavedBy);
-    const currentSignature = notesSignature(notes, currentSavedBy);
+    const payload = notesPayload(notes);
+    const currentSignature = notesSignature(notes);
     const hasPendingLocalChanges = currentSignature !== notesSignatureRef.current || notesDirtyRef.current;
 
     if (!hasPendingLocalChanges) return;
@@ -872,7 +981,7 @@ export default function App() {
   useEffect(() => {
     if (!diaryLoaded) return;
 
-    const currentSignature = diarySignature(diaryEntries, currentSavedBy);
+    const currentSignature = diarySignature(diaryEntries);
     const currentIds = diaryEntries.map((entry) => entry.id);
     const removedIds = diaryIdsRef.current.filter((id) => !currentIds.includes(id));
     const pendingPhotoSignature = diaryEntries
@@ -966,31 +1075,33 @@ export default function App() {
 
       const nextDiary = diaryEntries.map((entry) => {
         const result = uploadResults.find((item) => item.id === entry.id);
-        const savedByUserId = currentSavedBy.userId ?? entry.savedByUserId;
-        const savedByEmail = currentSavedBy.email ?? entry.savedByEmail;
+        const ownerId = entry.createdBy ?? entry.savedByUserId ?? null;
+        const ownerEmail = entry.savedByEmail ?? null;
 
         if (result?.uploaded) {
           return {
             ...entry,
+            createdBy: ownerId ?? undefined,
             photoPath: result.photoPath ?? entry.photoPath,
             photoUrl: result.photoUrl,
-            savedByUserId,
-            savedByEmail,
+            savedByUserId: ownerId ?? undefined,
+            savedByEmail: ownerEmail ?? undefined,
             syncStatus: "synced",
           };
         }
 
         return {
           ...entry,
-          savedByUserId,
-          savedByEmail,
+          createdBy: ownerId ?? undefined,
+          savedByUserId: ownerId ?? undefined,
+          savedByEmail: ownerEmail ?? undefined,
           syncStatus: entry.photoUrl?.startsWith("data:") ? "pending" : "synced",
         };
       });
 
       const writePayload = nextDiary.map((entry) => ({
         trip_key: tripKey,
-        ...diaryEntryToRow(entry, currentSavedBy),
+        ...diaryEntryToRow(entry),
         updated_at: new Date().toISOString(),
       }));
 
@@ -1035,7 +1146,7 @@ export default function App() {
         .map((entry) => `${entry.id}:${hashString(entry.photoUrl ?? "")}:${entry.photoPath ?? ""}`)
         .join("|");
       const remainingDirty = Boolean(nextPendingPhotoSignature);
-      const nextSignature = diarySignature(syncedDiary, currentSavedBy);
+      const nextSignature = diarySignature(syncedDiary);
 
       saveDiarySnapshot(syncedDiary, nextSignature, remainingDirty, currentIds);
       diaryIdsRef.current = currentIds;
@@ -1399,11 +1510,11 @@ export default function App() {
             isSupabaseConnected={Boolean(supabase && session)}
             isOnline={isOnline}
             canEdit={Boolean(session)}
+            currentUser={currentUser}
             exchangeRates={exchangeRates}
-            currentSavedBy={currentSavedBy}
           />
         )}
-        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} />}
+        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} currentUser={currentUser} />}
         {activeRoute === "/notes" && (
           <NotesTab
             notes={notes}
@@ -1412,7 +1523,7 @@ export default function App() {
             setChecklist={setChecklist}
             isOnline={isOnline}
             canEdit={Boolean(session)}
-            currentSavedBy={currentSavedBy}
+            currentUser={currentUser}
           />
         )}
         {activeRoute === "/diary" && (
@@ -1421,7 +1532,7 @@ export default function App() {
             setDiaryEntries={setDiaryEntries}
             isOnline={isOnline}
             canEdit={Boolean(session)}
-            currentSavedBy={currentSavedBy}
+            currentUser={currentUser}
           />
         )}
           </main>

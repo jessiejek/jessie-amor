@@ -20,6 +20,7 @@ export interface Expense {
   paidWith: PaymentMethod;
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
+  createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
   createdAt?: string;
@@ -68,6 +69,7 @@ export interface TravelNote {
   content: string;
   category: "Rule" | "Requirement" | "General";
   createdAt: string;
+  createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
   syncStatus?: SyncStatus;
@@ -77,6 +79,7 @@ export interface ChecklistItem {
   id: string;
   text: string;
   completed: boolean;
+  createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
   syncStatus?: SyncStatus;
@@ -95,6 +98,7 @@ export interface DiaryEntry {
   wouldRevisit: boolean;
   photoPath?: string;
   photoUrl?: string;
+  createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
   createdAt: string;

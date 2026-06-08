@@ -98,6 +98,11 @@ interface MapTabProps {
   session: Session | null;
   canEdit?: boolean;
   isOnline?: boolean;
+  currentUser?: {
+    userId: string;
+    email: string;
+    isAdmin: boolean;
+  } | null;
 }
 
 type SavedByInfo = {
@@ -164,7 +169,7 @@ const mapDataForSync = (data: MapItineraryData) => ({
 
 const mapSignature = (data: MapItineraryData) => JSON.stringify(mapDataForSync(data));
 
-export default function MapTab({ session: authSession, canEdit = false, isOnline = true }: MapTabProps) {
+export default function MapTab({ session: authSession, canEdit = false, isOnline = true, currentUser = null }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
   const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey));
   const [initialMapData] = useState(() =>
@@ -201,6 +206,11 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
         email: session.user.email ?? "",
       }
     : null;
+  const canManageDestination = (destination?: MapDestination | null) => {
+    if (!currentUser || !destination) return false;
+    const ownerId = destination.createdBy ?? destination.savedByUserId ?? null;
+    return currentUser.isAdmin || ownerId === currentUser.userId;
+  };
   const saveMapSnapshot = (nextData: MapItineraryData, syncedSignature: string, dirty: boolean) => {
     mapSignatureRef.current = syncedSignature;
     mapDirtyRef.current = dirty;
@@ -507,6 +517,8 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
   const updateDestination = (destinationId: string, patch: Partial<MapDestination>) => {
     if (!canEdit) return;
+    const target = activeDay?.destinations.find((destination) => destination.id === destinationId) ?? null;
+    if (!canManageDestination(target)) return;
     setItineraryData((prev) => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -519,8 +531,9 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
               ? {
                   ...destination,
                   ...patch,
-                  savedByUserId: currentSavedBy?.userId ?? destination.savedByUserId,
-                  savedByEmail: currentSavedBy?.email ?? destination.savedByEmail,
+                  createdBy: destination.createdBy ?? destination.savedByUserId,
+                  savedByUserId: destination.savedByUserId ?? destination.createdBy,
+                  savedByEmail: destination.savedByEmail ?? undefined,
                   syncStatus: "pending",
                 }
               : destination,
@@ -576,6 +589,7 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
       notes: draft.notes.trim(),
       lat: coordinates.lat,
       lng: coordinates.lng,
+      createdBy: currentUser?.userId,
       savedByUserId: currentSavedBy?.userId,
       savedByEmail: currentSavedBy?.email,
       syncStatus: "pending",
@@ -606,6 +620,8 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
   const deleteDestination = (destinationId: string) => {
     if (!canEdit) return;
+    const target = activeDay?.destinations.find((destination) => destination.id === destinationId) ?? null;
+    if (!canManageDestination(target)) return;
     setItineraryData((prev) => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -795,6 +811,7 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
               </div>
             ) : activeDay.destinations.map((destination, index) => {
               const isActive = destination.id === selectedDestinationId;
+              const isEditable = canManageDestination(destination);
               return (
                 <article
                   key={destination.id}
@@ -838,62 +855,79 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
                     </div>
                   </button>
 
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-semibold text-stone-600">Name</span>
-                        <input
-                          value={destination.name}
-                          onChange={(event) => updateDestination(destination.id, { name: event.target.value })}
+                  {isEditable ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="space-y-1">
+                          <span className="text-[11px] font-semibold text-stone-600">Name</span>
+                          <input
+                            value={destination.name}
+                            onChange={(event) => updateDestination(destination.id, { name: event.target.value })}
+                            onFocus={() => focusDestination(destination.id)}
+                            disabled={!canEdit}
+                            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                          />
+                        </label>
+                        <label className="space-y-1">
+                          <span className="text-[11px] font-semibold text-stone-600">Time</span>
+                          <input
+                            value={destination.time}
+                            onChange={(event) => updateDestination(destination.id, { time: event.target.value })}
+                            onFocus={() => focusDestination(destination.id)}
+                            disabled={!canEdit}
+                            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="space-y-1 block">
+                        <span className="text-[11px] font-semibold text-stone-600">Notes</span>
+                        <textarea
+                          value={destination.notes}
+                          onChange={(event) => updateDestination(destination.id, { notes: event.target.value })}
                           onFocus={() => focusDestination(destination.id)}
                           disabled={!canEdit}
-                          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                          className="w-full min-h-[96px] resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
                         />
                       </label>
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-semibold text-stone-600">Time</span>
-                        <input
-                          value={destination.time}
-                          onChange={(event) => updateDestination(destination.id, { time: event.target.value })}
-                          onFocus={() => focusDestination(destination.id)}
-                          disabled={!canEdit}
-                          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                        />
-                      </label>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => focusDestination(destination.id)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+                        >
+                          <LocateFixed size={12} />
+                          Pan map
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteDestination(destination.id)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-100"
+                        >
+                          <Trash2 size={12} />
+                          Delete
+                        </button>
+                      </div>
                     </div>
-
-                    <label className="space-y-1 block">
-                      <span className="text-[11px] font-semibold text-stone-600">Notes</span>
-                      <textarea
-                        value={destination.notes}
-                        onChange={(event) => updateDestination(destination.id, { notes: event.target.value })}
-                        onFocus={() => focusDestination(destination.id)}
-                        disabled={!canEdit}
-                        className="w-full min-h-[96px] resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                      />
-                    </label>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => focusDestination(destination.id)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
-                      >
-                        <LocateFixed size={12} />
-                        Pan map
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteDestination(destination.id)}
-                        disabled={!canEdit}
-                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-100"
-                      >
-                        <Trash2 size={12} />
-                        Delete
-                      </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-[12px] leading-relaxed text-stone-600">
+                        {destination.notes}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => focusDestination(destination.id)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
+                        >
+                          <LocateFixed size={12} />
+                          Pan map
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </article>
               );
             })}

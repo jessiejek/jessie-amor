@@ -11,6 +11,9 @@ type TransactionRow = {
   category: string;
   method: string;
   user: string | null;
+  createdBy: string | null;
+  savedByUserId: string | null;
+  savedByEmail: string | null;
   amount: number;
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
@@ -115,11 +118,12 @@ interface BudgetTabProps {
   isSupabaseConnected?: boolean;
   isOnline?: boolean;
   canEdit?: boolean;
-  exchangeRates: ExchangeRates;
-  currentSavedBy?: {
+  currentUser?: {
     userId: string;
     email: string;
+    isAdmin: boolean;
   } | null;
+  exchangeRates: ExchangeRates;
 }
 
 export default function BudgetTab({
@@ -128,8 +132,8 @@ export default function BudgetTab({
   isSupabaseConnected = false,
   isOnline = true,
   canEdit = false,
+  currentUser = null,
   exchangeRates,
-  currentSavedBy = null,
 }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
@@ -178,6 +182,9 @@ export default function BudgetTab({
     category: expense.category,
     method: expense.paidWith,
     user: expense.savedByEmail ?? expense.savedByUserId ?? null,
+    createdBy: expense.createdBy ?? expense.savedByUserId ?? null,
+    savedByUserId: expense.savedByUserId ?? null,
+    savedByEmail: expense.savedByEmail ?? null,
     amount: expense.amount,
     originalAmount: expense.originalAmount,
     originalCurrency: expense.originalCurrency,
@@ -198,6 +205,11 @@ export default function BudgetTab({
 
   const transactions = sortTransactions(expenses.map(mapExpenseToTransaction));
 
+  const canManageExpense = (expense: Expense | TransactionRow) => {
+    const ownerId = expense.createdBy ?? expense.savedByUserId ?? null;
+    return Boolean(currentUser?.isAdmin || (currentUser && ownerId === currentUser.userId));
+  };
+
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEdit) return;
@@ -213,8 +225,9 @@ export default function BudgetTab({
       paidWith,
       originalAmount: parsedAmount,
       originalCurrency: amountCurrency,
-      savedByUserId: currentSavedBy?.userId,
-      savedByEmail: currentSavedBy?.email,
+      createdBy: currentUser?.userId,
+      savedByUserId: currentUser?.userId,
+      savedByEmail: currentUser?.email,
       createdAt: new Date().toISOString(),
       syncStatus: "pending",
     };
@@ -225,9 +238,9 @@ export default function BudgetTab({
     setAmountCurrency("RM");
   };
 
-  const deleteTransaction = (id: string) => {
-    if (!canEdit) return;
-    setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+  const deleteTransaction = (transaction: TransactionRow) => {
+    if (!canManageExpense(transaction)) return;
+    setExpenses((prev) => prev.filter((exp) => exp.id !== transaction.id));
   };
 
   const cashSpent = expenses
@@ -822,16 +835,17 @@ export default function BudgetTab({
                           </div>
 
                           <div className="budget-transaction-actions">
-                            <button
-                              type="button"
-                              onClick={() => deleteTransaction(tx.id)}
-                              disabled={!canEdit}
-                              className="budget-transaction-delete"
-                              title="Delete transaction"
-                              aria-label="Delete transaction"
-                            >
-                              <Trash2 size={16} aria-hidden="true" />
-                            </button>
+                            {canManageExpense(tx) && (
+                              <button
+                                type="button"
+                                onClick={() => deleteTransaction(tx)}
+                                className="budget-transaction-delete"
+                                title="Delete transaction"
+                                aria-label="Delete transaction"
+                              >
+                                <Trash2 size={16} aria-hidden="true" />
+                              </button>
+                            )}
                           </div>
                         </article>
                       ))}

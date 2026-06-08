@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -19,9 +19,10 @@ interface DiaryTabProps {
   setDiaryEntries: React.Dispatch<React.SetStateAction<DiaryEntry[]>>;
   isOnline?: boolean;
   canEdit?: boolean;
-  currentSavedBy?: {
+  currentUser?: {
     userId: string;
     email: string;
+    isAdmin: boolean;
   } | null;
 }
 
@@ -249,7 +250,7 @@ export default function DiaryTab({
   setDiaryEntries,
   isOnline = true,
   canEdit = false,
-  currentSavedBy = null,
+  currentUser = null,
 }: DiaryTabProps) {
   const [form, setForm] = useState<DiaryFormState>(() => createEmptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -261,6 +262,12 @@ export default function DiaryTab({
   const formRef = useRef<HTMLFormElement | null>(null);
 
   const editingEntry = editingId ? diaryEntries.find((entry) => entry.id === editingId) ?? null : null;
+  const canManageEntry = (entry?: DiaryEntry | null) => {
+    if (!currentUser || !entry) return false;
+    const ownerId = entry.createdBy ?? entry.savedByUserId ?? null;
+    return currentUser.isAdmin || ownerId === currentUser.userId;
+  };
+  const editableEntry = editingEntry && canManageEntry(editingEntry) ? editingEntry : null;
 
   const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
   const ratingTone = getRatingTone(form.rating);
@@ -338,6 +345,7 @@ export default function DiaryTab({
   };
 
   const startEdit = (entry: DiaryEntry) => {
+    if (!canManageEntry(entry)) return;
     setEditingId(entry.id);
     setPhotoError("");
     setForm({
@@ -362,6 +370,7 @@ export default function DiaryTab({
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!canEdit) return;
+    if (editingId && !editableEntry) return;
 
     const trimmedTitle = form.title.trim();
     const trimmedDescription = form.description.trim();
@@ -375,8 +384,10 @@ export default function DiaryTab({
       return;
     }
 
-    const existingEntry = editingEntry;
+    const existingEntry = editableEntry;
     const now = new Date().toISOString();
+    const ownerId = existingEntry ? (existingEntry.createdBy ?? existingEntry.savedByUserId ?? null) : currentUser?.userId ?? null;
+    const ownerEmail = existingEntry ? existingEntry.savedByEmail ?? null : currentUser?.email ?? null;
     const nextEntry: DiaryEntry = {
       id: existingEntry?.id ?? `diary-${Date.now()}`,
       title: trimmedTitle,
@@ -390,8 +401,9 @@ export default function DiaryTab({
       wouldRevisit: form.wouldRevisit,
       photoPath: existingEntry?.photoPath,
       photoUrl: form.photoChanged ? form.photoUrl : existingEntry?.photoUrl,
-      savedByUserId: currentSavedBy?.userId ?? existingEntry?.savedByUserId,
-      savedByEmail: currentSavedBy?.email ?? existingEntry?.savedByEmail,
+      createdBy: ownerId ?? undefined,
+      savedByUserId: ownerId ?? undefined,
+      savedByEmail: ownerEmail ?? undefined,
       createdAt: existingEntry?.createdAt ?? now,
       updatedAt: now,
       syncStatus: "pending",
@@ -407,8 +419,16 @@ export default function DiaryTab({
     resetForm();
   };
 
+  useEffect(() => {
+    if (editingId && editingEntry && !editableEntry) {
+      resetForm();
+    }
+  }, [editingEntry, editableEntry, editingId]);
+
   const handleDelete = (entryId: string) => {
     if (!canEdit) return;
+    const target = diaryEntries.find((entry) => entry.id === entryId);
+    if (!canManageEntry(target)) return;
     setDiaryEntries((current) => current.filter((entry) => entry.id !== entryId));
     if (editingId === entryId) {
       resetForm();
@@ -876,7 +896,7 @@ export default function DiaryTab({
                         ) : (
                           <span className={getSyncPillClass(entry.syncStatus)} aria-label="Synced" title="Synced" />
                         )}
-                        {canEdit && (
+                        {canManageEntry(entry) && (
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
