@@ -23,6 +23,13 @@ type DraftState = {
   lng: string;
 };
 
+type UserLocationState = {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  updatedAt: number;
+};
+
 type NominatimSuggestion = {
   display_name: string;
   lat: string;
@@ -200,6 +207,12 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     lat: "",
     lng: "",
   });
+  const [userLocation, setUserLocation] = useState<UserLocationState | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isTrackingLocation, setIsTrackingLocation] = useState(false);
+  const [isTrackingPaused, setIsTrackingPaused] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [userLocationLayerReady, setUserLocationLayerReady] = useState(false);
   const [suggestions, setSuggestions] = useState<NominatimSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
@@ -207,8 +220,13 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerLayerRef = useRef<LayerGroup | null>(null);
+  const userLocationLayerRef = useRef<LayerGroup | null>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const markerRefs = useRef<Record<string, Marker>>({});
+  const locationWatchIdRef = useRef<number | null>(null);
+  const locationPausedRef = useRef(false);
+  const locationShouldPanRef = useRef(false);
+  const lastLocationUpdateRef = useRef<{ lat: number; lng: number; updatedAt: number } | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
   const mapSignatureRef = useRef<string>(initialMapCache?.syncedSignature || mapSignature(initialMapData));
   const mapDirtyRef = useRef<boolean>(initialMapCache?.dirty ?? false);
@@ -232,6 +250,146 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
       syncedSignature,
       dirty,
     });
+  };
+
+  const getGeolocationErrorMessage = (error: GeolocationPositionError): string => {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return "Location permission was denied. Enable location access in your browser settings to show where you are.";
+      case error.POSITION_UNAVAILABLE:
+        return "Your current location is unavailable right now. Please check GPS/location services.";
+      case error.TIMEOUT:
+        return "Getting your location took too long. Try again in an open area or with GPS enabled.";
+      default:
+        return "Unable to get your current location.";
+    }
+  };
+
+  const stopLocationTracking = () => {
+    if (locationWatchIdRef.current !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(locationWatchIdRef.current);
+      locationWatchIdRef.current = null;
+    }
+    setIsTrackingLocation(false);
+    setIsTrackingPaused(false);
+    locationPausedRef.current = false;
+    locationShouldPanRef.current = false;
+  };
+
+  const shouldAcceptLocationUpdate = (nextLat: number, nextLng: number, nextUpdatedAt: number) => {
+    const previous = lastLocationUpdateRef.current;
+    if (!previous) return true;
+
+    const elapsed = nextUpdatedAt - previous.updatedAt;
+    if (elapsed > 30000) return true;
+
+    const distanceInMeters = (() => {
+      const toRad = (value: number) => (value * Math.PI) / 180;
+      const earthRadius = 6371000;
+      const lat1 = toRad(previous.lat);
+      const lat2 = toRad(nextLat);
+      const deltaLat = toRad(nextLat - previous.lat);
+      const deltaLng = toRad(nextLng - previous.lng);
+      const a =
+        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+      return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    })();
+
+    return distanceInMeters >= 25;
+  };
+
+  const applyLocationUpdate = (position: GeolocationPosition, allowPan = false) => {
+    const nextLocation: UserLocationState = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+      updatedAt: Date.now(),
+    };
+
+    if (!shouldAcceptLocationUpdate(nextLocation.lat, nextLocation.lng, nextLocation.updatedAt)) {
+      return;
+    }
+
+    lastLocationUpdateRef.current = {
+      lat: nextLocation.lat,
+      lng: nextLocation.lng,
+      updatedAt: nextLocation.updatedAt,
+    };
+
+    setUserLocation(nextLocation);
+    setLocationError(null);
+
+    const map = mapRef.current;
+    if (allowPan && map) {
+      map.setView([nextLocation.lat, nextLocation.lng], Math.max(map.getZoom(), 16), { animate: true });
+    }
+  };
+
+  const startLocationTracking = (panOnFirstUpdate = false) => {
+    if (!navigator.geolocation) return;
+
+    if (locationWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchIdRef.current);
+      locationWatchIdRef.current = null;
+    }
+
+    setIsTrackingPaused(false);
+    locationPausedRef.current = false;
+    locationShouldPanRef.current = panOnFirstUpdate;
+
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const shouldPan = locationShouldPanRef.current;
+        locationShouldPanRef.current = false;
+        applyLocationUpdate(position, shouldPan);
+      },
+      (error) => {
+        setLocationError(getGeolocationErrorMessage(error));
+        stopLocationTracking();
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 30000,
+      },
+    );
+
+    setIsTrackingLocation(true);
+  };
+
+  const handleLocateMe = () => {
+    const geolocation = navigator.geolocation;
+    if (!geolocation) {
+      setLocationError("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+    if (!window.isSecureContext && !isLocalhost) {
+      setLocationError("Location requires HTTPS or localhost.");
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError(null);
+
+    geolocation.getCurrentPosition(
+      (position) => {
+        applyLocationUpdate(position, true);
+        setIsLocating(false);
+      },
+      (error) => {
+        setLocationError(getGeolocationErrorMessage(error));
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    );
   };
 
   const activeDay = useMemo(
@@ -444,18 +602,56 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
     mapRef.current = map;
     markerLayerRef.current = L.layerGroup().addTo(map);
+    userLocationLayerRef.current = L.layerGroup().addTo(map);
+    setUserLocationLayerReady(true);
 
     const timeout = window.setTimeout(() => map.invalidateSize(), 150);
 
     return () => {
       window.clearTimeout(timeout);
+      if (locationWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current);
+        locationWatchIdRef.current = null;
+      }
       routeLayerRef.current?.remove();
       markerLayerRef.current?.remove();
+      userLocationLayerRef.current?.remove();
       map.remove();
       mapRef.current = null;
       markerLayerRef.current = null;
+      userLocationLayerRef.current = null;
       routeLayerRef.current = null;
       markerRefs.current = {};
+      setUserLocationLayerReady(false);
+      setIsTrackingLocation(false);
+      setIsTrackingPaused(false);
+      locationPausedRef.current = false;
+      locationShouldPanRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (locationWatchIdRef.current !== null && navigator.geolocation) {
+          locationPausedRef.current = true;
+          setIsTrackingPaused(true);
+          navigator.geolocation.clearWatch(locationWatchIdRef.current);
+          locationWatchIdRef.current = null;
+          setIsTrackingLocation(false);
+          locationShouldPanRef.current = false;
+        }
+        return;
+      }
+
+      if (locationPausedRef.current) {
+        setIsTrackingPaused(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -501,6 +697,49 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
       }).addTo(map);
     }
   }, [activeDay, selectedDestinationId]);
+
+  useEffect(() => {
+    const userLayer = userLocationLayerRef.current;
+    if (!userLayer || !userLocationLayerReady) return;
+
+    userLayer.clearLayers();
+
+    if (!userLocation) return;
+
+    const latLng: L.LatLngExpression = [userLocation.lat, userLocation.lng];
+    const icon = L.divIcon({
+      className: "",
+      html: `
+        <div class="relative flex h-8 w-8 items-center justify-center">
+          <span class="absolute inline-flex h-8 w-8 rounded-full bg-[#0B3530]/25 animate-ping"></span>
+          <span class="relative inline-flex h-5 w-5 rounded-full bg-[#0B3530] ring-4 ring-white shadow-lg"></span>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    L.marker(latLng, { icon })
+      .bindPopup(
+        `<div style="font-weight:700;color:#0B3530;">You are here</div>
+         <div style="font-size:12px;color:#6B7280;margin-top:4px;">Accuracy: ${
+           userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)} m` : "Unknown"
+         }</div>`,
+        { closeButton: false },
+      )
+      .addTo(userLayer);
+
+    if (userLocation.accuracy !== null && Number.isFinite(userLocation.accuracy)) {
+      L.circle(latLng, {
+        radius: userLocation.accuracy,
+        color: "#0B3530",
+        weight: 1,
+        opacity: 0.35,
+        fillColor: "#0B3530",
+        fillOpacity: 0.08,
+      }).addTo(userLayer);
+    }
+  }, [userLocation, userLocationLayerReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -709,7 +948,72 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
               {activeDay.label} | {activeDay.destinations.length} stops
             </div>
           </div>
-          <div ref={mapContainerRef} className="h-[460px] md:h-[560px] w-full" />
+          <div className="relative">
+            <div ref={mapContainerRef} className="h-[460px] md:h-[560px] w-full" />
+
+            <div className="absolute left-3 top-3 z-[500] flex max-w-[calc(100%-1.5rem)] flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  aria-label="Show my current location"
+                  onClick={handleLocateMe}
+                  disabled={isLocating}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0B3530] px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-black/10 transition-colors hover:bg-[#18534C] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LocateFixed size={14} />
+                  {isLocating ? "Locating..." : "Locate me"}
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Start live location tracking"
+                  onClick={() => startLocationTracking(true)}
+                  disabled={isTrackingLocation || isLocating}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-lg shadow-black/5 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LocateFixed size={14} />
+                  Track me
+                </button>
+
+                {isTrackingLocation && (
+                  <button
+                    type="button"
+                    aria-label="Stop location tracking"
+                    onClick={stopLocationTracking}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-lg shadow-black/5 transition-colors hover:bg-stone-50"
+                  >
+                    Stop
+                  </button>
+                )}
+              </div>
+
+              {isTrackingPaused && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur">
+                  Tracking paused to save battery. Tap Track me to resume.
+                </div>
+              )}
+
+              {isTrackingLocation && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/95 px-3 py-2 text-[11px] text-emerald-800 shadow-sm backdrop-blur">
+                  Tracking your location
+                </div>
+              )}
+
+              {userLocation && (
+                <div className="rounded-xl border border-stone-200 bg-white/95 px-3 py-2 text-[11px] text-stone-600 shadow-sm backdrop-blur">
+                  You are here · accuracy{" "}
+                  {userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)}m` : "unknown"} · updated{" "}
+                  {new Date(userLocation.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+
+              {locationError && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur">
+                  {locationError}
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-stone-200 bg-white shadow-sm">
