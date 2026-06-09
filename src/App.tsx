@@ -380,6 +380,7 @@ export default function App() {
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1649,6 +1650,12 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const metadata = {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
@@ -2075,6 +2082,19 @@ export default function App() {
       </footer>
 
       <DestinationInfoModal guide={selectedGuide} onClose={() => setSelectedGuide(null)} />
+
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Scroll to top"
+        className={`fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[1300] flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-white shadow-lg transition-all duration-300 hover:bg-[#18534C] ${
+          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 15l-6-6-6 6"/>
+        </svg>
+      </button>
     </div>
   );
 }
