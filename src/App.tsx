@@ -18,6 +18,7 @@ import {
   supabaseNotesTable,
   supabaseDiaryTable,
   supabaseDiaryBucket,
+  supabaseSettingsTable,
   tripKey,
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
@@ -364,6 +365,7 @@ export default function App() {
     if (pathname === "/notes") return "/notes";
     if (pathname === "/diary") return "/diary";
     if (pathname === "/account") return "/account";
+    if (pathname === "/settings") return "/settings";
     return "/";
   };
 
@@ -381,6 +383,10 @@ export default function App() {
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [budgetCap, setBudgetCap] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    return Number(localStorage.getItem("ja-budget-cap")) || 0;
+  });
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1656,6 +1662,34 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!supabase || !authReady) return;
+    supabase
+      .from(supabaseSettingsTable)
+      .select("budget_cap")
+      .eq("trip_key", tripKey)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const remote = Number(data["budget_cap"]);
+        if (!isNaN(remote) && remote !== budgetCap) {
+          setBudgetCap(remote);
+          try { localStorage.setItem("ja-budget-cap", String(remote)); } catch {}
+        }
+      });
+  }, [authReady]);
+
+  useEffect(() => {
+    try { localStorage.setItem("ja-budget-cap", String(budgetCap)); } catch {}
+    if (!supabase || !authReady || !session) return;
+    const timeout = setTimeout(() => {
+      supabase
+        .from(supabaseSettingsTable)
+        .upsert({ trip_key: tripKey, budget_cap: budgetCap }, { onConflict: "trip_key" });
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [budgetCap, authReady, session]);
+
   const metadata = {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
@@ -1879,7 +1913,7 @@ export default function App() {
 
         <div className="pt-[112px] md:pt-0">
           <main
-            className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0"
+            className="flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-0"
             style={{
               transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
               transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -1990,7 +2024,7 @@ export default function App() {
         )}
 
         {activeRoute === "/budget" && (
-          <BudgetTab
+           <BudgetTab
             expenses={expenses}
             setExpenses={setExpenses}
             isSupabaseConnected={Boolean(supabase && session)}
@@ -1998,6 +2032,8 @@ export default function App() {
             canEdit={Boolean(session)}
             currentUser={currentUser}
             exchangeRates={exchangeRates}
+            budgetCap={budgetCap}
+            setBudgetCap={setBudgetCap}
           />
         )}
         {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} currentUser={currentUser} />}
@@ -2021,6 +2057,35 @@ export default function App() {
             currentUser={currentUser}
           />
         )}
+        {activeRoute === "/settings" && (
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+            <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
+              <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="text-sm font-semibold text-stone-600">Budget Cap (RM)</span>
+                  <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={budgetCap || ""}
+                      placeholder="No cap"
+                      onChange={(e) => setBudgetCap(Math.max(0, Number(e.target.value)))}
+                      className="w-32 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
+                    />
+                    <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
+                  </div>
+                </label>
+                <p className="text-[11px] text-stone-400">
+                  When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
+                  {budgetCap > 0 && <> Currently capped at <strong>RM {budgetCap}</strong>.</>}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
           </main>
         </div>
 
@@ -2037,7 +2102,7 @@ export default function App() {
         isConfigured={hasSupabaseConfig}
       />
 
-      <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(8rem+env(safe-area-inset-bottom))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
+      <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">

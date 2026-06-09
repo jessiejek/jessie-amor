@@ -12,6 +12,7 @@ import {
   BookOpen,
   NotebookText,
   Printer,
+  Settings,
   Share2,
   X,
   User,
@@ -74,6 +75,7 @@ const navItems: NavTab[] = [
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true },
   { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true },
   { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: false },
+  { label: "Settings", path: "/settings", icon: Settings, showInBottom: false },
 ];
 
 export default function Navigation({
@@ -450,7 +452,7 @@ export default function Navigation({
           </div>
         </div>
 
-        <nav className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom))] md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden">
           <div className="grid grid-cols-5">
             {bottomNavItems.map((tab) => {
               const Icon = tab.icon ?? CalendarDays;

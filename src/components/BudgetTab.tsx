@@ -124,6 +124,8 @@ interface BudgetTabProps {
     isAdmin: boolean;
   } | null;
   exchangeRates: ExchangeRates;
+  budgetCap: number;
+  setBudgetCap: (value: number) => void;
 }
 
 export default function BudgetTab({
@@ -134,6 +136,8 @@ export default function BudgetTab({
   canEdit = false,
   currentUser = null,
   exchangeRates,
+  budgetCap,
+  setBudgetCap,
 }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
@@ -146,6 +150,7 @@ export default function BudgetTab({
   const [selectedRegistryDate, setSelectedRegistryDate] = useState("All");
   const [isListening, setIsListening] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [dismissedOverBudget, setDismissedOverBudget] = useState(false);
 
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
@@ -261,9 +266,12 @@ export default function BudgetTab({
     .filter((e) => e.paidWith === "Credit Card")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const totalBudget = 1000;
-  const cashRemaining = totalBudget - cashSpent;
-  const isOverBudget = cashRemaining < 0;
+  const isOverBudget = budgetCap > 0 && cashSpent > budgetCap && !dismissedOverBudget;
+
+  const handleSetCap = (value: number) => {
+    setBudgetCap(Math.max(0, value));
+    setDismissedOverBudget(false);
+  };
 
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];
   const categoryTotals = cats.map((cat) => {
@@ -532,11 +540,32 @@ export default function BudgetTab({
       <div className="budget-summary-grid mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="budget-summary-card flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div>
-            <span className="block text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
+              <span className="text-[11px] text-stone-300">/</span>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={budgetCap || ""}
+                placeholder="No cap"
+                onChange={(e) => handleSetCap(Number(e.target.value))}
+                className="w-20 px-2 py-0.5 text-[12px] font-mono text-stone-500 bg-stone-50 border border-stone-200 rounded-md outline-none focus:border-[#0B3530]"
+              />
+              <span className="text-[11px] text-stone-400 font-mono">RM cap</span>
+            </div>
             <h4 className="mt-1 text-2xl font-serif font-bold text-stone-800">{formatPhp(cashSpent)}</h4>
             <span className="mt-0.5 block text-[13px] text-stone-400">
               {formatRm(cashSpent)} | {formatSgd(cashSpent)}
             </span>
+            {budgetCap > 0 && (
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${cashSpent > budgetCap ? "bg-rose-500" : "bg-[#0B3530]"}`}
+                  style={{ width: `${Math.min(100, (cashSpent / budgetCap) * 100)}%` }}
+                />
+              </div>
+            )}
           </div>
           <div className="budget-summary-icon rounded-full bg-stone-100 p-3 text-stone-600">
             <DollarSign size={24} />
@@ -558,11 +587,18 @@ export default function BudgetTab({
       </div>
 
       {isOverBudget && (
-        <div className="budget-alert mb-6 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
+        <div className="mb-6 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
           <AlertTriangle size={16} />
-          <span>
-            Careful, you have exceeded the recommended cash allowance of <strong>RM 1,000</strong>. Review card transactions or minimize shopping outflows.
+          <span className="flex-1">
+            Over budget: <strong>{formatRm(cashSpent)}</strong> of <strong>{formatRm(budgetCap)}</strong> cash cap
           </span>
+          <button
+            type="button"
+            onClick={() => setDismissedOverBudget(true)}
+            className="shrink-0 text-rose-400 hover:text-rose-600 text-[11px] font-semibold"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
