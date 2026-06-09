@@ -1888,7 +1888,7 @@ export default function App() {
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col justify-between bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
+      className="flex min-h-[100dvh] flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -1933,9 +1933,9 @@ export default function App() {
           expenses={expenses}
         />
 
-        <div className="pt-[112px] md:pt-0">
+        <div className="flex-1 pt-[112px] md:pt-0">
           <main
-            className="flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-0"
+            className="flex-1 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:pb-0"
             style={{
               transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
               transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
