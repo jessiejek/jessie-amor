@@ -350,6 +350,18 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
 
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
+const normalizeTipIcon = (icon: string) => {
+  const normalized = icon.trim();
+  const iconMap: Record<string, string> = {
+    "ðŸ’³": "💳",
+    "ðŸ—“ï¸": "🗓️",
+    "ðŸ“±": "📱",
+    "ðŸ¦€": "🦀",
+  };
+
+  return iconMap[normalized] ?? normalized;
+};
+
 export default function App() {
   const PULL_REFRESH_TRIGGER = 84;
   const PULL_REFRESH_MAX = 108;
@@ -387,6 +399,7 @@ export default function App() {
   const [authError, setAuthError] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
+  const [selectedHomeDay, setSelectedHomeDay] = useState<number>(selectedItinerary.days[0]?.day ?? 0);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -1788,6 +1801,10 @@ export default function App() {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
+  const normalizedTips = itinerary.tips.map((tip) => ({
+    ...tip,
+    icon: normalizeTipIcon(tip.icon),
+  }));
 
   const formatPhp = (php: number) =>
     `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
@@ -2069,7 +2086,12 @@ export default function App() {
               <Hero hero={itinerary.hero} />
               <Legend items={itinerary.legend} />
             </div>
-            <DailyItineraryView days={itinerary.days} onInfoClick={handleOpenGuide} />
+            <DailyItineraryView
+              days={itinerary.days}
+              onInfoClick={handleOpenGuide}
+              selectedMobileDay={selectedHomeDay}
+              onSelectedMobileDayChange={setSelectedHomeDay}
+            />
             <BudgetSummaryHeader
               cards={itinerary.budgetSummary}
               expenses={expenses}
@@ -2077,6 +2099,8 @@ export default function App() {
               setShowLiveSpends={setShowLiveSpends}
               exchangeRates={exchangeRates}
               userSettings={userSettings}
+              selectedMobileDay={selectedHomeDay}
+              onSelectedMobileDayChange={setSelectedHomeDay}
             />
             <AlertBox alert={itinerary.alert} />
 
@@ -2090,7 +2114,7 @@ export default function App() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {itinerary.tips.map((tip, index) => (
+                {normalizedTips.map((tip, index) => (
                   <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
                 ))}
               </div>

@@ -6,6 +6,8 @@ import RichText from "./RichText";
 interface DailyItineraryViewProps {
   days: DaySectionData[];
   onInfoClick?: (item: TimelineItemData) => void;
+  selectedMobileDay?: number;
+  onSelectedMobileDayChange?: (day: number) => void;
 }
 
 type CategoryMeta = {
@@ -78,8 +80,32 @@ const IMAGE_LABELS: Record<string, string> = {
 const getMapsUrl = (query: string) =>
   `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(query)}&travelmode=driving`;
 
-export default function DailyItineraryView({ days, onInfoClick }: DailyItineraryViewProps) {
-  const [activeMobileDay, setActiveMobileDay] = useState<number>(days[0]?.day ?? 0);
+const splitDayTitle = (title: string) => {
+  const normalizedTitle = title.replace(/\s*[.-]\s*/g, " · ");
+  const [rawLabel, rawDate] = normalizedTitle.split("·").map((part) => part.trim());
+  return {
+    label: rawLabel || title,
+    date: rawDate || title,
+  };
+};
+
+const getMobileDayBadge = (day: DaySectionData, dayIndex: number) => {
+  const { label } = splitDayTitle(day.title);
+  if (/flight day/i.test(label)) return "Flight Day";
+  return `Day ${dayIndex}`;
+};
+
+const getMobileDayHeadline = (day: DaySectionData) => splitDayTitle(day.title).date;
+
+export default function DailyItineraryView({
+  days,
+  onInfoClick,
+  selectedMobileDay,
+  onSelectedMobileDayChange,
+}: DailyItineraryViewProps) {
+  const [internalActiveMobileDay, setInternalActiveMobileDay] = useState<number>(days[0]?.day ?? 0);
+  const activeMobileDay = selectedMobileDay ?? internalActiveMobileDay;
+  const setActiveMobileDay = onSelectedMobileDayChange ?? setInternalActiveMobileDay;
 
   const selectedDay = useMemo(
     () => days.find((day) => day.day === activeMobileDay) ?? days[0] ?? null,
@@ -248,7 +274,7 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
         <div className="flex gap-2 overflow-x-auto pb-1">
           {days.map((day) => {
             const isActive = day.day === activeMobileDay;
-            const displayDayNumber = days.findIndex((candidate) => candidate.day === day.day) + 1;
+            const dayIndex = days.findIndex((candidate) => candidate.day === day.day);
             return (
               <button
                 key={day.day}
@@ -261,10 +287,10 @@ export default function DailyItineraryView({ days, onInfoClick }: DailyItinerary
                 }`}
               >
                 <div className={`text-[10px] font-mono uppercase tracking-[0.2em] ${isActive ? "text-[#88B04B]" : "text-stone-400"}`}>
-                  Day {displayDayNumber}
+                  {getMobileDayBadge(day, dayIndex)}
                 </div>
                 <div className="mt-1 text-[13px] font-semibold leading-snug break-words">
-                  {day.title}
+                  {getMobileDayHeadline(day)}
                 </div>
               </button>
             );

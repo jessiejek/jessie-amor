@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import type { BudgetCard } from "../data/code1Itinerary";
 import type { ExchangeRates } from "../lib/exchangeRates";
@@ -11,16 +11,60 @@ interface BudgetSummaryHeaderProps {
   setShowLiveSpends: (val: boolean) => void;
   exchangeRates: ExchangeRates;
   userSettings?: UserTripSettings | null;
+  selectedMobileDay?: number;
+  onSelectedMobileDayChange?: (day: number) => void;
 }
+
+const fallbackDayCards = [
+  { value: 12, label: "July 12" },
+  { value: 13, label: "July 13" },
+  { value: 14, label: "July 14" },
+  { value: 15, label: "July 15" },
+];
+
+const formatShortDate = (value: string) =>
+  new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+const parseAmountRange = (value: string) => {
+  const matches = value.match(/\d+(?:\.\d+)?/g);
+  if (!matches?.length) return null;
+  const numbers = matches.map(Number);
+  if (numbers.length === 1) return { min: numbers[0], max: numbers[0] };
+  return { min: numbers[0], max: numbers[1] };
+};
 
 export default function BudgetSummaryHeader({
   cards,
   expenses,
-  showLiveSpends,
-  setShowLiveSpends,
+  showLiveSpends: _showLiveSpends,
+  setShowLiveSpends: _setShowLiveSpends,
   exchangeRates,
   userSettings = null,
+  selectedMobileDay,
+  onSelectedMobileDayChange,
 }: BudgetSummaryHeaderProps) {
+  const dayCards = useMemo(() => {
+    const configuredDayCards = (userSettings?.travelDates ?? []).map((dateStr) => {
+      const date = new Date(`${dateStr}T00:00:00`);
+      return {
+        value: date.getDate(),
+        label: date.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+      };
+    });
+
+    return configuredDayCards.length > 0 ? configuredDayCards : fallbackDayCards;
+  }, [userSettings?.travelDates]);
+
+  const [internalSelectedMobileDay, setInternalSelectedMobileDay] = useState<number>(dayCards[0]?.value ?? fallbackDayCards[0]?.value ?? 12);
+  const resolvedSelectedMobileDay = selectedMobileDay ?? internalSelectedMobileDay;
+  const setResolvedSelectedMobileDay = onSelectedMobileDayChange ?? setInternalSelectedMobileDay;
+
+  useEffect(() => {
+    if (!dayCards.some((dayCard) => dayCard.value === resolvedSelectedMobileDay)) {
+      setResolvedSelectedMobileDay(dayCards[0]?.value ?? fallbackDayCards[0]?.value ?? 12);
+    }
+  }, [dayCards, resolvedSelectedMobileDay, setResolvedSelectedMobileDay]);
+
   const getDayTotal = (dayNum: number) =>
     expenses
       .filter((expense) => expense.day === dayNum && (expense.paidWith === "Cash" || expense.paidWith === "Debit"))
@@ -34,77 +78,152 @@ export default function BudgetSummaryHeader({
     .filter((expense) => expense.paidWith === "Credit Card")
     .reduce((sum, expense) => sum + expense.amount, 0);
 
-  const baseCurrency = "MYR";
-  const nonBaseCurrencies = userSettings?.currencies?.filter((code) => code !== baseCurrency) ?? ["PHP", "SGD"];
-  const primaryDisplayCurrency = nonBaseCurrencies[0] ?? "PHP";
-  const secondaryDisplayCurrencies = userSettings
-    ? nonBaseCurrencies.slice(1)
-    : ["SGD"];
+  const configuredCurrencies = userSettings?.currencies?.length
+    ? userSettings.currencies
+    : ["PHP", "MYR", "SGD"];
+  const primaryDisplayCurrency = userSettings?.baseCurrency ?? configuredCurrencies[0] ?? "PHP";
+  const orderedDisplayCurrencies = [
+    primaryDisplayCurrency,
+    ...configuredCurrencies.filter((code) => code !== primaryDisplayCurrency),
+  ];
+  const secondaryDisplayCurrencies = orderedDisplayCurrencies.filter((code) => code !== primaryDisplayCurrency);
 
-  const formatBaseAmount = (amount: number) => `${baseCurrency} ${amount.toFixed(2)}`;
-  const formatConvertedAmount = (amount: number, currencyCode: string) => {
+  const formatCurrencyFromMyr = (amount: number, currencyCode: string) => {
+    if (currencyCode === "RM" || currencyCode === "MYR") {
+      return `MYR ${amount.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
     const rate = exchangeRates.rates[currencyCode];
     if (!rate) return `${currencyCode} N/A`;
     return `${currencyCode} ${(amount * rate).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   };
 
-  const formatPrimaryAmount = (amount: number) => formatConvertedAmount(amount, primaryDisplayCurrency);
-  const formatSecondaryAmounts = (amount: number) => {
-    const entries = [formatBaseAmount(amount), ...secondaryDisplayCurrencies.map((code) => formatConvertedAmount(amount, code))];
-    return entries.join(" | ");
+  const formatCurrencyAmountValue = (amount: number, currencyCode: string) => {
+    if (currencyCode === "RM" || currencyCode === "MYR") {
+      return amount.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    const rate = exchangeRates.rates[currencyCode];
+    if (!rate) return "N/A";
+    return (amount * rate).toLocaleString("en-US", { maximumFractionDigits: 2 });
   };
 
-  const parseRmRange = (value: string) => {
-    const matches = value.match(/\d+(?:\.\d+)?/g);
-    if (!matches?.length) return null;
-    const numbers = matches.map(Number);
-    if (numbers.length === 1) return { min: numbers[0], max: numbers[0] };
-    return { min: numbers[0], max: numbers[1] };
-  };
+  const formatPrimaryAmount = (amount: number) => formatCurrencyFromMyr(amount, primaryDisplayCurrency);
+  const formatSecondaryAmountGroup = (amount: number) =>
+    secondaryDisplayCurrencies
+      .map((currencyCode) => formatCurrencyFromMyr(amount, currencyCode))
+      .join(" | ");
 
-  const formatPrimaryRange = (value: string) => {
-    const range = parseRmRange(value);
+  const formatSecondaryRangeAmounts = (minAmount: number, maxAmount: number) =>
+    secondaryDisplayCurrencies
+      .map((currencyCode) => {
+        const minValue = formatCurrencyAmountValue(minAmount, currencyCode);
+        const maxValue = formatCurrencyAmountValue(maxAmount, currencyCode);
+        return minAmount === maxAmount ? `${currencyCode} ${minValue}` : `${currencyCode} ${minValue} - ${maxValue}`;
+      })
+      .join(" | ");
+
+  const formatRangeLine = (value: string) => {
+    const range = parseAmountRange(value);
     if (!range) return `${primaryDisplayCurrency} N/A`;
     if (range.min === range.max) return formatPrimaryAmount(range.min);
     return `${formatPrimaryAmount(range.min)} - ${formatPrimaryAmount(range.max)}`;
   };
 
-  const formatSecondaryRange = (value: string) => {
-    const range = parseRmRange(value);
-    if (!range) return `${formatBaseAmount(0)} | ${secondaryDisplayCurrencies.map((code) => `${code} N/A`).join(" | ")}`;
-    if (range.min === range.max) return formatSecondaryAmounts(range.min);
-    return `${formatSecondaryAmounts(range.min)} | ${formatSecondaryAmounts(range.max)}`;
+  const formatSecondaryRangeLine = (value: string) => {
+    const range = parseAmountRange(value);
+    if (!range || secondaryDisplayCurrencies.length === 0) return "";
+    return formatSecondaryRangeAmounts(range.min, range.max);
   };
 
-  const renderCard = (card: BudgetCard, index: number) => {
-    const isDayCard = index < 4;
-    const dayNum = 12 + index;
-    const liveTotal = isDayCard ? getDayTotal(dayNum) : null;
-    const primaryLabel = showLiveSpends && isDayCard ? formatPrimaryAmount(liveTotal!) : card.php ? formatPrimaryRange(card.amount) : formatPrimaryRange(card.amount);
-    const secondaryLabel = showLiveSpends && isDayCard ? formatSecondaryAmounts(liveTotal!) : formatSecondaryRange(card.amount);
+  const budgetCardByLabel = useMemo(() => {
+    const entries = cards
+      .filter((card) => !card.featured && /^([A-Za-z]+)\s+\d{1,2}$/.test(card.label))
+      .map((card) => [card.label.toLowerCase(), card] as const);
+    return new Map(entries);
+  }, [cards]);
+
+  const dayEntries = useMemo(
+    () =>
+      dayCards.map((dayCard) => ({
+        dayMeta: dayCard,
+        card: budgetCardByLabel.get(dayCard.label.toLowerCase()) ?? null,
+      })),
+    [budgetCardByLabel, dayCards],
+  );
+
+  const estimatedTotalRange = useMemo(() => {
+    const totals = dayEntries
+      .map((entry) => (entry.card ? parseAmountRange(entry.card.amount) : null))
+      .filter((range): range is { min: number; max: number } => Boolean(range));
+
+    const min = totals.reduce((sum, range) => sum + range.min, 0);
+    const max = totals.reduce((sum, range) => sum + range.max, 0);
+    return { min, max };
+  }, [dayEntries]);
+
+  const mobileSelectedCardIndex = Math.max(
+    0,
+    dayEntries.findIndex((entry) => entry.dayMeta.value === resolvedSelectedMobileDay),
+  );
+  const mobileSelectedEntry = dayEntries[mobileSelectedCardIndex] ?? dayEntries[0] ?? null;
+
+  const renderDayCard = (dayMeta: { value: number; label: string }, card: BudgetCard | null, index: number) => {
+    const liveTotal = getDayTotal(dayMeta.value);
+    const targetPrimaryLabel = card ? formatRangeLine(card.amount) : "No target set";
+    const targetSecondaryLabel = card ? formatSecondaryRangeLine(card.amount) : "";
+    const activePrimaryLabel = formatPrimaryAmount(liveTotal);
+    const activeSecondaryLabel = formatSecondaryAmountGroup(liveTotal);
+    const isFeatured = Boolean(card?.featured);
 
     return (
       <div
-        key={card.label}
+        key={`${dayMeta.label}-${index}`}
         className={`relative overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-xs ${
-          card.featured
+          isFeatured
             ? "border-[#0B3530] bg-[#0B3530] text-white"
             : "border-stone-200/60 bg-white"
         }`}
       >
-        {card.featured ? <div className="absolute -bottom-4 -right-4 h-16 w-16 rounded-full bg-[#18534C]/25" /> : null}
+        {isFeatured ? <div className="absolute -bottom-4 -right-4 h-16 w-16 rounded-full bg-[#18534C]/25" /> : null}
         <span
           className={`mb-1 block text-[13px] font-mono font-bold uppercase tracking-widest ${
-            card.featured ? "text-[#88B04B]" : "text-[#88B04B]/90"
+            isFeatured ? "text-[#88B04B]" : "text-[#88B04B]/90"
           }`}
         >
-          {card.label}
+          {dayMeta.label}
         </span>
-        <h3 className={`text-xl font-bold font-serif ${card.featured ? "text-white" : "text-stone-800"}`}>
-          {primaryLabel}
-        </h3>
-        <div className={`mt-1 text-[13px] font-mono ${card.featured ? "text-[#88B04B]" : "text-stone-400"}`}>
-          <p>{secondaryLabel}</p>
+        <div className="space-y-3">
+          <div>
+            <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
+              Target
+            </div>
+            <h3 className={`mt-1 text-xl font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
+              {targetPrimaryLabel}
+            </h3>
+            {targetSecondaryLabel ? (
+              <div className={`mt-1 text-[13px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-400"}`}>
+                <p>{targetSecondaryLabel}</p>
+              </div>
+            ) : !card ? (
+              <div className="mt-1 text-[12px] font-mono text-stone-400">
+                Add a target for this day when ready.
+              </div>
+            ) : null}
+          </div>
+          <div className={`rounded-xl border px-3 py-2 ${isFeatured ? "border-white/15 bg-white/8" : "border-stone-200 bg-stone-50"}`}>
+            <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
+              Calculated Active
+            </div>
+            <div className={`mt-1 text-lg font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
+              {activePrimaryLabel}
+            </div>
+            {activeSecondaryLabel ? (
+              <div className={`mt-1 text-[12px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-500"}`}>
+                {activeSecondaryLabel}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     );
@@ -116,33 +235,53 @@ export default function BudgetSummaryHeader({
         <div>
           <h2 className="text-xl font-serif font-bold text-[#0B3530] md:text-2xl">Budget Summary</h2>
           <p className="mt-0.5 text-xs font-sans text-stone-400">
-            Overview of projected allowances v. recorded cash/debit vs. card spending
+            Targets and calculated active totals shown together for faster comparison
           </p>
         </div>
 
         <div className="mt-2 flex flex-col items-end sm:mt-0">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowLiveSpends(!showLiveSpends)}
-              className="mr-2 cursor-pointer rounded border-none bg-[#18534C]/15 px-2 py-0.5 text-[13px] font-mono font-bold uppercase tracking-wider text-[#0B3530] transition-colors hover:bg-[#18534C]/20"
-            >
-              {showLiveSpends ? "Show Targets" : "Show Calculated Active"}
-            </button>
             <span className="text-[13px] font-mono uppercase tracking-wider text-stone-400">
-              Estimated total
+              Estimated target total
             </span>
             <span className="text-lg font-serif font-bold text-[#0B3530]">
-              {formatPrimaryAmount(600)} - {formatPrimaryAmount(903)}
+              {`${formatPrimaryAmount(estimatedTotalRange.min)} - ${formatPrimaryAmount(estimatedTotalRange.max)}`}
             </span>
           </div>
-          <div className="mt-0.5 text-[13px] font-mono leading-none text-stone-400">
-            {formatSecondaryAmounts(600)} | {formatSecondaryAmounts(903)}
-          </div>
+          {secondaryDisplayCurrencies.length > 0 ? (
+            <div className="mt-0.5 text-[13px] font-mono leading-none text-stone-400">
+              {formatSecondaryRangeAmounts(estimatedTotalRange.min, estimatedTotalRange.max)}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.slice(0, 4).map((card, index) => renderCard(card, index))}
+      <div className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:hidden">
+        {dayCards.map((dayCard) => {
+          const isActive = dayCard.value === resolvedSelectedMobileDay;
+          return (
+            <button
+              key={dayCard.value}
+              type="button"
+              onClick={() => setResolvedSelectedMobileDay(dayCard.value)}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
+                isActive
+                  ? "border-[#0B3530] bg-[#0B3530] text-white"
+                  : "border-stone-200 bg-white text-stone-600"
+              }`}
+            >
+              {dayCard.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-5 sm:hidden">
+        {mobileSelectedEntry ? renderDayCard(mobileSelectedEntry.dayMeta, mobileSelectedEntry.card, mobileSelectedCardIndex) : null}
+      </div>
+
+      <div className="mb-5 hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-4">
+        {dayEntries.map((entry, index) => renderDayCard(entry.dayMeta, entry.card, index))}
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -151,9 +290,11 @@ export default function BudgetSummaryHeader({
             CASH OUTFLOW
           </span>
           <h3 className="text-xl font-bold font-serif text-white">{formatPrimaryAmount(totalCashActual)}</h3>
-          <div className="mt-1 text-[13px] font-mono text-[#88B04B]">
-            <p>{formatSecondaryAmounts(totalCashActual)}</p>
-          </div>
+          {secondaryDisplayCurrencies.length > 0 ? (
+            <div className="mt-1 text-[13px] font-mono text-[#88B04B]">
+              <p>{formatSecondaryAmountGroup(totalCashActual)}</p>
+            </div>
+          ) : null}
         </div>
 
         <div className="relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-4">
@@ -161,9 +302,11 @@ export default function BudgetSummaryHeader({
             CC SPENDS
           </span>
           <h3 className="text-xl font-bold font-serif text-stone-800">{formatPrimaryAmount(totalCardActual)}</h3>
-          <div className="mt-1 text-[13px] font-mono text-stone-400">
-            <p>{formatSecondaryAmounts(totalCardActual)}</p>
-          </div>
+          {secondaryDisplayCurrencies.length > 0 ? (
+            <div className="mt-1 text-[13px] font-mono text-stone-400">
+              <p>{formatSecondaryAmountGroup(totalCardActual)}</p>
+            </div>
+          ) : null}
         </div>
       </div>
 

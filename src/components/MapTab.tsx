@@ -381,9 +381,20 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     () =>
       itineraryData.days.map((day, index) => {
         const remappedLabel = formatMapDayLabel(day.day, userSettings?.travelDates);
+        const isFlightDay = index === 0;
+        const shiftedDayNumber = Math.max(1, index);
         return {
           ...day,
-          label: remappedLabel ? `Day ${index + 1} - ${remappedLabel}` : day.label,
+          label: remappedLabel
+            ? isFlightDay
+              ? `Flight Day - ${remappedLabel}`
+              : `Day ${shiftedDayNumber} - ${remappedLabel}`
+            : day.label,
+          title: remappedLabel
+            ? isFlightDay
+              ? `Flight Day - ${remappedLabel}`
+              : `Day ${shiftedDayNumber} - ${remappedLabel}`
+            : day.title,
         };
       }),
     [itineraryData.days, userSettings?.travelDates],

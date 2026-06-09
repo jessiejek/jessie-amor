@@ -177,6 +177,24 @@ export default function BudgetTab({
     () => new Map(activeDayOptions.map((option) => [option.value, option.label] as const)),
     [activeDayOptions],
   );
+  const syncRegistryDateForDay = (dayValue: number) => {
+    const matchingLabel = dayLabelByValue.get(dayValue);
+    if (matchingLabel) {
+      setSelectedRegistryDate(matchingLabel);
+    }
+  };
+  const handleDaySelection = (dayValue: number) => {
+    setDay(dayValue);
+    syncRegistryDateForDay(dayValue);
+  };
+  const handleRegistryDateSelection = (dateLabel: string) => {
+    setSelectedRegistryDate(dateLabel);
+    if (dateLabel === "All") return;
+    const matchingDay = activeDayOptions.find((option) => option.label === dateLabel);
+    if (matchingDay) {
+      setDay(matchingDay.value);
+    }
+  };
   const voiceCurrencyAliases = useMemo(() => {
     const aliases: Record<string, string[]> = {};
     currencyOptions.forEach((code) => {
@@ -199,9 +217,11 @@ export default function BudgetTab({
 
   useEffect(() => {
     if (!activeDayOptions.some((option) => option.value === day)) {
-      setDay(activeDayOptions[0]?.value ?? 12);
+      const fallbackDay = activeDayOptions[0]?.value ?? 12;
+      setDay(fallbackDay);
+      syncRegistryDateForDay(fallbackDay);
     }
-  }, [activeDayOptions, day]);
+  }, [activeDayOptions, day, dayLabelByValue]);
 
   const convertToRm = (value: number, currency: ExpenseCurrency) => {
     if (currency === "RM" || currency === "MYR") return value;
@@ -480,14 +500,10 @@ export default function BudgetTab({
   const groupedTransactionDates = filteredGroupedTransactions.orderedDates;
 
   const registryDateChips = useMemo(() => {
-    const dates = new Map<string, number>();
-    transactions.forEach((tx) => {
-      if (tx.date) dates.set(tx.date, tx.dayValue);
-    });
-    return Array.from(dates.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([label]) => label);
-  }, [transactions]);
+    return [...activeDayOptions]
+      .sort((a, b) => b.value - a.value)
+      .map((option) => option.label);
+  }, [activeDayOptions]);
 
   const formatTransactionUser = (user?: string | null) => {
     if (!user) return "Unknown";
@@ -578,10 +594,10 @@ export default function BudgetTab({
     const dateMatch = dayValuesPattern ? lower.match(new RegExp(`\\bjuly\\s*(${dayValuesPattern})\\b|\\b(${dayValuesPattern})\\b`)) : null;
     if (dateMatch) {
       const d = parseInt(dateMatch[1] || dateMatch[2], 10);
-      if (activeDayOptions.some((option) => option.value === d)) setDay(d);
+      if (activeDayOptions.some((option) => option.value === d)) handleDaySelection(d);
     } else if (/\btoday\b/.test(lower)) {
       const d = new Date().getDate();
-      if (activeDayOptions.some((option) => option.value === d)) setDay(d);
+      if (activeDayOptions.some((option) => option.value === d)) handleDaySelection(d);
     }
 
     const cleanVoiceTitle = (value: string) => {
@@ -772,7 +788,7 @@ export default function BudgetTab({
                   <label className="budget-label mb-1 block text-[14px] font-semibold text-stone-600">Date</label>
                   <select
                     value={day}
-                    onChange={(e) => setDay(parseInt(e.target.value, 10))}
+                    onChange={(e) => handleDaySelection(parseInt(e.target.value, 10))}
                     disabled={!canEdit}
                     className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
                   >
@@ -965,10 +981,16 @@ export default function BudgetTab({
           )}
 
           <div className="budget-day-filter">
+            <div className="mb-2 flex items-center gap-2 px-1 md:hidden">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400">Selected</span>
+              <span className="rounded-full bg-stone-100 px-3 py-1 text-[12px] font-semibold text-[#0B3530]">
+                {selectedRegistryDate}
+              </span>
+            </div>
             <button
               type="button"
               className={`budget-day-chip ${selectedRegistryDate === "All" ? "is-active" : ""}`}
-              onClick={() => setSelectedRegistryDate("All")}
+              onClick={() => handleRegistryDateSelection("All")}
             >
               All
             </button>
@@ -977,7 +999,7 @@ export default function BudgetTab({
                 key={dateLabel}
                 type="button"
                 className={`budget-day-chip ${selectedRegistryDate === dateLabel ? "is-active" : ""}`}
-                onClick={() => setSelectedRegistryDate(dateLabel)}
+                onClick={() => handleRegistryDateSelection(dateLabel)}
               >
                 {dateLabel}
               </button>
