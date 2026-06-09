@@ -1,6 +1,6 @@
 export type ExpenseCategory = "Transport" | "Accommodation" | "Food" | "Sightseeing" | "Other";
 export type PaymentMethod = "Cash" | "Debit" | "Credit Card";
-export type ExpenseCurrency = "RM" | "PHP" | "SGD";
+export type ExpenseCurrency = string;
 export type SyncStatus = "synced" | "pending";
 export type DiaryEntryType =
   | "Food"
@@ -104,4 +104,59 @@ export interface DiaryEntry {
   createdAt: string;
   updatedAt?: string;
   syncStatus?: SyncStatus;
+}
+
+export interface CurrentUserInfo {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+// Per-user settings for trip view preferences
+export interface UserTripSettings {
+  id: string;
+  userId: string;
+  tripKey: string;
+  baseCurrency: string;
+  currencies: string[];
+  travelDates: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserTripSettingsRow {
+  id: string;
+  user_id: string;
+  trip_key: string;
+  base_currency: string;
+  currencies: string[];
+  travel_dates: string[];
+  created_at?: string;
+  updated_at: string;
+}
+
+export function settingsToRow(settings: UserTripSettings): UserTripSettingsRow {
+  return {
+    id: settings.id,
+    user_id: settings.userId,
+    trip_key: settings.tripKey,
+    base_currency: settings.baseCurrency,
+    currencies: settings.currencies,
+    travel_dates: settings.travelDates,
+    created_at: settings.createdAt,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function rowToSettings(row: UserTripSettingsRow): UserTripSettings {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tripKey: row.trip_key,
+    baseCurrency: row.base_currency,
+    currencies: row.currencies,
+    travelDates: row.travel_dates,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }

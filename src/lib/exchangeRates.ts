@@ -2,24 +2,30 @@ import { useEffect, useState } from "react";
 import { exchangeRates as fallbackRates } from "../data/itinerary";
 
 export type ExchangeRates = {
+  rates: Record<string, number>;
   php: number;
   sgd: number;
   updatedAt?: string;
   source: "live" | "cached" | "fallback";
 };
 
-// Fetch live rates with PHP as the API base, then normalize them back into the
-// app's existing RM-based conversion shape so stored budget data stays stable.
-const FRANKFURTER_LATEST_URL = "https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD";
 const CACHE_KEY = "ja-exchange-rates";
+
+const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => ({
+  rates,
+  php: rates.PHP ?? fallbackRates.php,
+  sgd: rates.SGD ?? fallbackRates.sgd,
+  updatedAt,
+  source,
+});
 
 const readCachedRates = (): ExchangeRates | null => {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.php && parsed?.sgd) {
-      return { php: parsed.php, sgd: parsed.sgd, updatedAt: parsed.updatedAt, source: "cached" };
+    if (parsed?.rates && typeof parsed.rates === "object") {
+      return buildRatesSnapshot(parsed.rates, "cached", parsed.updatedAt);
     }
   } catch {}
   return null;
@@ -28,8 +34,7 @@ const readCachedRates = (): ExchangeRates | null => {
 const writeCachedRates = (rates: ExchangeRates) => {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
-      php: rates.php,
-      sgd: rates.sgd,
+      rates: rates.rates,
       updatedAt: rates.updatedAt,
     }));
   } catch {}
@@ -38,14 +43,17 @@ const writeCachedRates = (rates: ExchangeRates) => {
 const getInitialRates = (): ExchangeRates => {
   const cached = readCachedRates();
   if (cached) return cached;
-  return {
-    php: fallbackRates.php,
-    sgd: fallbackRates.sgd,
-    source: "fallback",
-  };
+  return buildRatesSnapshot({
+    PHP: fallbackRates.php,
+    SGD: fallbackRates.sgd,
+  }, "fallback");
 };
 
 export const staticExchangeRates: ExchangeRates = {
+  rates: {
+    PHP: fallbackRates.php,
+    SGD: fallbackRates.sgd,
+  },
   php: fallbackRates.php,
   sgd: fallbackRates.sgd,
   source: "fallback",
@@ -54,7 +62,54 @@ export const staticExchangeRates: ExchangeRates = {
 export const formatLiveRateLabel = (rates: ExchangeRates) =>
   `RM 1 = PHP ${rates.php.toFixed(2)} | RM 1 = SGD ${rates.sgd.toFixed(4)}`;
 
-export const useLiveExchangeRates = () => {
+export async function fetchExchangeRates(
+  baseCurrency: string = "PHP",
+  additionalSymbols: string[] = ["MYR", "SGD"],
+): Promise<ExchangeRates> {
+  const normalizedBase = baseCurrency.toUpperCase();
+  const normalizedSymbols = Array.from(
+    new Set(
+      additionalSymbols
+        .map((symbol) => symbol.toUpperCase())
+        .filter((symbol) => Boolean(symbol) && symbol !== normalizedBase),
+    ),
+  );
+  const url = `https://api.frankfurter.dev/v1/latest?base=${normalizedBase}&symbols=${normalizedSymbols.join(",")}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Exchange rate request failed: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as {
+    date?: string;
+    rates?: Record<string, number | undefined>;
+  };
+
+  const myrPerBase = payload.rates?.MYR;
+  if (!myrPerBase) {
+    throw new Error("Missing MYR conversion rate");
+  }
+
+  const normalizedRates: Record<string, number> = {};
+  const basePerMyr = 1 / myrPerBase;
+  normalizedRates[normalizedBase] = basePerMyr;
+
+  for (const symbol of normalizedSymbols) {
+    if (symbol === "MYR") continue;
+    if (symbol === normalizedBase) {
+      normalizedRates[symbol] = basePerMyr;
+      continue;
+    }
+
+    const symbolPerBase = payload.rates?.[symbol];
+    if (!symbolPerBase) continue;
+    normalizedRates[symbol] = symbolPerBase / myrPerBase;
+  }
+
+  return buildRatesSnapshot(normalizedRates, "live", payload.date);
+}
+
+export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"]) => {
   const [rates, setRates] = useState<ExchangeRates>(getInitialRates);
 
   useEffect(() => {
@@ -62,32 +117,8 @@ export const useLiveExchangeRates = () => {
 
     const loadRates = async () => {
       try {
-        const response = await fetch(FRANKFURTER_LATEST_URL, { cache: "no-store" });
-        if (!response.ok) return;
-
-        const payload = (await response.json()) as {
-          base?: string;
-          date?: string;
-          rates?: {
-            MYR?: number;
-            PHP?: number;
-            SGD?: number;
-          };
-        };
-
-        const myrPerPhp = payload.rates?.MYR;
-        const sgdPerPhp = payload.rates?.SGD;
-        if (!myrPerPhp || !sgdPerPhp || cancelled) return;
-
-        const phpPerMyr = 1 / myrPerPhp;
-        const sgdPerMyr = sgdPerPhp / myrPerPhp;
-
-        const live: ExchangeRates = {
-          php: phpPerMyr,
-          sgd: sgdPerMyr,
-          updatedAt: payload.date,
-          source: "live",
-        };
+        const live = await fetchExchangeRates("PHP", ["MYR", ...additionalSymbols]);
+        if (cancelled) return;
         writeCachedRates(live);
         setRates(live);
       } catch {
@@ -100,7 +131,7 @@ export const useLiveExchangeRates = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [additionalSymbols]);
 
   return rates;
 };

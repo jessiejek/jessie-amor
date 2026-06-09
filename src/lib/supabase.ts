@@ -10,7 +10,8 @@ export const supabaseMapDestinationsTable = import.meta.env.VITE_SUPABASE_MAP_DE
 export const supabaseNotesTable = import.meta.env.VITE_SUPABASE_NOTES_TABLE || "trip_scratch_notes";
 export const supabaseDiaryTable = import.meta.env.VITE_SUPABASE_DIARY_TABLE || "trip_diary_entries";
 export const supabaseDiaryBucket = import.meta.env.VITE_SUPABASE_DIARY_BUCKET || "trip-diary-photos";
-export const supabaseSettingsTable = import.meta.env.VITE_SUPABASE_SETTINGS_TABLE || "trip_settings";
+export const supabaseBudgetSettingsTable = import.meta.env.VITE_SUPABASE_BUDGET_SETTINGS_TABLE || "trip_settings";
+export const supabaseSettingsTable = import.meta.env.VITE_SUPABASE_SETTINGS_TABLE || "user_trip_settings";
 export const tripKey = import.meta.env.VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 

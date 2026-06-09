@@ -9,7 +9,7 @@ import {
   type TimelineItemData,
 } from "./data/code1Itinerary";
 import type { MapItineraryData } from "./data/mapItinerary";
-import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus } from "./types";
+import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow } from "./types";
 import {
   hasSupabaseConfig,
   supabase,
@@ -18,6 +18,7 @@ import {
   supabaseNotesTable,
   supabaseDiaryTable,
   supabaseDiaryBucket,
+  supabaseBudgetSettingsTable,
   supabaseSettingsTable,
   tripKey,
 } from "./lib/supabase";
@@ -37,6 +38,7 @@ import TipCard from "./components/TipCard";
 import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
 import { useLiveExchangeRates } from "./lib/exchangeRates";
+import SettingsModal from "./components/SettingsModal";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -89,12 +91,6 @@ type SupabaseDiaryRow = {
   saved_by_email: string | null;
   created_at: string;
   updated_at: string;
-};
-
-type CurrentUserInfo = {
-  userId: string;
-  email: string;
-  isAdmin: boolean;
 };
 
 const applySyncStatus = <T extends { syncStatus?: SyncStatus }>(items: T[], syncStatus: SyncStatus): T[] =>
@@ -358,7 +354,19 @@ export default function App() {
   const PULL_REFRESH_TRIGGER = 84;
   const PULL_REFRESH_MAX = 108;
   const itinerary = selectedItinerary;
-  const exchangeRates = useLiveExchangeRates();
+  const [userSettings, setUserSettings] = useState<UserTripSettings | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState<boolean>(!hasSupabaseConfig);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
+  const [isFirstSetup, setIsFirstSetup] = useState<boolean>(false);
+  const settingsRouteHandledRef = useRef<boolean>(false);
+  const requestedRateSymbols = React.useMemo(
+    () => (userSettings?.currencies?.length
+      ? Array.from(new Set(["MYR", ...userSettings.currencies.filter((code) => code !== "MYR")]))
+      : ["MYR", "SGD"]),
+    [userSettings],
+  );
+  const exchangeRates = useLiveExchangeRates(requestedRateSymbols);
   const routeFromPath = (pathname: string) => {
     if (pathname === "/budget") return "/budget";
     if (pathname === "/map") return "/map";
@@ -586,6 +594,63 @@ export default function App() {
       cancelled = true;
     };
   }, [session]);
+
+  useEffect(() => {
+    if (!supabase || !authReady) {
+      setSettingsLoaded(true);
+      return;
+    }
+
+    if (!session?.user) {
+      setUserSettings(null);
+      setSettingsLoaded(false);
+      setIsFirstSetup(false);
+      setShowSettingsModal(false);
+      return;
+    }
+
+    if (!isOnline) {
+      setSettingsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadUserSettings = async () => {
+      const { data, error } = await supabase
+        .from(supabaseSettingsTable)
+        .select("*")
+        .eq("user_id", session.user.id)
+        .eq("trip_key", tripKey)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Supabase user settings load failed:", error.message);
+        setSettingsLoaded(true);
+        return;
+      }
+
+      if (data) {
+        setUserSettings(rowToSettings(data as UserTripSettingsRow));
+        setIsFirstSetup(false);
+        setShowSettingsModal(false);
+      } else {
+        setUserSettings(null);
+        setIsFirstSetup(true);
+        setShowSettingsModal(true);
+      }
+
+      setSettingsLoaded(true);
+    };
+
+    void loadUserSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, isOnline, session]);
 
   useEffect(() => {
     if (!supabase || !authReady) {
@@ -1674,7 +1739,7 @@ export default function App() {
   useEffect(() => {
     if (!supabase || !authReady || !session) return;
     supabase
-      .from(supabaseSettingsTable)
+      .from(supabaseBudgetSettingsTable)
       .select("budget_cap")
       .eq("trip_key", tripKey)
       .eq("user_id", session.user.id)
@@ -1700,12 +1765,24 @@ export default function App() {
     if (!supabase || !authReady || !session) return;
     const timeout = setTimeout(async () => {
       const { error } = await supabase
-        .from(supabaseSettingsTable)
+        .from(supabaseBudgetSettingsTable)
         .upsert({ trip_key: tripKey, user_id: session.user.id, budget_cap: budgetCapPhp }, { onConflict: "trip_key,user_id" });
       if (error) console.warn("Supabase settings save failed:", error.message);
     }, 500);
     return () => clearTimeout(timeout);
   }, [budgetCapPhp, authReady, session, budgetCapStorageKey]);
+
+  useEffect(() => {
+    if (activeRoute !== "/settings") {
+      settingsRouteHandledRef.current = false;
+      return;
+    }
+
+    if (settingsRouteHandledRef.current) return;
+    settingsRouteHandledRef.current = true;
+    setIsFirstSetup(false);
+    setShowSettingsModal(true);
+  }, [activeRoute]);
 
   const metadata = {
     title: "J&A Malaysia · Singapore Trip 2026",
@@ -1744,11 +1821,51 @@ export default function App() {
   const handleSignOut = async () => {
     if (!supabase) return;
     setAuthError("");
+    setUserSettings(null);
+    setSettingsLoaded(false);
+    setIsFirstSetup(false);
+    setShowSettingsModal(false);
     const { error } = await supabase.auth.signOut();
     if (error) {
       setAuthError(error.message);
       console.warn("Supabase sign-out failed:", error.message);
     }
+  };
+
+  const handleSaveSettings = async (incoming: UserTripSettings) => {
+    if (!supabase || !session) return;
+
+    setIsSavingSettings(true);
+    const nextSettings: UserTripSettings = {
+      ...incoming,
+      userId: session.user.id,
+      tripKey,
+    };
+
+    const { error } = await supabase
+      .from(supabaseSettingsTable)
+      .upsert(settingsToRow(nextSettings), { onConflict: "user_id,trip_key" });
+
+    if (error) {
+      console.warn("Supabase user settings save failed:", error.message);
+      setIsSavingSettings(false);
+      return;
+    }
+
+    setUserSettings(nextSettings);
+    setShowSettingsModal(false);
+    setIsFirstSetup(false);
+    setSettingsLoaded(true);
+    setIsSavingSettings(false);
+
+    if (activeRoute === "/settings") {
+      navigateTo("/budget");
+    }
+  };
+
+  const handleOpenSettings = () => {
+    setIsFirstSetup(false);
+    setShowSettingsModal(true);
   };
 
   const navigateTo = (path: string) => {
@@ -1931,6 +2048,7 @@ export default function App() {
           session={session}
           isOnline={isOnline}
           onOpenAuth={() => setShowAuthModal(true)}
+          onOpenSettings={handleOpenSettings}
           onSignOut={handleSignOut}
           expenses={expenses}
         />
@@ -1958,6 +2076,7 @@ export default function App() {
               showLiveSpends={showLiveSpends}
               setShowLiveSpends={setShowLiveSpends}
               exchangeRates={exchangeRates}
+              userSettings={userSettings}
             />
             <AlertBox alert={itinerary.alert} />
 
@@ -2057,6 +2176,7 @@ export default function App() {
             currentUser={currentUser}
             exchangeRates={exchangeRates}
             budgetCapPhp={budgetCapPhp}
+            userSettings={userSettings}
           />
         )}
         {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} currentUser={currentUser} />}
@@ -2189,6 +2309,23 @@ export default function App() {
       </footer>
 
       <DestinationInfoModal guide={selectedGuide} onClose={() => setSelectedGuide(null)} />
+
+      <SettingsModal
+        open={showSettingsModal && settingsLoaded}
+        onClose={() => {
+          if (isFirstSetup) return;
+          setShowSettingsModal(false);
+          if (activeRoute === "/settings") {
+            navigateTo("/budget");
+          }
+        }}
+        session={session}
+        currentUser={currentUser}
+        settings={userSettings}
+        onSave={handleSaveSettings}
+        isSaving={isSavingSettings}
+        isFirstSetup={isFirstSetup}
+      />
 
       <button
         type="button"

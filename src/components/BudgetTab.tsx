@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BedDouble, BusFront, Camera, CreditCard, DollarSign, ListFilter, PlusCircle, Trash2, UtensilsCrossed, WalletCards } from "lucide-react";
 import type { ExchangeRates } from "../lib/exchangeRates";
-import type { Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus } from "../types";
+import type { CurrentUserInfo, Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus, UserTripSettings } from "../types";
 
 type TransactionRow = {
   id: string;
   name: string;
   date: string;
+  dayValue: number;
   time: string;
   category: string;
   method: string;
@@ -79,10 +80,17 @@ const voiceNumberWords: Record<string, string> = {
   hundred: "100",
 };
 
-const voiceCurrencyAliases: Record<ExpenseCurrency, string[]> = {
-  RM: ["rm", "ringgit", "malaysian ringgit", "myr"],
+const defaultVoiceCurrencyAliases: Record<string, string[]> = {
+  MYR: ["myr", "rm", "ringgit", "malaysian ringgit"],
   SGD: ["sgd", "singapore dollar", "singapore dollars", "sing dollar", "sing dollars"],
   PHP: ["php", "peso", "pesos", "philippine peso", "philippine pesos"],
+  USD: ["usd", "dollar", "dollars", "us dollar", "us dollars"],
+  EUR: ["eur", "euro", "euros"],
+  JPY: ["jpy", "yen", "japanese yen"],
+  AUD: ["aud", "australian dollar", "australian dollars"],
+  GBP: ["gbp", "british pound", "pound", "pounds"],
+  IDR: ["idr", "rupiah", "indonesian rupiah"],
+  THB: ["thb", "baht", "thai baht"],
 };
 
 const voicePaymentAliases: Record<PaymentMethod, string[]> = {
@@ -118,13 +126,10 @@ interface BudgetTabProps {
   isSupabaseConnected?: boolean;
   isOnline?: boolean;
   canEdit?: boolean;
-  currentUser?: {
-    userId: string;
-    email: string;
-    isAdmin: boolean;
-  } | null;
+  currentUser?: CurrentUserInfo | null;
   exchangeRates: ExchangeRates;
   budgetCapPhp: number;
+  userSettings?: UserTripSettings | null;
 }
 
 export default function BudgetTab({
@@ -136,10 +141,18 @@ export default function BudgetTab({
   currentUser = null,
   exchangeRates,
   budgetCapPhp,
+  userSettings = null,
 }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
-  const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>("RM");
+  const fallbackDayOptions = [
+    { value: 12, label: "Day 1 - Jul 12" },
+    { value: 13, label: "Day 2 - Jul 13" },
+    { value: 14, label: "Day 3 - Jul 14" },
+    { value: 15, label: "Day 4 - Jul 15" },
+  ];
+  const currencyOptions = userSettings?.currencies?.length ? userSettings.currencies : ["MYR", "PHP", "SGD"];
+  const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>(currencyOptions[0] ?? "MYR");
   const [day, setDay] = useState<number>(12);
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
@@ -151,11 +164,50 @@ export default function BudgetTab({
   const [dismissedOverBudget, setDismissedOverBudget] = useState(false);
 
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+  const activeDayOptions = useMemo(() => {
+    const derived = (userSettings?.travelDates ?? []).map((dateStr, index) => {
+      const date = new Date(`${dateStr}T00:00:00`);
+      const dayNum = date.getDate();
+      const labelDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return { value: dayNum, label: `Day ${index + 1} - ${labelDate}` };
+    });
+    return derived.length > 0 ? derived : fallbackDayOptions;
+  }, [userSettings?.travelDates]);
+  const dayLabelByValue = useMemo(
+    () => new Map(activeDayOptions.map((option) => [option.value, option.label] as const)),
+    [activeDayOptions],
+  );
+  const voiceCurrencyAliases = useMemo(() => {
+    const aliases: Record<string, string[]> = {};
+    currencyOptions.forEach((code) => {
+      aliases[code] = defaultVoiceCurrencyAliases[code] ?? [code.toLowerCase()];
+    });
+    return aliases;
+  }, [currencyOptions]);
+  const selectedDisplayCurrencies = useMemo(() => {
+    const configured = userSettings?.currencies?.length ? userSettings.currencies : ["PHP", "MYR", "SGD"];
+    return Array.from(new Set(configured));
+  }, [userSettings]);
+  const primaryDisplayCurrency = userSettings?.baseCurrency ?? selectedDisplayCurrencies[0] ?? "PHP";
+  const secondaryDisplayCurrencies = selectedDisplayCurrencies.filter((code) => code !== primaryDisplayCurrency);
+
+  useEffect(() => {
+    if (!currencyOptions.includes(amountCurrency)) {
+      setAmountCurrency(currencyOptions[0] ?? "MYR");
+    }
+  }, [amountCurrency, currencyOptions]);
+
+  useEffect(() => {
+    if (!activeDayOptions.some((option) => option.value === day)) {
+      setDay(activeDayOptions[0]?.value ?? 12);
+    }
+  }, [activeDayOptions, day]);
 
   const convertToRm = (value: number, currency: ExpenseCurrency) => {
-    if (currency === "RM") return value;
-    if (currency === "PHP") return value / exchangeRates.php;
-    return value / exchangeRates.sgd;
+    if (currency === "RM" || currency === "MYR") return value;
+    const rate = exchangeRates.rates[currency];
+    if (!rate) return value;
+    return value / rate;
   };
 
   const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
@@ -168,6 +220,37 @@ export default function BudgetTab({
     `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const hundredPhpInRm = (100 / exchangeRates.php).toFixed(3);
   const hundredPhpInSgd = ((100 / exchangeRates.php) * exchangeRates.sgd).toFixed(2);
+  const formatCurrencyFromRm = (amountValue: number, currencyCode: string) => {
+    if (currencyCode === "RM" || currencyCode === "MYR") {
+      return `MYR ${amountValue.toFixed(2)}`;
+    }
+
+    const rate = exchangeRates.rates[currencyCode];
+    if (!rate) {
+      return `${currencyCode} N/A`;
+    }
+
+    return `${currencyCode} ${(amountValue * rate).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  };
+  const formatPrimaryDisplay = (amountValue: number) => formatCurrencyFromRm(amountValue, primaryDisplayCurrency);
+  const formatSecondaryDisplay = (amountValue: number) => {
+    if (secondaryDisplayCurrencies.length === 0) return "";
+    return secondaryDisplayCurrencies.map((code) => formatCurrencyFromRm(amountValue, code)).join(" | ");
+  };
+  const exchangeHintLabel = secondaryDisplayCurrencies.length > 0
+    ? `100 ${primaryDisplayCurrency} = ${secondaryDisplayCurrencies
+      .map((code) => {
+        if (code === "RM" || code === "MYR") {
+          return formatCurrencyFromRm(100 / (exchangeRates.rates[primaryDisplayCurrency] ?? 1), code);
+        }
+        const primaryRate = primaryDisplayCurrency === "RM" || primaryDisplayCurrency === "MYR"
+          ? 1
+          : exchangeRates.rates[primaryDisplayCurrency];
+        if (!primaryRate) return `${code} N/A`;
+        return `${code} ${(100 / primaryRate * (exchangeRates.rates[code] ?? 0)).toFixed(2)}`;
+      })
+      .join(" | ")}`
+    : `100 ${primaryDisplayCurrency}`;
 
   const formatDisplayTime = (value?: string | null) => {
     if (!value) return "Unknown time";
@@ -188,7 +271,8 @@ export default function BudgetTab({
   const mapExpenseToTransaction = (expense: Expense): TransactionRow => ({
     id: expense.id,
     name: expense.item,
-    date: `July ${String(expense.day)}`,
+    date: dayLabelByValue.get(expense.day) ?? `July ${String(expense.day)}`,
+    dayValue: expense.day,
     time: formatDisplayTime(expense.createdAt),
     category: expense.category,
     method: expense.paidWith,
@@ -208,9 +292,7 @@ export default function BudgetTab({
       const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
       const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
       if (aTime !== bTime) return bTime - aTime;
-      const aDay = parseInt(a.date.split(" ")[1] || "0", 10);
-      const bDay = parseInt(b.date.split(" ")[1] || "0", 10);
-      if (aDay !== bDay) return bDay - aDay;
+      if (a.dayValue !== b.dayValue) return b.dayValue - a.dayValue;
       return b.id.localeCompare(a.id);
     });
 
@@ -246,7 +328,6 @@ export default function BudgetTab({
     setExpenses((prev) => [...prev, newExp]);
     setDesc("");
     setAmountText("");
-    setAmountCurrency("RM");
   };
 
   const deleteTransaction = (transaction: TransactionRow) => {
@@ -399,15 +480,13 @@ export default function BudgetTab({
   const groupedTransactionDates = filteredGroupedTransactions.orderedDates;
 
   const registryDateChips = useMemo(() => {
-    const dates = new Set<string>();
+    const dates = new Map<string, number>();
     transactions.forEach((tx) => {
-      if (tx.date) dates.add(tx.date);
+      if (tx.date) dates.set(tx.date, tx.dayValue);
     });
-    return Array.from(dates).sort((a, b) => {
-      const aDay = parseInt(a.split(" ")[1] || "0", 10);
-      const bDay = parseInt(b.split(" ")[1] || "0", 10);
-      return bDay - aDay;
-    });
+    return Array.from(dates.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([label]) => label);
   }, [transactions]);
 
   const formatTransactionUser = (user?: string | null) => {
@@ -474,10 +553,11 @@ export default function BudgetTab({
     };
 
     const lower = normalizeVoiceText(text);
-    const currencyPattern = buildVoiceAliasPattern(Object.values(voiceCurrencyAliases).flat());
+    const allVoiceCurrencyAliases = Object.values(voiceCurrencyAliases) as string[][];
+    const currencyPattern = buildVoiceAliasPattern(allVoiceCurrencyAliases.flat());
 
-    const spokenCurrency = (Object.entries(voiceCurrencyAliases) as Array<[ExpenseCurrency, string[]]>).find(([, aliases]) =>
-      matchesVoiceAlias(lower, aliases),
+    const spokenCurrency = Object.entries(voiceCurrencyAliases).find(([, aliases]) =>
+      matchesVoiceAlias(lower, aliases as string[]),
     )?.[0];
     if (spokenCurrency) setAmountCurrency(spokenCurrency);
 
@@ -494,13 +574,14 @@ export default function BudgetTab({
     )?.[0];
     if (spokenCategory) setCategory(spokenCategory);
 
-    const dateMatch = lower.match(/\bjuly\s*(1[1-6])\b|\b(1[1-6])\b/);
+    const dayValuesPattern = activeDayOptions.map((option) => option.value).join("|");
+    const dateMatch = dayValuesPattern ? lower.match(new RegExp(`\\bjuly\\s*(${dayValuesPattern})\\b|\\b(${dayValuesPattern})\\b`)) : null;
     if (dateMatch) {
       const d = parseInt(dateMatch[1] || dateMatch[2], 10);
-      if (d >= 11 && d <= 16) setDay(d);
+      if (activeDayOptions.some((option) => option.value === d)) setDay(d);
     } else if (/\btoday\b/.test(lower)) {
       const d = new Date().getDate();
-      if (d >= 11 && d <= 16) setDay(d);
+      if (activeDayOptions.some((option) => option.value === d)) setDay(d);
     }
 
     const cleanVoiceTitle = (value: string) => {
@@ -509,7 +590,7 @@ export default function BudgetTab({
         currencyPattern,
         buildVoiceAliasPattern(Object.values(voicePaymentAliases).flat()),
         buildVoiceAliasPattern(voiceCategoryLabelAliases),
-        /\bjuly\s*\d{1,2}\b|\b1[1-6]\b/g,
+        /\bjuly\s*\d{1,2}\b|\b\d{1,2}\b/g,
         /\b(i|spent|paid|bought|for|the|a|an|on|at|with|using|worth|costing|costed)\b/g,
       ];
 
@@ -537,7 +618,7 @@ export default function BudgetTab({
       currencyPattern,
       buildVoiceAliasPattern(Object.values(voicePaymentAliases).flat()),
       buildVoiceAliasPattern(voiceCategoryLabelAliases),
-      /\bjuly\s*\d{1,2}\b|\b1[1-6]\b/g,
+      /\bjuly\s*\d{1,2}\b|\b\d{1,2}\b/g,
       /\b(i|spent|paid|bought|for|the|a|an|on|at|with|using|worth|costing|costed)\b/g,
     ];
 
@@ -556,16 +637,18 @@ export default function BudgetTab({
           <div>
             <span className="block text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
             <h4 className="mt-1 flex flex-wrap items-baseline gap-1 text-2xl font-serif font-bold text-stone-800">
-              <span>{formatPhp(cashSpent)}</span>
+              <span>{formatPrimaryDisplay(cashSpent)}</span>
               {budgetCapPhp > 0 && (
                 <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-stone-400">
                   / {formatPhpCap(budgetCapPhp)}
                 </span>
               )}
             </h4>
-            <span className="mt-0.5 block text-[13px] text-stone-400">
-              {formatRm(cashSpent)} | {formatSgd(cashSpent)}
-            </span>
+            {secondaryDisplayCurrencies.length > 0 && (
+              <span className="mt-0.5 block text-[13px] text-stone-400">
+                {formatSecondaryDisplay(cashSpent)}
+              </span>
+            )}
             {budgetCapRm > 0 && (
               <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
                 <div
@@ -583,10 +666,12 @@ export default function BudgetTab({
         <div className="budget-summary-card flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div>
             <span className="block text-[13px] font-mono uppercase tracking-widest text-blue-500">CC Spends</span>
-            <h4 className="mt-1 text-2xl font-serif font-bold text-blue-900">{formatPhp(cardSpent)}</h4>
-            <span className="mt-0.5 block text-[13px] text-stone-400">
-              {formatRm(cardSpent)} | {formatSgd(cardSpent)}
-            </span>
+            <h4 className="mt-1 text-2xl font-serif font-bold text-blue-900">{formatPrimaryDisplay(cardSpent)}</h4>
+            {secondaryDisplayCurrencies.length > 0 && (
+              <span className="mt-0.5 block text-[13px] text-stone-400">
+                {formatSecondaryDisplay(cardSpent)}
+              </span>
+            )}
           </div>
           <div className="budget-summary-icon rounded-full bg-blue-50 p-3 text-blue-600">
             <CreditCard size={24} />
@@ -616,7 +701,7 @@ export default function BudgetTab({
             <div className="mb-4 border-b border-stone-100 pb-3">
               <h3 className="budget-form-title mt-2 text-[18px] font-serif font-bold text-[#0B3530]">Add Custom Spend</h3>
               <div className="mt-1 flex items-center gap-2 text-[11px] font-mono text-stone-500">
-                <span>100 PHP = RM {hundredPhpInRm} | SGD {hundredPhpInSgd}</span>
+                <span>{exchangeHintLabel}</span>
                 <button
                   type="button"
                   aria-label={exchangeRates.source === "live" ? "Live rate" : "Cached rate"}
@@ -673,9 +758,11 @@ export default function BudgetTab({
                     disabled={!canEdit}
                     className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
                   >
-                    <option value="RM">RM</option>
-                    <option value="PHP">PHP</option>
-                    <option value="SGD">SGD</option>
+                    {currencyOptions.map((currencyCode) => (
+                      <option key={currencyCode} value={currencyCode}>
+                        {currencyCode}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -689,12 +776,11 @@ export default function BudgetTab({
                     disabled={!canEdit}
                     className="budget-input w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
                   >
-                    <option value={11}>July 11</option>
-                    <option value={12}>July 12</option>
-                    <option value={13}>July 13</option>
-                    <option value={14}>July 14</option>
-                    <option value={15}>July 15</option>
-                    <option value={16}>July 16</option>
+                    {activeDayOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

@@ -32,6 +32,7 @@ VITE_SUPABASE_MAP_TABLE="trip_map_itineraries"
 VITE_SUPABASE_NOTES_TABLE="trip_scratch_notes"
 VITE_SUPABASE_DIARY_TABLE="trip_diary_entries"
 VITE_SUPABASE_DIARY_BUCKET="trip-diary-photos"
+VITE_SUPABASE_SETTINGS_TABLE="user_trip_settings"
 VITE_TRIP_KEY="jessie-amor-malaysia-singapore"
 ```
 
@@ -327,6 +328,32 @@ create policy "Authenticated users can delete diary photos"
   on storage.objects
   for delete
   using (bucket_id = 'trip-diary-photos' and auth.role() = 'authenticated');
+```
+
+## 4) Create the user settings table
+
+Run this in the Supabase SQL editor:
+
+```sql
+create table public.user_trip_settings (
+  id              text primary key default gen_random_uuid()::text,
+  user_id         text not null,
+  trip_key        text not null,
+  base_currency   text not null default 'MYR',
+  currencies      text[] not null default '{MYR,SGD}',
+  travel_dates    date[] not null default '{}',
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  unique (user_id, trip_key)
+);
+
+alter table public.user_trip_settings enable row level security;
+
+create policy "Users manage own settings"
+  on public.user_trip_settings
+  for all
+  using (auth.uid()::text = user_id)
+  with check (auth.uid()::text = user_id);
 ```
 
 ## 5) Notes

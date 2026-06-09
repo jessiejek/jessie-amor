@@ -54,6 +54,7 @@ interface NavigationProps {
   session: Session | null;
   isOnline: boolean;
   onOpenAuth: () => void;
+  onOpenSettings?: () => void;
   onSignOut: () => void;
   metadata: {
     title: string;
@@ -75,7 +76,6 @@ const navItems: NavTab[] = [
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true },
   { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true },
   { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: false },
-  { label: "Settings", path: "/settings", icon: Settings, showInBottom: false },
 ];
 
 export default function Navigation({
@@ -84,6 +84,7 @@ export default function Navigation({
   session,
   isOnline,
   onOpenAuth,
+  onOpenSettings,
   onSignOut,
   metadata,
   expenses = [],
@@ -385,6 +386,16 @@ export default function Navigation({
               </div>
 
               <div className="flex items-center gap-2">
+                {session && onOpenSettings ? (
+                  <button
+                    onClick={onOpenSettings}
+                    className="inline-flex items-center gap-2 rounded-[6px] border border-white/25 bg-transparent px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-white/10"
+                    title="Settings"
+                  >
+                    <Settings size={14} />
+                    Settings
+                  </button>
+                ) : null}
                 <button
                   onClick={session ? onSignOut : onOpenAuth}
                   className="inline-flex items-center gap-2 rounded-[6px] border border-white/25 bg-transparent px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-white/10"
@@ -547,6 +558,21 @@ export default function Navigation({
             </div>
 
             <div className="mt-auto border-t border-white/10 px-3 py-3">
+              {session && onOpenSettings ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreDrawer(false);
+                    onOpenSettings();
+                  }}
+                  className="mb-3 flex w-full items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.08)] px-4 py-[10px] text-left text-[14px] text-white transition-colors hover:bg-[rgba(255,255,255,0.12)]"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80">
+                    <Settings size={15} />
+                  </span>
+                  <span className="flex-1">Settings</span>
+                </button>
+              ) : null}
               {!session ? (
                 <button
                   type="button"
