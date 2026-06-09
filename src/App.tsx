@@ -1867,6 +1867,7 @@ export default function App() {
           isOnline={isOnline}
           onOpenAuth={() => setShowAuthModal(true)}
           onSignOut={handleSignOut}
+          expenses={expenses}
         />
 
         <div className="pt-[112px] md:pt-0">

@@ -16,9 +16,15 @@ import {
   X,
   User,
   Wallet,
+  FileText,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { itinerary } from "../data/code1Itinerary";
+import type { Expense } from "../types";
+import { jsPDF } from "jspdf";
 
+const TRAVELER_1 = "Jessie Jay Q. Rubi";
+const TRAVELER_2 = "Rizza Amor L. Caguco";
 const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0);
 const HEADER_TITLE = "J&A Malaysia · Singapore Trip 2026";
 
@@ -52,6 +58,7 @@ interface NavigationProps {
     title: string;
     description: string;
   };
+  expenses?: Expense[];
 }
 
 type NavTab = {
@@ -77,6 +84,7 @@ export default function Navigation({
   onOpenAuth,
   onSignOut,
   metadata,
+  expenses = [],
 }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -137,14 +145,138 @@ export default function Navigation({
     window.print();
   };
 
-  const downloadItineraryJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(metadata, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", "Malaysia_Singapore_Trip_Itinerary.json");
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+  const handleImmigrationDoc = () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const M = 18;
+    const PW = 190;
+    let y = 22;
+    const clean = (s: string) =>
+      s
+        .replace(/\u2019|\u2018/g, "'")
+        .replace(/\u201C|\u201D/g, '"')
+        .replace(/\u2013|\u2014/g, "-")
+        .replace(/\u2192/g, "-")
+        .replace(/\u00B7/g, ".")
+        .replace(/\u2022/g, "-")
+        .replace(/\u2026/g, "...")
+        .replace(/\u00A0/g, " ")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const sec = (title: string) => {
+      y += 3;
+      doc.setDrawColor(11, 53, 48);
+      doc.setLineWidth(0.5);
+      doc.line(M, y, PW + M - 8, y);
+      y += 5;
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(11, 53, 48);
+      doc.text(clean(title).toUpperCase(), M, y);
+      y += 6;
+    };
+
+    const kv = (k: string, v: string) => {
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(60, 60, 60);
+      doc.text(clean(k), M, y);
+      const kw = doc.getTextWidth(clean(k) + " ");
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(26, 26, 26);
+      doc.text(clean(v), M + kw, y);
+      y += 4.8;
+    };
+
+    const nl = () => { y += 2; };
+    const np = () => { if (y > 270) { doc.addPage(); y = 22; } };
+
+    // ----- HEADER -----
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(11, 53, 48);
+    doc.text("Jessie & Amor's Malaysia - Singapore Trip 2026", M, y);
+    y += 8;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(11, 53, 48);
+    const bw = doc.getTextWidth("TOURISM  JULY 12-16, 2026 (5 DAYS)") + 8;
+    doc.roundedRect(M, y, bw, 6, 3, 3, "F");
+    doc.text("TOURISM  JULY 12-16, 2026 (5 DAYS)", M + 4, y + 4.5);
+    y += 12;
+    doc.setDrawColor(11, 53, 48);
+    doc.setLineWidth(1);
+    doc.line(M, y, PW + M - 8, y);
+    y += 8;
+
+    // ----- TRAVELER INFO -----
+    sec("Traveler Information");
+    kv("Traveler 1:", TRAVELER_1);
+    kv("Traveler 2:", TRAVELER_2);
+    kv("Purpose:", "Tourism - sightseeing, cultural exploration, culinary experience");
+    kv("Duration:", "5 days (arrive Kuala Lumpur July 12, depart Singapore July 16)");
+    kv("Route:", "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore");
+
+    // ----- FLIGHT DETAILS -----
+    sec("Flight Details");
+    kv("Arrival in Malaysia:", "July 12, 2026 at 01:30 AM - Kuala Lumpur International Airport (KLIA)");
+    kv("Departure:", "July 16, 2026 (morning) - Changi Airport (SIN)");
+
+    // ----- ACCOMMODATION -----
+    sec("Accommodation");
+    np();
+    const cw = [65, 40, 38, 39];
+    const th = ["Hotel", "Location", "Check-in", "Check-out"];
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(11, 53, 48);
+    let cx = M;
+    th.forEach((h, i) => { doc.text(h, cx + 1, y); cx += cw[i]; });
+    doc.setDrawColor(11, 53, 48);
+    doc.line(M, y + 1, M + cw.reduce((a, b) => a + b, 0), y + 1);
+    y += 5;
+    const hr = (r: string[]) => {
+      let rx = M;
+      r.forEach((c, i) => {
+        doc.setFontSize(8.5);
+        doc.setFont("helvetica", i === 0 ? "bold" : "normal");
+        doc.setTextColor(26, 26, 26);
+        doc.text(clean(c), rx + 1, y);
+        rx += cw[i];
+      });
+      y += 4.5;
+    };
+    hr(["Travelodge KL City Centre", "Kuala Lumpur", "July 12, 2026", "July 15, 2026"]);
+    hr(["Hotel Classic by Venue", "Joo Chiat, Singapore", "July 15, 2026", "July 16, 2026"]);
+
+    // ----- DAILY ITINERARY -----
+    nl();
+    sec("Daily Itinerary");
+    itinerary.days.forEach((day) => {
+      np();
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(11, 53, 48);
+      doc.text("Day " + day.day + " - July " + day.day + " - " + clean(day.title), M, y);
+      y += 4.5;
+      day.items.forEach((item) => {
+        np();
+        doc.setFontSize(8.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(50, 50, 50);
+        doc.text(clean(item.time), M + 3, y);
+        const tw = doc.getTextWidth(clean(item.time)) + 5;
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(26, 26, 26);
+        doc.text(clean(item.title), M + 3 + tw, y);
+        y += 4;
+      });
+      y += 2;
+    });
+
+    doc.save("Immigration_Document.pdf");
   };
 
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
@@ -528,32 +660,21 @@ export default function Navigation({
             >
               X
             </button>
-            <h3 className="mb-2 text-lg font-serif font-bold text-[#0B3530]">Export Trip Data</h3>
+            <h3 className="mb-2 text-lg font-serif font-bold text-[#0B3530]">Immigration Document</h3>
             <p className="mb-4 text-xs font-sans text-stone-500">
-              Choose an export format below to back up or download your current itinerary and custom budgets.
+              Generate a formatted letter for immigration purposes — includes traveler info, flights, hotels, and daily itinerary.
             </p>
 
             <div className="space-y-3">
               <button
-                onClick={downloadItineraryJSON}
+                onClick={handleImmigrationDoc}
                 className="flex w-full items-center justify-between rounded-lg border border-stone-200 p-3 text-left transition-all hover:border-[#0B3530] hover:bg-stone-50"
               >
                 <div>
-                  <h4 className="text-xs font-bold font-sans text-stone-800">Export as Itinerary JSON</h4>
-                  <p className="text-[10px] text-stone-500">Includes all coordinates, tasks and details</p>
+                  <h4 className="text-xs font-bold font-sans text-stone-800">Immigration Document (PDF)</h4>
+                  <p className="text-[10px] text-stone-500">Formatted for immigration — travelers, flights, hotel, itinerary</p>
                 </div>
-                <Download size={14} className="text-stone-400" />
-              </button>
-
-              <button
-                onClick={handlePrint}
-                className="flex w-full items-center justify-between rounded-lg border border-stone-200 p-3 text-left transition-all hover:border-[#0B3530] hover:bg-stone-50"
-              >
-                <div>
-                  <h4 className="text-xs font-bold font-sans text-stone-800">Print / Save as PDF</h4>
-                  <p className="text-[10px] text-stone-500">Beautiful styled layouts matching original format</p>
-                </div>
-                <Printer size={14} className="text-stone-400" />
+                <FileText size={14} className="text-stone-400" />
               </button>
             </div>
 

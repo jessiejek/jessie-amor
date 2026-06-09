@@ -5,6 +5,7 @@ dev-dist/
 coverage/
 .DS_Store
 *.log
+*.zip
 .env*
 !.env.example
 *firebase-adminsdk*.json
