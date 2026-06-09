@@ -5,15 +5,16 @@ import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
-  buildEmptyMapItinerary,
   buildInitialMapItinerary,
-  MAP_ITINERARY_VERSION,
   resolveCoordinatesFromName,
-  normalizeMapItinerary,
   type MapDestination,
   type MapItineraryData,
+  type MapDestinationRow,
+  destinationToRow,
+  rowToDestination,
+  groupDestinationsByDay,
 } from "../data/mapItinerary";
-import { supabase, supabaseMapTable, tripKey } from "../lib/supabase";
+import { supabase, supabaseMapDestinationsTable, tripKey } from "../lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, writeCachedDataset } from "../lib/offlineCache";
 import type { SyncStatus } from "../types";
 
@@ -143,14 +144,6 @@ const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") 
   return "Pending sync";
 };
 
-type SupabaseMapRow = {
-  trip_key: string;
-  data: MapItineraryData;
-  saved_by_user_id: string | null;
-  saved_by_email: string | null;
-  updated_at: string;
-};
-
 const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
 
 const applyMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): MapItineraryData => ({
@@ -164,38 +157,14 @@ const applyMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): Map
   })),
 });
 
-const forceMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): MapItineraryData => ({
-  ...data,
-  days: data.days.map((day) => ({
-    ...day,
-    destinations: day.destinations.map((destination) => ({
-      ...destination,
-      syncStatus,
-    })),
-  })),
-});
-
-const stripMapDestinationSyncStatus = (destination: MapDestination) => {
-  const { syncStatus: _syncStatus, ...rest } = destination;
-  return rest;
-};
-
-const mapDataForSync = (data: MapItineraryData) => ({
-  version: data.version,
-  updatedAt: data.updatedAt,
-  days: data.days.map((day) => ({
-    ...day,
-    destinations: day.destinations.map(stripMapDestinationSyncStatus),
-  })),
-});
-
-const mapSignature = (data: MapItineraryData) => JSON.stringify(mapDataForSync(data));
+const mapDestinations = (data: MapItineraryData): MapDestination[] =>
+  data.days.flatMap((d) => d.destinations);
 
 export default function MapTab({ session: authSession, canEdit = false, isOnline = true, currentUser = null }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
   const [initialMapCache] = useState(() => {
     const cached = readCachedDataset<MapItineraryData>(mapCacheKey);
-    return cached?.data?.version === MAP_ITINERARY_VERSION ? cached : null;
+    return cached ?? null;
   });
   const [initialMapData] = useState(() =>
     applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"),
@@ -233,8 +202,9 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
   const locationShouldPanRef = useRef(false);
   const lastLocationUpdateRef = useRef<{ lat: number; lng: number; updatedAt: number } | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
-  const mapSignatureRef = useRef<string>(initialMapCache?.syncedSignature || mapSignature(initialMapData));
   const mapDirtyRef = useRef<boolean>(initialMapCache?.dirty ?? false);
+  const pendingDeleteIdsRef = useRef<Set<string>>(new Set());
+  const cachedRowsRef = useRef<MapDestinationRow[]>([]);
   const [mapLoaded, setMapLoaded] = useState<boolean>(!supabase);
   const currentSavedBy: SavedByInfo | null = session?.user
     ? {
@@ -247,12 +217,11 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     const ownerId = destination.createdBy ?? destination.savedByUserId ?? null;
     return currentUser.isAdmin || ownerId === currentUser.userId;
   };
-  const saveMapSnapshot = (nextData: MapItineraryData, syncedSignature: string, dirty: boolean) => {
-    mapSignatureRef.current = syncedSignature;
+  const saveMapSnapshot = (nextData: MapItineraryData, dirty: boolean) => {
     mapDirtyRef.current = dirty;
     writeCachedDataset(mapCacheKey, {
       data: nextData,
-      syncedSignature,
+      syncedSignature: "",
       dirty,
     });
   };
@@ -441,10 +410,9 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
     const loadRemoteMap = async () => {
       const { data, error } = await supabase
-        .from(supabaseMapTable)
-        .select("trip_key, data, saved_by_user_id, saved_by_email")
-        .eq("trip_key", tripKey)
-        .maybeSingle();
+        .from(supabaseMapDestinationsTable)
+        .select("*")
+        .eq("trip_key", tripKey);
 
       if (cancelled) return;
 
@@ -454,18 +422,67 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
         return;
       }
 
-      if (!mapDirtyRef.current) {
-        const remoteData = data?.data as MapItineraryData | undefined;
-        const shouldForceSync = !remoteData?.version || remoteData.version !== MAP_ITINERARY_VERSION || !remoteData?.days?.length;
-        const normalized = shouldForceSync ? buildInitialMapItinerary() : normalizeMapItinerary(remoteData);
-        const synced = forceMapSyncStatus(normalized, "synced");
-        setItineraryData(synced);
-        if (!shouldForceSync) {
-          saveMapSnapshot(synced, mapSignature(synced), false);
-        }
+      const rows = (data ?? []) as MapDestinationRow[];
+      cachedRowsRef.current = rows;
+      if (rows.length > 0 && !mapDirtyRef.current) {
+        const destinations = rows.map(rowToDestination);
+        const days = groupDestinationsByDay(destinations, (d) => {
+          const row = rows.find((r) => r.id === d.id);
+          return row?.day ?? 12;
+        });
+        setItineraryData({ ...buildInitialMapItinerary(), days });
+        saveMapSnapshot({ ...buildInitialMapItinerary(), days }, false);
       }
 
       setMapLoaded(true);
+    };
+
+    const handleRealtimeEvent = (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+      if (mapDirtyRef.current) return;
+
+      setItineraryData((prev) => {
+        const allDestinations = mapDestinations(prev);
+
+        if (payload.eventType === "DELETE") {
+          const deletedId = (payload.old?.id ?? payload.new?.id) as string | undefined;
+          if (!deletedId) return prev;
+          const filtered = allDestinations.filter((d) => d.id !== deletedId);
+          return { ...prev, days: groupDestinationsByDay(filtered, (d) => {
+            const prevDay = prev.days.find((day) => day.destinations.some((dest) => dest.id === d.id));
+            return prevDay?.day ?? 12;
+          })};
+        }
+
+        const newRow = payload.new as MapDestinationRow | undefined;
+        if (!newRow) return prev;
+
+        cachedRowsRef.current = cachedRowsRef.current
+          .filter((r) => r.id !== newRow.id)
+          .concat(newRow);
+
+        const updated: MapDestination = { ...rowToDestination(newRow), syncStatus: "synced" };
+
+        if (payload.eventType === "INSERT") {
+          const exists = allDestinations.some((d) => d.id === updated.id);
+          if (exists) return prev;
+          const merged = [...allDestinations, updated];
+          return { ...prev, days: groupDestinationsByDay(merged, (d) => {
+            const found = merged.find((m) => m.id === d.id);
+            return newRow.day;
+          })};
+        }
+
+        if (payload.eventType === "UPDATE") {
+          const merged = allDestinations.map((d) => (d.id === updated.id ? updated : d));
+          return { ...prev, days: groupDestinationsByDay(merged, (d) => {
+            const found = merged.find((m) => m.id === d.id);
+            const matchingRow = cachedRowsRef.current.find((r) => r.id === d.id);
+            return matchingRow?.day ?? newRow.day;
+          })};
+        }
+
+        return prev;
+      });
     };
 
     const bootstrap = async () => {
@@ -479,29 +496,10 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
           {
             event: "*",
             schema: "public",
-            table: supabaseMapTable,
+            table: supabaseMapDestinationsTable,
             filter: `trip_key=eq.${tripKey}`,
           },
-          (payload) => {
-            if (mapDirtyRef.current) return;
-
-            if (payload.eventType === "DELETE") {
-              const empty = buildEmptyMapItinerary();
-              const synced = forceMapSyncStatus(empty, "synced");
-              saveMapSnapshot(synced, mapSignature(synced), false);
-              setItineraryData(synced);
-              return;
-            }
-
-            const nextData = payload.new?.data as MapItineraryData | undefined;
-            const shouldForceSync = !nextData?.version || nextData.version !== MAP_ITINERARY_VERSION || !nextData?.days?.length;
-            const normalized = shouldForceSync ? buildInitialMapItinerary() : normalizeMapItinerary(nextData);
-            const synced = forceMapSyncStatus(normalized, "synced");
-            setItineraryData(synced);
-            if (!shouldForceSync) {
-              saveMapSnapshot(synced, mapSignature(synced), false);
-            }
-          },
+          handleRealtimeEvent,
         )
         .subscribe();
     };
@@ -518,38 +516,57 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
   useEffect(() => {
     if (!mapLoaded) return;
+    if (!supabase || !session || !isOnline) return;
 
-    const currentSignature = mapSignature(itineraryData);
-    const hasPendingLocalChanges = currentSignature !== mapSignatureRef.current || mapDirtyRef.current;
-    if (!hasPendingLocalChanges) return;
+    const allDestinations = mapDestinations(itineraryData);
+    const pendingDestinations = allDestinations.filter((d) => d.syncStatus === "pending");
+    const hasPending = pendingDestinations.length > 0 || pendingDeleteIdsRef.current.size > 0;
 
-    if (currentSignature === mapSignatureRef.current) {
-      saveMapSnapshot(itineraryData, currentSignature, false);
+    if (!hasPending) {
+      saveMapSnapshot(itineraryData, false);
       return;
     }
 
-    saveMapSnapshot(itineraryData, mapSignatureRef.current, true);
-
-    if (!supabase || !session || !isOnline) return;
+    saveMapSnapshot(itineraryData, true);
 
     const timeout = window.setTimeout(async () => {
-      const payload: SupabaseMapRow = {
-        trip_key: tripKey,
-        data: itineraryData,
-        saved_by_user_id: currentSavedBy?.userId ?? null,
-        saved_by_email: currentSavedBy?.email ?? null,
-        updated_at: new Date().toISOString(),
-      };
-      const { error } = await supabase.from(supabaseMapTable).upsert(payload, { onConflict: "trip_key" });
+      const deletes = Array.from(pendingDeleteIdsRef.current);
 
-      if (error) {
-        console.warn("Supabase map sync failed:", error.message);
+      const rowsToUpsert = pendingDestinations.map((dest) => {
+        const day = itineraryData.days.find((d) => d.destinations.some((dd) => dd.id === dest.id));
+        return destinationToRow(dest, tripKey, day?.day ?? 12);
+      });
+
+      const errors: string[] = [];
+
+      for (const row of rowsToUpsert) {
+        const { error } = await supabase.from(supabaseMapDestinationsTable).upsert(row, { onConflict: "id" });
+        if (error) errors.push(error.message);
+      }
+
+      for (const id of deletes) {
+        const { error } = await supabase.from(supabaseMapDestinationsTable).delete().eq("id", id);
+        if (error) errors.push(error.message);
+      }
+
+      if (errors.length > 0) {
+        console.warn("Supabase map sync errors:", errors.join(", "));
         return;
       }
 
-      const syncedMap = forceMapSyncStatus(itineraryData, "synced");
-      setItineraryData(syncedMap);
-      saveMapSnapshot(syncedMap, currentSignature, false);
+      pendingDeleteIdsRef.current = new Set();
+
+      setItineraryData((prev) => ({
+        ...prev,
+        days: prev.days.map((day) => ({
+          ...day,
+          destinations: day.destinations.map((d) =>
+            d.syncStatus === "pending" ? { ...d, syncStatus: "synced" as const } : d,
+          ),
+        })),
+      }));
+
+      saveMapSnapshot(itineraryData, false);
     }, 300);
 
     return () => window.clearTimeout(timeout);
@@ -846,7 +863,7 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     const coordinates = hasManualCoords ? { lat: manualLat, lng: manualLng } : await geocodeDestination(trimmedName);
 
     const newDestination: MapDestination = {
-      id: `dest-${selectedDay}-${Date.now()}`,
+      id: `dest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: trimmedName,
       time: draft.time.trim() || "09:00 AM",
       notes: draft.notes.trim(),
@@ -885,9 +902,9 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     if (!canEdit) return;
     const target = activeDay?.destinations.find((destination) => destination.id === destinationId) ?? null;
     if (!canManageDestination(target)) return;
+    pendingDeleteIdsRef.current = new Set(pendingDeleteIdsRef.current).add(destinationId);
     setItineraryData((prev) => ({
       ...prev,
-      updatedAt: new Date().toISOString(),
       days: prev.days.map((day) =>
         day.day === selectedDay
           ? { ...day, destinations: day.destinations.filter((destination) => destination.id !== destinationId) }

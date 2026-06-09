@@ -159,6 +159,54 @@ create policy "Authenticated users can delete map itineraries"
   for delete
   using (auth.role() = 'authenticated');
 
+-- DEPRECATED: The old trip_map_itineraries table above stored the entire map as a single JSONB blob.
+-- The new per-destination table below is the current approach. Migrate data accordingly.
+
+create table if not exists public.trip_map_destinations (
+  id                text primary key,
+  trip_key          text not null,
+  day               integer not null,
+  name              text not null,
+  lat               numeric not null,
+  lng               numeric not null,
+  time              text not null default '09:00 AM',
+  notes             text not null default '',
+  created_by        text,
+  saved_by_user_id  text,
+  saved_by_email    text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists trip_map_destinations_trip_key_idx
+  on public.trip_map_destinations (trip_key);
+
+create index if not exists trip_map_destinations_day_idx
+  on public.trip_map_destinations (day);
+
+alter table public.trip_map_destinations enable row level security;
+
+create policy "Authenticated users can read map destinations"
+  on public.trip_map_destinations
+  for select
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can insert map destinations"
+  on public.trip_map_destinations
+  for insert
+  with check (auth.role() = 'authenticated');
+
+create policy "Authenticated users can update map destinations"
+  on public.trip_map_destinations
+  for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete map destinations"
+  on public.trip_map_destinations
+  for delete
+  using (auth.role() = 'authenticated');
+
 create table if not exists public.trip_scratch_notes (
   trip_key text primary key,
   notes jsonb not null,

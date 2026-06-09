@@ -6,6 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 export const supabaseExpenseTable = import.meta.env.VITE_SUPABASE_EXPENSES_TABLE || "budget_expenses";
 export const supabaseChecklistTable = import.meta.env.VITE_SUPABASE_CHECKLIST_TABLE || "trip_checklist_items";
 export const supabaseMapTable = import.meta.env.VITE_SUPABASE_MAP_TABLE || "trip_map_itineraries";
+export const supabaseMapDestinationsTable = import.meta.env.VITE_SUPABASE_MAP_DESTINATIONS_TABLE || "trip_map_destinations";
 export const supabaseNotesTable = import.meta.env.VITE_SUPABASE_NOTES_TABLE || "trip_scratch_notes";
 export const supabaseDiaryTable = import.meta.env.VITE_SUPABASE_DIARY_TABLE || "trip_diary_entries";
 export const supabaseDiaryBucket = import.meta.env.VITE_SUPABASE_DIARY_BUCKET || "trip-diary-photos";

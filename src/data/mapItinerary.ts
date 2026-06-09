@@ -14,6 +14,22 @@ export interface MapDestination {
   syncStatus?: SyncStatus;
 }
 
+export type MapDestinationRow = {
+  id: string;
+  trip_key: string;
+  day: number;
+  name: string;
+  lat: number;
+  lng: number;
+  time: string;
+  notes: string;
+  created_by: string | null;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export interface MapDay {
   day: number;
   label: string;
@@ -26,6 +42,61 @@ export interface MapItineraryData {
   updatedAt: string;
   days: MapDay[];
 }
+
+export const destinationToRow = (dest: MapDestination, tripKey: string, day: number): MapDestinationRow => ({
+  id: dest.id,
+  trip_key: tripKey,
+  day,
+  name: dest.name,
+  lat: dest.lat,
+  lng: dest.lng,
+  time: dest.time,
+  notes: dest.notes,
+  created_by: dest.createdBy ?? dest.savedByUserId ?? null,
+  saved_by_user_id: dest.savedByUserId ?? dest.createdBy ?? null,
+  saved_by_email: dest.savedByEmail ?? null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+export const rowToDestination = (row: MapDestinationRow): MapDestination => ({
+  id: row.id,
+  name: row.name,
+  lat: row.lat,
+  lng: row.lng,
+  time: row.time,
+  notes: row.notes,
+  createdBy: row.created_by ?? undefined,
+  savedByUserId: row.saved_by_user_id ?? undefined,
+  savedByEmail: row.saved_by_email ?? undefined,
+  syncStatus: "synced",
+});
+
+export const groupDestinationsByDay = (destinations: MapDestination[], dayGetter?: (d: MapDestination) => number): MapDay[] => {
+  const dayMap = new Map<number, MapDestination[]>();
+  for (const dest of destinations) {
+    const day = dayGetter ? dayGetter(dest) : 12;
+    if (!dayMap.has(day)) dayMap.set(day, []);
+    dayMap.get(day)!.push(dest);
+  }
+  const labels: Record<number, string> = {
+    11: "July 11", 12: "July 12", 13: "July 13", 14: "July 14", 15: "July 15", 16: "July 16",
+  };
+  const titles: Record<number, string> = {
+    11: "Arrival day", 12: "Chinatown, KLCC and dinner", 13: "Batu Caves, Genting and Jalan Alor",
+    14: "Melaka day trip", 15: "KL to Singapore travel day", 16: "Singapore city day and departure",
+  };
+  const days: MapDay[] = [];
+  for (let d = 11; d <= 16; d++) {
+    days.push({
+      day: d,
+      label: labels[d] || `July ${d}`,
+      title: titles[d] || `Day ${d}`,
+      destinations: dayMap.get(d) || [],
+    });
+  }
+  return days;
+};
 
 type Coordinates = { lat: number; lng: number };
 
