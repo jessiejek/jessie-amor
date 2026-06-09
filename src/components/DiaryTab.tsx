@@ -325,6 +325,7 @@ export default function DiaryTab({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<DiaryEntryType | "All">("All");
   const [filterRating, setFilterRating] = useState<string>("All");
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "mine">("mine");
   const [photoError, setPhotoError] = useState("");
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -397,6 +398,11 @@ export default function DiaryTab({
           return false;
         }
 
+        if (ownerFilter === "mine" && currentUser) {
+          const ownerId = entry.createdBy ?? entry.savedByUserId ?? null;
+          if (ownerId !== currentUser.userId) return false;
+        }
+
         if (!normalizedSearch) {
           return true;
         }
@@ -419,7 +425,7 @@ export default function DiaryTab({
         if (aTime !== bTime) return bTime - aTime;
         return b.id.localeCompare(a.id);
       });
-  }, [diaryEntries, filterRating, filterType, searchTerm]);
+  }, [diaryEntries, filterRating, filterType, searchTerm, ownerFilter, currentUser]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -959,7 +965,35 @@ export default function DiaryTab({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_0.85fr_0.85fr]">
+        {currentUser && (
+          <div className="flex items-center gap-1.5 mt-3 px-1">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400 mr-1">Show</span>
+            <button
+              type="button"
+              onClick={() => setOwnerFilter("all")}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                ownerFilter === "all"
+                  ? "bg-[#0B3530] text-white shadow-sm"
+                  : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setOwnerFilter("mine")}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                ownerFilter === "mine"
+                  ? "bg-[#0B3530] text-white shadow-sm"
+                  : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+              }`}
+            >
+              Mine
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_0.85fr_0.85fr]">      
           <label className="md:col-span-1">
             <span className="mb-1 block text-[12px] font-semibold text-stone-600">Search</span>
             <div className="relative">

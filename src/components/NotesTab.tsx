@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Copy, Plus, Trash2, CheckCircle2, Bookmark, Lightbulb, ClipboardList, PenTool } from "lucide-react";
 import type { ChecklistItem, TravelNote, SyncStatus } from "../types";
 
@@ -28,6 +28,7 @@ export default function NotesTab({
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "mine">("mine");
   
   const [newCheckItem, setNewCheckItem] = useState("");
   const formatSavedBy = (email?: string, userId?: string) => {
@@ -44,6 +45,24 @@ export default function NotesTab({
     const ownerId = getOwnerId(entry);
     return currentUser.isAdmin || ownerId === currentUser.userId;
   };
+
+  const ownerNotes = useMemo(() => {
+    if (ownerFilter === "mine" && currentUser) {
+      return notes.filter(
+        (n) => n.createdBy === currentUser.userId || n.savedByUserId === currentUser.userId,
+      );
+    }
+    return notes;
+  }, [notes, ownerFilter, currentUser]);
+
+  const ownerChecklist = useMemo(() => {
+    if (ownerFilter === "mine" && currentUser) {
+      return checklist.filter(
+        (c) => c.createdBy === currentUser.userId || c.savedByUserId === currentUser.userId,
+      );
+    }
+    return checklist;
+  }, [checklist, ownerFilter, currentUser]);
 
   const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
     if (value === "syncing") {
@@ -156,6 +175,34 @@ export default function NotesTab({
         </div>
       )}
 
+      {currentUser && (
+        <div className="flex items-center gap-1.5 mb-4 px-1">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400 mr-1">Show</span>
+          <button
+            type="button"
+            onClick={() => setOwnerFilter("all")}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+              ownerFilter === "all"
+                ? "bg-[#0B3530] text-white shadow-sm"
+                : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setOwnerFilter("mine")}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+              ownerFilter === "mine"
+                ? "bg-[#0B3530] text-white shadow-sm"
+                : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+            }`}
+          >
+            Mine
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Checklist Column */}
@@ -192,7 +239,7 @@ export default function NotesTab({
 
           {/* Checklist items */}
           <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-            {checklist.map((item) => (
+            {ownerChecklist.map((item) => (
               <div
                 key={item.id}
                 className={`relative flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
@@ -308,7 +355,7 @@ export default function NotesTab({
 
           {/* List of custom notes cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {notes.map((note) => (
+            {ownerNotes.map((note) => (
               <div
                 key={note.id}
                 className="bg-white rounded-xl border border-stone-200 p-4 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between h-48 relative overflow-hidden group"

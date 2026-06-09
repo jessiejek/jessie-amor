@@ -9,3 +9,4 @@ coverage/
 .env*
 !.env.example
 *firebase-adminsdk*.json
+src/assets/app-icons/

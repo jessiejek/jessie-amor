@@ -142,6 +142,7 @@ export default function BudgetTab({
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [paidWith, setPaidWith] = useState<PaymentMethod>("Cash");
   const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "mine">("mine");
   const [selectedRegistryDate, setSelectedRegistryDate] = useState("All");
   const [isListening, setIsListening] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -243,11 +244,20 @@ export default function BudgetTab({
     setExpenses((prev) => prev.filter((exp) => exp.id !== transaction.id));
   };
 
-  const cashSpent = expenses
+  const ownerExpenses = useMemo(() => {
+    if (ownerFilter === "mine" && currentUser) {
+      return expenses.filter(
+        (e) => e.createdBy === currentUser.userId || e.savedByUserId === currentUser.userId,
+      );
+    }
+    return expenses;
+  }, [expenses, ownerFilter, currentUser]);
+
+  const cashSpent = ownerExpenses
     .filter((e) => e.paidWith === "Cash" || e.paidWith === "Debit")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const cardSpent = expenses
+  const cardSpent = ownerExpenses
     .filter((e) => e.paidWith === "Credit Card")
     .reduce((sum, e) => sum + e.amount, 0);
 
@@ -257,7 +267,7 @@ export default function BudgetTab({
 
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];
   const categoryTotals = cats.map((cat) => {
-    const totalForCat = expenses
+    const totalForCat = ownerExpenses
       .filter((e) => e.category === cat)
       .reduce((sum, e) => sum + e.amount, 0);
     return { name: cat, amount: totalForCat };
@@ -335,9 +345,17 @@ export default function BudgetTab({
   };
 
   const visibleTransactions = useMemo(() => {
-    if (filterCategory === "All") return transactions;
-    return transactions.filter((tx) => tx.category === filterCategory);
-  }, [filterCategory, transactions]);
+    let filtered = transactions;
+    if (filterCategory !== "All") {
+      filtered = filtered.filter((tx) => tx.category === filterCategory);
+    }
+    if (ownerFilter === "mine" && currentUser) {
+      filtered = filtered.filter(
+        (tx) => tx.createdBy === currentUser.userId || tx.savedByUserId === currentUser.userId,
+      );
+    }
+    return filtered;
+  }, [filterCategory, ownerFilter, transactions, currentUser]);
 
   const filteredGroupedTransactions = useMemo(() => {
     const sorted = sortTransactions(visibleTransactions);
@@ -774,6 +792,34 @@ export default function BudgetTab({
               </select>
             </div>
           </div>
+
+          {currentUser && (
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400 mr-1">Show</span>
+              <button
+                type="button"
+                onClick={() => setOwnerFilter("all")}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                  ownerFilter === "all"
+                    ? "bg-[#0B3530] text-white shadow-sm"
+                    : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setOwnerFilter("mine")}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                  ownerFilter === "mine"
+                    ? "bg-[#0B3530] text-white shadow-sm"
+                    : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                }`}
+              >
+                Mine
+              </button>
+            </div>
+          )}
 
           <div className="budget-day-filter">
             <button
