@@ -6,6 +6,8 @@ import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
   buildEmptyMapItinerary,
+  buildInitialMapItinerary,
+  MAP_ITINERARY_VERSION,
   resolveCoordinatesFromName,
   normalizeMapItinerary,
   type MapDestination,
@@ -191,9 +193,12 @@ const mapSignature = (data: MapItineraryData) => JSON.stringify(mapDataForSync(d
 
 export default function MapTab({ session: authSession, canEdit = false, isOnline = true, currentUser = null }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
-  const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey));
+  const [initialMapCache] = useState(() => {
+    const cached = readCachedDataset<MapItineraryData>(mapCacheKey);
+    return cached?.data?.version === MAP_ITINERARY_VERSION ? cached : null;
+  });
   const [initialMapData] = useState(() =>
-    applyMapSyncStatus(initialMapCache?.data ?? buildEmptyMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"),
+    applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"),
   );
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
   const [selectedDay, setSelectedDay] = useState<number>(() => initialMapData.days[0]?.day ?? 11);
@@ -451,10 +456,13 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
 
       if (!mapDirtyRef.current) {
         const remoteData = data?.data as MapItineraryData | undefined;
-        const normalized = remoteData?.days?.length ? normalizeMapItinerary(remoteData) : buildEmptyMapItinerary();
+        const shouldForceSync = !remoteData?.version || remoteData.version !== MAP_ITINERARY_VERSION || !remoteData?.days?.length;
+        const normalized = shouldForceSync ? buildInitialMapItinerary() : normalizeMapItinerary(remoteData);
         const synced = forceMapSyncStatus(normalized, "synced");
-        saveMapSnapshot(synced, mapSignature(synced), false);
         setItineraryData(synced);
+        if (!shouldForceSync) {
+          saveMapSnapshot(synced, mapSignature(synced), false);
+        }
       }
 
       setMapLoaded(true);
@@ -486,10 +494,13 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
             }
 
             const nextData = payload.new?.data as MapItineraryData | undefined;
-            const normalized = nextData?.days?.length ? normalizeMapItinerary(nextData) : buildEmptyMapItinerary();
+            const shouldForceSync = !nextData?.version || nextData.version !== MAP_ITINERARY_VERSION || !nextData?.days?.length;
+            const normalized = shouldForceSync ? buildInitialMapItinerary() : normalizeMapItinerary(nextData);
             const synced = forceMapSyncStatus(normalized, "synced");
-            saveMapSnapshot(synced, mapSignature(synced), false);
             setItineraryData(synced);
+            if (!shouldForceSync) {
+              saveMapSnapshot(synced, mapSignature(synced), false);
+            }
           },
         )
         .subscribe();

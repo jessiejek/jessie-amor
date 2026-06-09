@@ -37,7 +37,7 @@ export const defaultDayPlans: DayPlan[] = [
         estimatedCost: "Pre-paid Credit Card",
         costValue: 0,
         isCreditCard: true,
-        location: { lat: 3.1432, lng: 101.6983, name: "Travelodge KL City Centre" }
+        location: { lat: 3.1439720747976154, lng: 101.6955623684415, name: "Travelodge KL City Centre" }
       },
       {
         id: "12-3",
