@@ -383,10 +383,7 @@ export default function App() {
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-  const [budgetCap, setBudgetCap] = useState<number>(() => {
-    if (typeof window === "undefined") return 0;
-    return Number(localStorage.getItem("ja-budget-cap")) || 0;
-  });
+  const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1662,38 +1659,63 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
+
   useEffect(() => {
-    if (!supabase || !authReady) return;
+    if (!budgetCapStorageKey) return;
+    try {
+      const cached = Number(localStorage.getItem(budgetCapStorageKey));
+      if (!Number.isNaN(cached) && cached >= 0) {
+        setBudgetCapPhp(cached);
+      }
+    } catch {}
+  }, [budgetCapStorageKey]);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session) return;
     supabase
       .from(supabaseSettingsTable)
       .select("budget_cap")
       .eq("trip_key", tripKey)
+      .eq("user_id", session.user.id)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) return;
         const remote = Number(data["budget_cap"]);
-        if (!isNaN(remote) && remote !== budgetCap) {
-          setBudgetCap(remote);
-          try { localStorage.setItem("ja-budget-cap", String(remote)); } catch {}
+        if (!isNaN(remote)) {
+          setBudgetCapPhp(remote);
+          if (budgetCapStorageKey) {
+            try { localStorage.setItem(budgetCapStorageKey, String(remote)); } catch {}
+          }
         }
       });
-  }, [authReady]);
+  }, [authReady, session, budgetCapStorageKey]);
 
   useEffect(() => {
-    try { localStorage.setItem("ja-budget-cap", String(budgetCap)); } catch {}
+    if (budgetCapStorageKey) {
+      try {
+        localStorage.setItem(budgetCapStorageKey, String(budgetCapPhp));
+      } catch {}
+    }
     if (!supabase || !authReady || !session) return;
-    const timeout = setTimeout(() => {
-      supabase
+    const timeout = setTimeout(async () => {
+      const { error } = await supabase
         .from(supabaseSettingsTable)
-        .upsert({ trip_key: tripKey, budget_cap: budgetCap }, { onConflict: "trip_key" });
+        .upsert({ trip_key: tripKey, user_id: session.user.id, budget_cap: budgetCapPhp }, { onConflict: "trip_key,user_id" });
+      if (error) console.warn("Supabase settings save failed:", error.message);
     }, 500);
     return () => clearTimeout(timeout);
-  }, [budgetCap, authReady, session]);
+  }, [budgetCapPhp, authReady, session, budgetCapStorageKey]);
 
   const metadata = {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
+
+  const formatPhp = (php: number) =>
+    `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+  const phpToRm = (php: number) => php > 0 ? Math.round(php / exchangeRates.php) : 0;
+  const rmToPhp = (rm: number) => rm > 0 ? Math.round(rm * exchangeRates.php) : 0;
 
   const handleOpenGuide = (item: TimelineItemData) => {
     setSelectedGuide(buildGuideForItem(item));
@@ -2032,8 +2054,7 @@ export default function App() {
             canEdit={Boolean(session)}
             currentUser={currentUser}
             exchangeRates={exchangeRates}
-            budgetCap={budgetCap}
-            setBudgetCap={setBudgetCap}
+            budgetCapPhp={budgetCapPhp}
           />
         )}
         {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} currentUser={currentUser} />}
@@ -2063,24 +2084,43 @@ export default function App() {
               <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-sm font-semibold text-stone-600">Budget Cap (RM)</span>
+                  <span className="text-sm font-semibold text-stone-600">Budget Cap</span>
                   <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
                   <div className="mt-1 flex items-center gap-2">
+                    <span className="text-sm font-mono text-stone-500">PHP</span>
                     <input
                       type="number"
                       min="0"
-                      step="100"
-                      value={budgetCap || ""}
+                      step="500"
+                      value={budgetCapPhp || ""}
                       placeholder="No cap"
-                      onChange={(e) => setBudgetCap(Math.max(0, Number(e.target.value)))}
-                      className="w-32 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
+                      onChange={(e) => {
+                        const php = Math.max(0, Number(e.target.value) || 0);
+                        setBudgetCapPhp(php);
+                      }}
+                      className="w-36 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
                     />
                     <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
                   </div>
+                  {budgetCapPhp > 0 && (
+                    <p className="mt-1 text-[11px] text-stone-400">
+                      = {phpToRm(budgetCapPhp)} RM
+                      {exchangeRates.source === "live" ? (
+                        <span className="text-emerald-600">live rate</span>
+                      ) : exchangeRates.source === "cached" ? (
+                        <span className="text-sky-600">cached rate</span>
+                      ) : (
+                        <span className="text-amber-600">static rate</span>
+                      )}
+                    </p>
+                  )}
                 </label>
+                {!session && (
+                  <p className="text-[11px] text-amber-600">Sign in to sync cap across devices. Currently saved to this device only.</p>
+                )}
                 <p className="text-[11px] text-stone-400">
                   When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-                  {budgetCap > 0 && <> Currently capped at <strong>RM {budgetCap}</strong>.</>}
+                  {budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}
                 </p>
               </div>
             </div>

@@ -5,10 +5,43 @@ export type ExchangeRates = {
   php: number;
   sgd: number;
   updatedAt?: string;
-  source: "live" | "fallback";
+  source: "live" | "cached" | "fallback";
 };
 
 const FRANKFURTER_LATEST_URL = "https://api.frankfurter.dev/v1/latest?base=MYR&symbols=PHP,SGD";
+const CACHE_KEY = "ja-exchange-rates";
+
+const readCachedRates = (): ExchangeRates | null => {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.php && parsed?.sgd) {
+      return { php: parsed.php, sgd: parsed.sgd, updatedAt: parsed.updatedAt, source: "cached" };
+    }
+  } catch {}
+  return null;
+};
+
+const writeCachedRates = (rates: ExchangeRates) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      php: rates.php,
+      sgd: rates.sgd,
+      updatedAt: rates.updatedAt,
+    }));
+  } catch {}
+};
+
+const getInitialRates = (): ExchangeRates => {
+  const cached = readCachedRates();
+  if (cached) return cached;
+  return {
+    php: fallbackRates.php,
+    sgd: fallbackRates.sgd,
+    source: "fallback",
+  };
+};
 
 export const staticExchangeRates: ExchangeRates = {
   php: fallbackRates.php,
@@ -20,7 +53,7 @@ export const formatLiveRateLabel = (rates: ExchangeRates) =>
   `RM 1 = PHP ${rates.php.toFixed(2)} | RM 1 = SGD ${rates.sgd.toFixed(4)}`;
 
 export const useLiveExchangeRates = () => {
-  const [rates, setRates] = useState<ExchangeRates>(staticExchangeRates);
+  const [rates, setRates] = useState<ExchangeRates>(getInitialRates);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,14 +76,16 @@ export const useLiveExchangeRates = () => {
         const sgd = payload.rates?.SGD;
         if (!php || !sgd || cancelled) return;
 
-        setRates({
+        const live: ExchangeRates = {
           php,
           sgd,
           updatedAt: payload.date,
           source: "live",
-        });
+        };
+        writeCachedRates(live);
+        setRates(live);
       } catch {
-        // Keep fallback rates on network or API failure.
+        // Keep current rates (cached or fallback)
       }
     };
 

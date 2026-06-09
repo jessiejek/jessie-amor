@@ -124,8 +124,7 @@ interface BudgetTabProps {
     isAdmin: boolean;
   } | null;
   exchangeRates: ExchangeRates;
-  budgetCap: number;
-  setBudgetCap: (value: number) => void;
+  budgetCapPhp: number;
 }
 
 export default function BudgetTab({
@@ -136,8 +135,7 @@ export default function BudgetTab({
   canEdit = false,
   currentUser = null,
   exchangeRates,
-  budgetCap,
-  setBudgetCap,
+  budgetCapPhp,
 }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
@@ -162,7 +160,11 @@ export default function BudgetTab({
 
   const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
   const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
+  const formatPhpExact = (amountValue: number) => `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
+  const formatPhpCap = (amountValue: number) => `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+  const hundredPhpInRm = (100 / exchangeRates.php).toFixed(3);
+  const hundredPhpInSgd = ((100 / exchangeRates.php) * exchangeRates.sgd).toFixed(2);
 
   const formatDisplayTime = (value?: string | null) => {
     if (!value) return "Unknown time";
@@ -258,6 +260,13 @@ export default function BudgetTab({
     return expenses;
   }, [expenses, ownerFilter, currentUser]);
 
+  const myExpenses = useMemo(() => {
+    if (!currentUser) return expenses;
+    return expenses.filter(
+      (e) => e.createdBy === currentUser.userId || e.savedByUserId === currentUser.userId,
+    );
+  }, [expenses, currentUser]);
+
   const cashSpent = ownerExpenses
     .filter((e) => e.paidWith === "Cash" || e.paidWith === "Debit")
     .reduce((sum, e) => sum + e.amount, 0);
@@ -266,12 +275,14 @@ export default function BudgetTab({
     .filter((e) => e.paidWith === "Credit Card")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const isOverBudget = budgetCap > 0 && cashSpent > budgetCap && !dismissedOverBudget;
+  const myCashSpent = useMemo(() =>
+    myExpenses
+      .filter((e) => e.paidWith === "Cash" || e.paidWith === "Debit")
+      .reduce((sum, e) => sum + e.amount, 0),
+    [myExpenses]);
 
-  const handleSetCap = (value: number) => {
-    setBudgetCap(Math.max(0, value));
-    setDismissedOverBudget(false);
-  };
+  const budgetCapRm = budgetCapPhp > 0 ? Math.round(budgetCapPhp / exchangeRates.php) : 0;
+  const isOverBudget = budgetCapRm > 0 && myCashSpent > budgetCapRm && !dismissedOverBudget;
 
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];
   const categoryTotals = cats.map((cat) => {
@@ -540,29 +551,23 @@ export default function BudgetTab({
       <div className="budget-summary-grid mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="budget-summary-card flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
-              <span className="text-[11px] text-stone-300">/</span>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={budgetCap || ""}
-                placeholder="No cap"
-                onChange={(e) => handleSetCap(Number(e.target.value))}
-                className="w-20 px-2 py-0.5 text-[12px] font-mono text-stone-500 bg-stone-50 border border-stone-200 rounded-md outline-none focus:border-[#0B3530]"
-              />
-              <span className="text-[11px] text-stone-400 font-mono">RM cap</span>
-            </div>
-            <h4 className="mt-1 text-2xl font-serif font-bold text-stone-800">{formatPhp(cashSpent)}</h4>
+            <span className="block text-[13px] font-mono uppercase tracking-widest text-stone-400">Cash Outflow</span>
+            <h4 className="mt-1 flex flex-wrap items-baseline gap-1 text-2xl font-serif font-bold text-stone-800">
+              <span>{formatPhp(cashSpent)}</span>
+              {budgetCapPhp > 0 && (
+                <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-stone-400">
+                  / {formatPhpCap(budgetCapPhp)}
+                </span>
+              )}
+            </h4>
             <span className="mt-0.5 block text-[13px] text-stone-400">
               {formatRm(cashSpent)} | {formatSgd(cashSpent)}
             </span>
-            {budgetCap > 0 && (
+            {budgetCapRm > 0 && (
               <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${cashSpent > budgetCap ? "bg-rose-500" : "bg-[#0B3530]"}`}
-                  style={{ width: `${Math.min(100, (cashSpent / budgetCap) * 100)}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${cashSpent > budgetCapRm ? "bg-rose-500" : "bg-[#0B3530]"}`}
+                  style={{ width: `${Math.min(100, (cashSpent / budgetCapRm) * 100)}%` }}
                 />
               </div>
             )}
@@ -590,7 +595,7 @@ export default function BudgetTab({
         <div className="mb-6 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
           <AlertTriangle size={16} />
           <span className="flex-1">
-            Over budget: <strong>{formatRm(cashSpent)}</strong> of <strong>{formatRm(budgetCap)}</strong> cash cap
+            Over budget: <strong>{formatPhp(myCashSpent)}</strong> of <strong>{formatPhpExact(budgetCapPhp)}</strong> cap
           </span>
           <button
             type="button"
@@ -607,6 +612,19 @@ export default function BudgetTab({
           <div className="budget-form-panel h-fit rounded-[26px] border border-stone-200 bg-white p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)]">
             <div className="mb-4 border-b border-stone-100 pb-3">
               <h3 className="budget-form-title mt-2 text-[18px] font-serif font-bold text-[#0B3530]">Add Custom Spend</h3>
+              <div className="mt-1 flex items-center gap-2 text-[11px] font-mono text-stone-500">
+                <span>100 PHP = RM {hundredPhpInRm} | SGD {hundredPhpInSgd}</span>
+                <button
+                  type="button"
+                  aria-label={exchangeRates.source === "live" ? "Live rate" : "Cached rate"}
+                  title={exchangeRates.source === "live" ? "Live rate" : "Not live"}
+                  className={`h-2.5 w-2.5 rounded-full border-0 p-0 shadow-sm ${
+                    exchangeRates.source === "live"
+                      ? "bg-emerald-500"
+                      : "bg-orange-400"
+                  }`}
+                />
+              </div>
             </div>
 
             {!canEdit && (
