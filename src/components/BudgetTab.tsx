@@ -146,10 +146,10 @@ export default function BudgetTab({
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
   const fallbackDayOptions = [
-    { value: 12, label: "Day 1 - Jul 12" },
-    { value: 13, label: "Day 2 - Jul 13" },
-    { value: 14, label: "Day 3 - Jul 14" },
-    { value: 15, label: "Day 4 - Jul 15" },
+    { value: 12, label: "July 12" },
+    { value: 13, label: "July 13" },
+    { value: 14, label: "July 14" },
+    { value: 15, label: "July 15" },
   ];
   const currencyOptions = userSettings?.currencies?.length ? userSettings.currencies : ["MYR", "PHP", "SGD"];
   const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>(currencyOptions[0] ?? "MYR");
@@ -168,8 +168,8 @@ export default function BudgetTab({
     const derived = (userSettings?.travelDates ?? []).map((dateStr, index) => {
       const date = new Date(`${dateStr}T00:00:00`);
       const dayNum = date.getDate();
-      const labelDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      return { value: dayNum, label: `Day ${index + 1} - ${labelDate}` };
+      const labelDate = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+      return { value: dayNum, label: labelDate };
     });
     return derived.length > 0 ? derived : fallbackDayOptions;
   }, [userSettings?.travelDates]);
@@ -501,7 +501,7 @@ export default function BudgetTab({
 
   const registryDateChips = useMemo(() => {
     return [...activeDayOptions]
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => a.value - b.value)
       .map((option) => option.label);
   }, [activeDayOptions]);
 
@@ -981,12 +981,6 @@ export default function BudgetTab({
           )}
 
           <div className="budget-day-filter">
-            <div className="mb-2 flex items-center gap-2 px-1 md:hidden">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400">Selected</span>
-              <span className="rounded-full bg-stone-100 px-3 py-1 text-[12px] font-semibold text-[#0B3530]">
-                {selectedRegistryDate}
-              </span>
-            </div>
             <button
               type="button"
               className={`budget-day-chip ${selectedRegistryDate === "All" ? "is-active" : ""}`}
