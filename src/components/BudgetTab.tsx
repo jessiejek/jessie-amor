@@ -159,10 +159,13 @@ export default function BudgetTab({
   };
 
   const formatRm = (amountValue: number) => `RM ${amountValue.toFixed(2)}`;
-  const formatPhp = (amountValue: number) => `PHP ${Math.round(amountValue * exchangeRates.php).toLocaleString()}`;
-  const formatPhpExact = (amountValue: number) => `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+  const formatPhp = (amountValue: number) =>
+    `PHP ${((amountValue * exchangeRates.php)).toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+  const formatPhpExact = (amountValue: number) =>
+    `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const formatSgd = (amountValue: number) => `SGD ${(amountValue * exchangeRates.sgd).toFixed(2)}`;
-  const formatPhpCap = (amountValue: number) => `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+  const formatPhpCap = (amountValue: number) =>
+    `PHP ${amountValue.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const hundredPhpInRm = (100 / exchangeRates.php).toFixed(3);
   const hundredPhpInSgd = ((100 / exchangeRates.php) * exchangeRates.sgd).toFixed(2);
 
@@ -281,7 +284,7 @@ export default function BudgetTab({
       .reduce((sum, e) => sum + e.amount, 0),
     [myExpenses]);
 
-  const budgetCapRm = budgetCapPhp > 0 ? Math.round(budgetCapPhp / exchangeRates.php) : 0;
+  const budgetCapRm = budgetCapPhp > 0 ? budgetCapPhp / exchangeRates.php : 0;
   const isOverBudget = budgetCapRm > 0 && myCashSpent > budgetCapRm && !dismissedOverBudget;
 
   const cats: ExpenseCategory[] = ["Transport", "Accommodation", "Food", "Sightseeing", "Other"];

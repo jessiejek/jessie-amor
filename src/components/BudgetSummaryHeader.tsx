@@ -33,7 +33,8 @@ export default function BudgetSummaryHeader({
     .reduce((sum, expense) => sum + expense.amount, 0);
 
   const formatRm = (amount: number) => `RM ${amount.toFixed(2)}`;
-  const toPhp = (amount: number) => `PHP ${Math.round(amount * exchangeRates.php).toLocaleString()}`;
+  const toPhp = (amount: number) =>
+    `PHP ${((amount * exchangeRates.php)).toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const toSgd = (amount: number) => `SGD ${(amount * exchangeRates.sgd).toFixed(2)}`;
 
   const parseRmRange = (value: string) => {
@@ -110,7 +111,7 @@ export default function BudgetSummaryHeader({
               Estimated total
             </span>
             <span className="text-lg font-serif font-bold text-[#0B3530]">
-              PHP {Math.round(600 * exchangeRates.php).toLocaleString()} - {Math.round(903 * exchangeRates.php).toLocaleString()}
+              {toPhp(600)} - {toPhp(903)}
             </span>
           </div>
           <div className="mt-0.5 text-[13px] font-mono leading-none text-stone-400">

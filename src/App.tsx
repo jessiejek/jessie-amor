@@ -1713,9 +1713,11 @@ export default function App() {
   };
 
   const formatPhp = (php: number) =>
-    `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
-  const phpToRm = (php: number) => php > 0 ? Math.round(php / exchangeRates.php) : 0;
-  const rmToPhp = (rm: number) => rm > 0 ? Math.round(rm * exchangeRates.php) : 0;
+    `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+  const phpToRm = (php: number) =>
+    php > 0 ? `RM ${(php / exchangeRates.php).toLocaleString("en-MY", { maximumFractionDigits: 2 })}` : "RM 0";
+  const rmToPhp = (rm: number) =>
+    rm > 0 ? `PHP ${(rm * exchangeRates.php).toLocaleString("en-PH", { maximumFractionDigits: 2 })}` : "PHP 0";
 
   const handleOpenGuide = (item: TimelineItemData) => {
     setSelectedGuide(buildGuideForItem(item));
@@ -2104,7 +2106,7 @@ export default function App() {
                   </div>
                   {budgetCapPhp > 0 && (
                     <p className="mt-1 text-[11px] text-stone-400">
-                      = {phpToRm(budgetCapPhp)} RM
+                      = {phpToRm(budgetCapPhp)}
                       {exchangeRates.source === "live" ? (
                         <span className="text-emerald-600">live rate</span>
                       ) : exchangeRates.source === "cached" ? (

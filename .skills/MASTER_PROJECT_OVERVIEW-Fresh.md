@@ -83,26 +83,32 @@
 
 ```
 /
-├── index.html                     # SPA entry, PWA manifest link, Tabler icon CDN
+├── index.html                     # SPA entry, favicon/apple-touch-icon, PWA manifest link, Tabler icon CDN
 ├── vite.config.ts                 # Vite + React + Tailwind + PWA config
 ├── vercel.json                    # SPA rewrites: all paths → /index.html
-├── package.json                   # Dependencies and scripts
+├── package.json                   # Dependencies and scripts (includes jspdf + html2pdf.js)
 ├── tsconfig.json                  # TypeScript config
 ├── .env.local                     # REAL Supabase credentials (DO NOT COMMIT)
 ├── .env.example                   # Template for env vars
 ├── metadata.json                  # App name/description, Gemini capability flag
 ├── SUPABASE_SETUP.md              # Full SQL setup guide for all tables + RLS
 ├── jessieandamor-b3c10-firebase-adminsdk-*.json  # Firebase service account (REMNANT — NOT USED IN CODE)
+├── mobile Screen Cap.jpg          # Reference screenshot/artifact
 │
 ├── public/
-│   ├── pwa-icon.svg               # PWA icon (512x512, any+maskable)
+│   ├── favicon.png                # Browser favicon
+│   ├── apple-touch-icon.png       # iOS home-screen icon
+│   ├── icon-192.png               # PWA icon (192x192)
+│   ├── icon-512.png               # PWA icon (512x512, any+maskable)
 │   ├── day12-kl-skyline.png        # Day 12 image — KL skyline (956KB)
 │   ├── day13-batu-caves.png        # Day 13 image — Batu Caves (1.15MB)
 │   └── day13-saloma-bridge.png     # Day 13 image — Saloma Bridge (1MB)
 │
 ├── scripts/
-│   ├── offline-sync-regression-check.ts  # Node regression tests for sync logic
-│   └── map-update.sql                     # SQL migration for map destinations
+│   ├── gen-days.cjs                 # Day itinerary generator / export helper
+│   ├── migrate-map.sql              # Migration from old map blob table to per-row table
+│   ├── map-update.sql               # SQL migration for map destinations
+│   └── offline-sync-regression-check.ts  # Node regression tests for sync logic
 │
 └── src/
     ├── main.tsx                   # React root mount
@@ -680,13 +686,14 @@ When `writeCachedDataset` is called:
 
 **File:** `src/lib/exchangeRates.ts`
 
-- **Base currency:** MYR (Malaysian Ringgit)
-- **API:** `https://api.frankfurter.dev/v1/latest?base=MYR&symbols=PHP,SGD`
+- **Live API base:** PHP
+- **API:** `https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD`
 - **Fallback rates (static):** `PHP: 15.5807`, `SGD: 0.3228` (from `itinerary.ts`)
 - **Fetch strategy:** `cache: "no-store"`, fires once on mount, updates React state
-- **Source field:** `"live"` if API succeeded, `"fallback"` if failed or not yet loaded
+- **Normalization:** API response is converted back into RM-normalized exchange values so stored expenses stay stable
+- **Source field:** `"live"`, `"cached"`, or `"fallback"`
 - **Format helper:** `formatLiveRateLabel(rates)` → `"RM 1 = PHP 15.58 | RM 1 = SGD 0.3228"`
-- Used in: `BudgetTab`, `BudgetSummaryHeader` for currency conversion display
+- Used in: `BudgetTab`, `BudgetSummaryHeader`, `App.tsx` settings page
 
 ---
 
@@ -703,6 +710,7 @@ When `writeCachedDataset` is called:
 | `/map` | `<MapTab>` | Leaflet interactive map with custom destinations |
 | `/notes` | `<NotesTab>` | Notes + checklist |
 | `/diary` | `<DiaryTab>` | Travel diary with photo upload |
+| `/settings` | Settings view (inline in App.tsx) | Budget cap configuration + exchange-rate reference |
 | `/account` | Mobile account card (inline in App.tsx) | User info, share, print, sign out (mobile only) |
 
 ### Navigation Logic
@@ -738,6 +746,8 @@ App.tsx is the **single top-level component** (83KB). It owns ALL state and ALL 
 | `selectedGuide` | `DestinationGuide \| null` | `null` |
 | `pullDistance` | `number` | `0` |
 | `isRefreshing` | `boolean` | `false` |
+| `showScrollTop` | `boolean` | `false` |
+| `budgetCapPhp` | `number` | `0` |
 | `expensesLoaded` | `boolean` | `!hasSupabaseConfig` |
 | `checklistLoaded` | `boolean` | `!hasSupabaseConfig` |
 | `notesLoaded` | `boolean` | `!hasSupabaseConfig` |
@@ -856,10 +866,10 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 - Total card shows combined budget for all days
 
 ### `BudgetTab.tsx`
-**Props:** `expenses`, `setExpenses`, `isSupabaseConnected`, `isOnline`, `canEdit`, `currentUser`, `exchangeRates`
+**Props:** `expenses`, `setExpenses`, `isSupabaseConnected`, `isOnline`, `canEdit`, `currentUser`, `exchangeRates`, `budgetCapPhp`
 
 **Features:**
-1. **Expense list** — Filterable by category + by day. Shows description, amount (RM + PHP conversion), payment method, sync status dot, who added it (email prefix or user ID prefix), delete button (own entries only, or admin)
+1. **Expense list** — Filterable by category, owner ("All" / "Mine"), and by day. Shows description, amount (RM + PHP conversion), payment method, sync status dot, who added it (email prefix or user ID prefix), delete button (own entries only, or admin)
 2. **Add expense form** — Fields: description (text), amount + currency selector (RM/PHP/SGD), day selector (12–15), category selector, payment method selector
 3. **Currency conversion on input** — If PHP or SGD entered, converts to RM using live exchange rates before storing
 4. **Voice input** — Uses `window.SpeechRecognition` / `webkitSpeechRecognition`. Parses natural language:
@@ -870,7 +880,7 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
    - Voice corrections: "egg dose" → "egg toast"
 5. **Sync status indicators:** Green dot (synced), amber dot (pending), spinner (syncing)
 6. **Filter controls:** Category dropdown + day dropdown
-7. **Summary row:** Total cash spend (RM + PHP), total credit card spend
+7. **Summary row:** Total cash spend (RM + PHP), total credit card spend, budget-cap warning if configured
 
 ### `MapTab.tsx`
 **Props:** `session`, `canEdit`, `isOnline`, `currentUser`
@@ -909,6 +919,7 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 - Delete button (own items or admin)
 - Copy all checklist text to clipboard button
 - Sync status dot per item
+- Owner filter: `All` / `Mine`
 
 ### `DiaryTab.tsx`
 **Props:** `diaryEntries`, `setDiaryEntries`, `isOnline`, `canEdit`, `currentUser`
@@ -926,6 +937,7 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
    - `isDiaryLocalPhotoUrl(photoUrl)` = `photoUrl.startsWith("data:")`
 7. **Image compression** — `compressImageFileToDataUrl(file)` uses `<canvas>` to resize/compress
 8. **Sync status** per entry: pending if `syncStatus === "pending"` OR has local data: URL photo
+9. **Owner filter** — `All` / `Mine` toggle for signed-in users
 
 ### `AuthPanel.tsx`
 **Props:** `open`, `title`, `description`, `session`, `loading`, `errorMessage`, `onClose`, `onSignIn`, `onSignOut`, `isConfigured`
@@ -975,6 +987,13 @@ Renders an array of text segments:
 // vite.config.ts
 VitePWA({
   registerType: "autoUpdate",
+  includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "day12-kl-skyline.png", "day13-batu-caves.png", "day13-saloma-bridge.png"],
+  workbox: {
+    runtimeCaching: [
+      { urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*tabler.*/i, handler: "CacheFirst" },
+      { urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i, handler: "StaleWhileRevalidate" }
+    ]
+  },
   manifest: {
     name: "Jessie & Amor's Malaysia Singapore",
     short_name: "Jessie & Amor",
@@ -982,7 +1001,10 @@ VitePWA({
     background_color: "#F8FAFC",
     display: "standalone",       // Hides browser chrome when installed
     start_url: "/",
-    icons: [{ src: "/pwa-icon.svg", sizes: "512x512", purpose: "any maskable" }]
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+    ]
   }
 })
 ```
@@ -1009,8 +1031,9 @@ npm run test:offline-sync  # tsx scripts/offline-sync-regression-check.ts
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0B3530">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/pwa-icon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 ```
 - `viewport-fit=cover` + `env(safe-area-inset-*)` — handles iPhone notch/home bar
@@ -1228,7 +1251,7 @@ Notes are stored as a SINGLE JSONB blob. The entire `TravelNote[]` array is seri
 | Service | URL | Usage | Auth |
 |---|---|---|---|
 | Supabase | `https://mmkbwzpualvspgxymgna.supabase.co` | Database + Auth + Storage + Realtime | Anon key |
-| Frankfurter (Exchange Rates) | `https://api.frankfurter.dev/v1/latest?base=MYR&symbols=PHP,SGD` | Live MYR→PHP/SGD rates | None (free) |
+| Frankfurter (Exchange Rates) | `https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD` | Live PHP-base rates, normalized back to RM-based app values | None (free) |
 | Nominatim (Geocoding) | `https://nominatim.openstreetmap.org/search` | Map pin geocoding (place name → lat/lng) | None (User-Agent required) |
 | Google Maps | `https://www.google.com/maps/dir/?api=1&...` | Links in RichText `<PlaceSegment>` | None (just links) |
 | Tabler Icons CDN | `https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css` | Icon webfont for itinerary | None |
@@ -1320,4 +1343,4 @@ APP_URL="https://your-deployed-url.vercel.app"
 ---
 
 *End of MASTER_PROJECT_OVERVIEW.md — Generated by reverse-engineering assets.zip*
-*Last updated: June 2026*
+*Last updated: June 9, 2026*

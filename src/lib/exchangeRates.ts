@@ -8,7 +8,9 @@ export type ExchangeRates = {
   source: "live" | "cached" | "fallback";
 };
 
-const FRANKFURTER_LATEST_URL = "https://api.frankfurter.dev/v1/latest?base=MYR&symbols=PHP,SGD";
+// Fetch live rates with PHP as the API base, then normalize them back into the
+// app's existing RM-based conversion shape so stored budget data stays stable.
+const FRANKFURTER_LATEST_URL = "https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD";
 const CACHE_KEY = "ja-exchange-rates";
 
 const readCachedRates = (): ExchangeRates | null => {
@@ -67,18 +69,22 @@ export const useLiveExchangeRates = () => {
           base?: string;
           date?: string;
           rates?: {
+            MYR?: number;
             PHP?: number;
             SGD?: number;
           };
         };
 
-        const php = payload.rates?.PHP;
-        const sgd = payload.rates?.SGD;
-        if (!php || !sgd || cancelled) return;
+        const myrPerPhp = payload.rates?.MYR;
+        const sgdPerPhp = payload.rates?.SGD;
+        if (!myrPerPhp || !sgdPerPhp || cancelled) return;
+
+        const phpPerMyr = 1 / myrPerPhp;
+        const sgdPerMyr = sgdPerPhp / myrPerPhp;
 
         const live: ExchangeRates = {
-          php,
-          sgd,
+          php: phpPerMyr,
+          sgd: sgdPerMyr,
           updatedAt: payload.date,
           source: "live",
         };
