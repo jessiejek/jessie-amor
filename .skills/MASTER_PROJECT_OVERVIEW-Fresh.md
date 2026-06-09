@@ -38,16 +38,16 @@
 | **App Name** | Jessie & Amor's Malaysia · Singapore Trip 2026 |
 | **Short Name** | Jessie & Amor |
 | **Trip Key** | `jessie-amor-malaysia-singapore` |
-| **Trip Dates** | July 12–15, 2026 |
-| **Trip Countdown Target** | July 11, 2026 00:00:00 (day before departure) |
-| **Travelers** | Jessie Jayr (admin) + Amor |
+| **Trip Dates** | July 11–16, 2026 (6 days) |
+| **Trip Countdown Target** | July 11, 2026 00:00:00 (day of departure) |
+| **Travelers** | Jessie Jay Q. Rubi (admin) + Rizza Amor L. Caguco |
 | **Page Title** | `J&A Malaysia · Singapore Trip 2026` |
 | **Footer Copyright** | `© 2026 Jessie & Amor. All rights reserved.` |
 | **Theme Color** | `#0B3530` (dark forest green) |
 | **Background Color (PWA)** | `#F8FAFC` |
 
 **What this app is:** A fully private, collaborative, real-time travel itinerary web app (installable as a PWA) built for two specific travelers. It is NOT a generic product — all data, destinations, costs, and notes are hardcoded for a Malaysia + Singapore trip. The app supports:
-- Viewing a 4-day structured daily itinerary with timeline
+- Viewing a 6-day structured daily itinerary with timeline (days 11-16)
 - Real-time collaborative budget tracking with cloud sync
 - Interactive map with custom pins (Leaflet)
 - Trip notes + checklist (shared, synced)
@@ -67,6 +67,7 @@
 | **Animation** | `motion` (Framer Motion successor) | 12.23.24 |
 | **Icons** | `lucide-react` | 0.546.0 |
 | **Icon Font** | Tabler Icons Webfont (CDN, for itinerary items) | latest |
+| **PDF Generation** | `jspdf` (jsPDF) | 2.5+ |
 | **Map** | Leaflet | 1.9.4 |
 | **Backend/Auth** | Supabase (`@supabase/supabase-js`) | 2.107.0 |
 | **Geocoding (Map)** | Nominatim (OpenStreetMap) | free API |
@@ -94,10 +95,14 @@
 ├── jessieandamor-b3c10-firebase-adminsdk-*.json  # Firebase service account (REMNANT — NOT USED IN CODE)
 │
 ├── public/
-│   └── pwa-icon.svg               # PWA icon (512x512, any+maskable)
+│   ├── pwa-icon.svg               # PWA icon (512x512, any+maskable)
+│   ├── day12-kl-skyline.png        # Day 12 image — KL skyline (956KB)
+│   ├── day13-batu-caves.png        # Day 13 image — Batu Caves (1.15MB)
+│   └── day13-saloma-bridge.png     # Day 13 image — Saloma Bridge (1MB)
 │
 ├── scripts/
-│   └── offline-sync-regression-check.ts  # Node regression tests for sync logic
+│   ├── offline-sync-regression-check.ts  # Node regression tests for sync logic
+│   └── map-update.sql                     # SQL migration for map destinations
 │
 └── src/
     ├── main.tsx                   # React root mount
@@ -115,8 +120,8 @@
     │
     ├── data/
     │   ├── itinerary.ts           # Default DayPlan[], default Expense[], exchangeRates, initialNotes
-    │   ├── code1Itinerary.ts      # Rich itinerary data (2537 lines) — all types + content for UI rendering
-    │   └── mapItinerary.ts        # MapItineraryData types, coordinate hints, initial map state
+    │   ├── code1Itinerary.ts      # Rich itinerary data (~2980 lines) — all types + content for UI rendering
+    │   └── mapItinerary.ts        # MapDestination/MapDay types, MapDestinationRow, coordinate hints, helper functions
     │
     ├── lib/
     │   ├── supabase.ts            # Supabase client init + table name exports + tripKey
@@ -124,10 +129,10 @@
     │   └── exchangeRates.ts       # Live exchange rate fetch (Frankfurter API)
     │
     └── components/
-        ├── Navigation.tsx         # Top header + bottom nav + countdown + share/download modals + side drawer
+        ├── Navigation.tsx         # Top header + bottom nav + countdown + share/immigration doc modals + side drawer
         ├── Hero.tsx               # Hero image card with metadata overlay
         ├── Legend.tsx             # Color legend pills for itinerary categories
-        ├── DailyItineraryView.tsx # 4-day timeline view with timeline items
+        ├── DailyItineraryView.tsx # 6-day timeline view with timeline items
         ├── BudgetSummaryHeader.tsx # Budget cards per day + live spend toggle
         ├── AlertBox.tsx           # Amber alert box (booking reminders)
         ├── TipCard.tsx            # Individual trip tip card
@@ -285,7 +290,14 @@ interface MapDestination {
 }
 interface MapDay { day: number; label: string; title: string; destinations: MapDestination[]; }
 interface MapItineraryData { version: number; updatedAt: string; days: MapDay[]; }
+interface MapDestinationRow {
+  id: string; trip_key: string; day: number; name: string; lat: number; lng: number;
+  time: string; notes: string; created_by: string | null; saved_by_user_id: string | null;
+  saved_by_email: string | null; created_at: string; updated_at: string;
+}
 ```
+
+`MapDestination` is used for local state/display. `MapDestinationRow` maps directly to Supabase `trip_map_destinations` columns.
 
 ---
 
@@ -293,27 +305,28 @@ interface MapItineraryData { version: number; updatedAt: string; days: MapDay[];
 
 ### `src/data/itinerary.ts`
 - **`exchangeRates`** — Static fallback: `{ php: 15.5807, sgd: 0.3228 }` (1 RM = these values)
-- **`defaultDayPlans`** — Array of 4 `DayPlan` objects for days 12–15 with full itinerary items and GPS coordinates
+- **`defaultDayPlans`** — Array of 4 `DayPlan` objects for days 12–15 (legacy budget itinerary, separate from the 6-day visual itinerary in code1Itinerary.ts)
 - **`defaultExpenses`** — Array of 13 seed `Expense` objects (IDs: "e-1" to "e-13") covering all 4 days
 - **`initialNotes`** — 3 seed `TravelNote` objects (shared coffee rule, transport hack, bus booking tip)
 
-### `src/data/code1Itinerary.ts` (2537 lines)
+### `src/data/code1Itinerary.ts` (~2980 lines)
 This is the **rich visual data file**. It contains:
 - Full type definitions for the visual itinerary (separate from `types.ts`)
-- `GUIDE_KEYS` — ~65 guide keys (typed enum) for destination-specific modal content
+- `GUIDE_KEYS` — 60 guide keys (typed enum) for destination-specific modal content
 - `FOOD_GUIDE_KEYS` — 11 food guide keys for food area guides
 - `buildGuideForItem(item)` — Function that returns a `DestinationGuide` object based on `guideKey`
 - `selectedItinerary` — The currently active itinerary plan (export from `ITINERARIES_BY_ID[DEFAULT_ITINERARY_ID]`)
-- Contains: hero data, legend items, budget summary cards, alert box, tip cards, day sections, footer text
+- Contains: hero data, legend items, budget summary cards, alert box, tip cards, 6 day sections (days 11–16, 64 items), footer text
 - Two itinerary plans exist: `'main'` and `'partner'` (switchable by changing `DEFAULT_ITINERARY_ID`)
 
 ### `src/data/mapItinerary.ts`
 - `MAP_ITINERARY_VERSION = 3` — Used to detect schema migrations
-- `coordinateHints` — Array of ~55 `{ match: string[], coords }` objects for fuzzy name→lat/lng resolution
+- `coordinateHints` — Array of 53 `{ match: string[], coords }` objects for fuzzy name→lat/lng resolution
 - `resolveCoordinatesFromName(name)` — Looks up coordinates from hint list by string matching
-- `normalizeMapItinerary(data)` — Migrates old versions to current schema
-- `buildEmptyMapItinerary()` — Returns empty `MapItineraryData`
-- `buildInitialMapItinerary()` — Returns pre-populated default map data from itinerary days
+- `destinationToRow(dest, tripKey, day)` — Converts `MapDestination` to `MapDestinationRow` for Supabase upsert
+- `rowToDestination(row)` — Converts `MapDestinationRow` to `MapDestination` for local state
+- `groupDestinationsByDay(destinations, dayGetter?)` — Groups flat destination array into `MapDay[]`
+- `buildInitialMapItinerary()` — Returns pre-populated default map data (used as fallback when DB is empty)
 
 ---
 
@@ -335,7 +348,8 @@ export const supabase = hasSupabaseConfig ? createClient(supabaseUrl!, supabaseA
 |---|---|---|
 | `supabaseExpenseTable` | `budget_expenses` | `VITE_SUPABASE_EXPENSES_TABLE` |
 | `supabaseChecklistTable` | `trip_checklist_items` | `VITE_SUPABASE_CHECKLIST_TABLE` |
-| `supabaseMapTable` | `trip_map_itineraries` | `VITE_SUPABASE_MAP_TABLE` |
+| `supabaseMapTable` | `trip_map_itineraries` (DEPRECATED) | `VITE_SUPABASE_MAP_TABLE` |
+| `supabaseMapDestinationsTable` | `trip_map_destinations` | `VITE_SUPABASE_MAP_DESTINATIONS_TABLE` |
 | `supabaseNotesTable` | `trip_scratch_notes` | `VITE_SUPABASE_NOTES_TABLE` |
 | `supabaseDiaryTable` | `trip_diary_entries` | `VITE_SUPABASE_DIARY_TABLE` |
 | `supabaseDiaryBucket` | `trip-diary-photos` | `VITE_SUPABASE_DIARY_BUCKET` |
@@ -398,20 +412,40 @@ create table public.trip_scratch_notes (
 
 **RLS Policies:** All CRUD requires `auth.role() = 'authenticated'`.
 
-#### Table: `trip_map_itineraries`
+#### Table: `trip_map_itineraries` (DEPRECATED — replaced by `trip_map_destinations`)
 ```sql
+-- OLD APPROACH: single JSONB blob per trip. No longer used in code.
 create table public.trip_map_itineraries (
-  trip_key            text primary key,       -- One row per trip
-  data                jsonb not null,         -- Full MapItineraryData object
+  trip_key            text primary key,
+  data                jsonb not null,
   saved_by_user_id    text,
   saved_by_email      text,
   updated_at          timestamptz not null default now()
 );
 ```
 
-**IMPORTANT:** Same pattern as notes — entire `MapItineraryData` object is stored as JSONB in one row per trip. Upserted on every map change using `onConflict: "trip_key"`.
+#### Table: `trip_map_destinations` (CURRENT — per-destination rows)
+```sql
+create table public.trip_map_destinations (
+  id                text primary key,
+  trip_key          text not null,
+  day               integer not null,
+  name              text not null,
+  lat               numeric not null,
+  lng               numeric not null,
+  time              text not null default '09:00 AM',
+  notes             text not null default '',
+  created_by        text,
+  saved_by_user_id  text,
+  saved_by_email    text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+create index trip_map_destinations_trip_key_idx on public.trip_map_destinations (trip_key);
+create index trip_map_destinations_day_idx on public.trip_map_destinations (day);
+```
 
-**RLS Policies:** All CRUD requires `auth.role() = 'authenticated'`.
+**IMPORTANT:** Each destination is an **individual row**. Previously, the entire map (all days + all destinations) was stored as a single JSONB blob in `trip_map_itineraries`. Now, read/write/realtime operate on individual destination rows, matching the pattern used by `budget_expenses`, `trip_checklist_items`, and `trip_diary_entries`. Simultaneous edits to different destinations no longer conflict.
 
 #### Table: `trip_diary_entries`
 ```sql
@@ -516,13 +550,12 @@ supabase
   .maybeSingle()
 ```
 
-#### Read: Map (in MapTab component)
+#### Read: Map (in MapTab component — per-destination rows)
 ```typescript
 supabase
-  .from("trip_map_itineraries")
-  .select("trip_key, data, saved_by_user_id, saved_by_email, updated_at")
+  .from("trip_map_destinations")
+  .select("*")
   .eq("trip_key", tripKey)
-  .maybeSingle()
 ```
 
 #### Write: Expenses (upsert)
@@ -573,11 +606,16 @@ supabase
 supabase.from("trip_diary_entries").delete().in("id", removedIds)
 ```
 
-#### Write: Map (upsert — entire object)
+#### Write: Map (upsert — per destination)
 ```typescript
 supabase
-  .from("trip_map_itineraries")
-  .upsert({ trip_key, data: mapItineraryData, saved_by_user_id, saved_by_email, updated_at }, { onConflict: "trip_key" })
+  .from("trip_map_destinations")
+  .upsert(row, { onConflict: "id" })
+// row: MapDestinationRow — individual destination
+
+#### Write: Map (delete — per destination)
+```typescript
+supabase.from("trip_map_destinations").delete().eq("id", destinationId)
 ```
 
 #### Storage: Upload diary photo
@@ -770,7 +808,7 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 ## 11. Components — Full Reference
 
 ### `Navigation.tsx`
-**Props:** `activeTab`, `setActiveTab`, `session`, `isOnline`, `onOpenAuth`, `onSignOut`, `metadata`
+**Props:** `activeTab`, `setActiveTab`, `session`, `isOnline`, `onOpenAuth`, `onSignOut`, `metadata`, `expenses?`
 
 **Features:**
 - **Desktop header:** Dark forest green (`#0B3530`) with app title, online/offline dot indicator, Login/Logout button, Share, Download, Print buttons, desktop nav tabs (Itinerary/Budget/Map/Notes/Diary)
@@ -779,7 +817,7 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 - **Bottom nav (mobile):** 5 tabs: Itinerary (`CalendarDays`), Budget (`Wallet`), Map (`Map`), Notes (`NotebookText`), + "More" (`Menu`) → opens side drawer
 - **Side drawer (mobile):** Slides in from left, lists all 5 tabs including Diary, shows user avatar/initials + email + logout button at bottom. Dismissible via overlay click or Escape key.
 - **Share modal:** Shows QR code placeholder + URL copy button. Uses `navigator.share` if available.
-- **Download modal:** Two options — Export as JSON (metadata object) or Print/PDF via `window.print()`
+- **Download/Export modal:** Single option — **Immigration Document (PDF)**. Generates a formatted A4 document using jsPDF with travelers, flights, hotels, and daily itinerary. Opens new tab and auto-triggers print dialog for PDF download.
 - **Active tab indicator (desktop):** `border-b-2 border-[#7ec96b]` + `bg-white/12`
 - **Active tab indicator (mobile bottom nav):** Text + icon turn `text-[#7ec96b]`
 - **Connection dot:** `bg-emerald-400` (online) / `bg-red-500` (offline)
@@ -801,12 +839,12 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 ### `DailyItineraryView.tsx`
 **Props:** `days: DaySectionData[]`, `onInfoClick?: (item) => void`
 
-- Renders 4 day sections (July 12–15) in vertical timeline layout
+- Renders 6 day sections (July 11–16) in vertical timeline layout
 - Each `TimelineItemData` is a card with: time, title, category badge (color-coded), description (`RichText`), tags, cost, optional image
 - Category badge colors: `train`=blue, `bus`=amber, `food`=rose, `spot`=violet, `hotel`=emerald, `walk`=stone, `free`=sky
 - "Info" button on each item triggers `onInfoClick` → opens `DestinationInfoModal`
-- Day section headers show the day number, date, title, and a day badge (e.g. "TRANSIT-HEAVY DAY")
-- Day 13 has images (Batu Caves, Saloma Bridge) displayed in the day header
+- Day section headers show the day number, date, title, and budgetLabel
+- Day 12 has KL skyline image, Day 13 has Batu Caves + Saloma Bridge images
 
 ### `BudgetSummaryHeader.tsx`
 **Props:** `cards`, `expenses`, `showLiveSpends`, `setShowLiveSpends`, `exchangeRates`
@@ -849,9 +887,9 @@ type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
 7. **"Locate me" button** — Uses `navigator.geolocation.getCurrentPosition()`, shows user on map
 8. **Marker icons** — Custom `L.divIcon` HTML: numbered circles, dark green when selected, white with border when unselected
 9. **Map popup** — Shows stop number, name, time, notes
-10. **Supabase sync** — Map is stored as a single JSONB blob per trip key. Saved on every change with debounce.
-11. **Offline cache** — Map data cached in localStorage under `offline-cache:{tripKey}:map`
-12. **Version migration** — `normalizeMapItinerary()` upgrades old versions to `MAP_ITINERARY_VERSION = 3`
+10. **Supabase sync** — Map destinations stored as individual rows in `trip_map_destinations`. Each add/update/delete syncs only the affected row (no more full-blob overwrites).
+11. **Offline cache** — Map data cached in localStorage under `offline-cache:{tripKey}:map` as `MapItineraryData` with per-destination `syncStatus`.
+12. **Realtime** — Subscribes to `trip-map-sync-{tripKey}` channel on `trip_map_destinations` table for per-row INSERT/UPDATE/DELETE events.
 13. **Route line** — Polyline connecting all destinations in a day in order
 
 ### `NotesTab.tsx`
@@ -1094,7 +1132,9 @@ supabase.realtime.setAuth(nextSession?.access_token ?? "");
 This is required for realtime channels to respect RLS policies.
 
 ### Map Channel (inside MapTab.tsx — separate channel)
-MapTab manages its own realtime subscription internally (not via App.tsx), subscribing to `trip_map_itineraries` changes for the trip.
+**Channel:** `trip-map-sync-{tripKey}` = `trip-map-sync-jessie-amor-malaysia-singapore`
+
+MapTab manages its own realtime subscription internally (not via App.tsx), subscribing to `trip_map_destinations` table for per-row INSERT/UPDATE/DELETE events. Each event is applied individually to the local state. If `mapDirtyRef.current === true`, incoming realtime events are ignored.
 
 ---
 
@@ -1266,6 +1306,7 @@ VITE_SUPABASE_ANON_KEY="sb_publishable_2_4KxEW5GhFn1eiW6E_2YA_lK5Cxg3b"
 VITE_SUPABASE_EXPENSES_TABLE="budget_expenses"
 VITE_SUPABASE_CHECKLIST_TABLE="trip_checklist_items"
 VITE_SUPABASE_MAP_TABLE="trip_map_itineraries"
+VITE_SUPABASE_MAP_DESTINATIONS_TABLE="trip_map_destinations"
 VITE_SUPABASE_NOTES_TABLE="trip_scratch_notes"
 VITE_SUPABASE_DIARY_TABLE="trip_diary_entries"
 VITE_SUPABASE_DIARY_BUCKET="trip-diary-photos"
