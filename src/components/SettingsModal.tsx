@@ -11,6 +11,10 @@ interface SettingsModalProps {
   onSave: (settings: UserTripSettings) => Promise<void>;
   isSaving: boolean;
   isFirstSetup?: boolean;
+  budgetCapPhp?: number;
+  onBudgetCapChange?: (value: number) => void;
+  budgetCapRmLabel?: string;
+  budgetCapStatusLabel?: string;
 }
 
 type FormState = {
@@ -47,17 +51,29 @@ const buildInitialState = (settings: UserTripSettings | null): FormState => {
   };
 };
 
+const parseIsoDateToUtc = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, (month || 1) - 1, day || 1));
+};
+
+const formatUtcDateToIso = (value: Date) => {
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const formatPreviewDate = (value: string) =>
-  new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  parseIsoDateToUtc(value).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 const expandDateRange = (start: string, end: string): string[] => {
   const dates: string[] = [];
-  const current = new Date(`${start}T00:00:00`);
-  const last = new Date(`${end}T00:00:00`);
+  const current = parseIsoDateToUtc(start);
+  const last = parseIsoDateToUtc(end);
 
   while (current <= last) {
-    dates.push(current.toISOString().split("T")[0]);
-    current.setDate(current.getDate() + 1);
+    dates.push(formatUtcDateToIso(current));
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return dates;
@@ -72,6 +88,10 @@ export default function SettingsModal({
   onSave,
   isSaving,
   isFirstSetup = false,
+  budgetCapPhp = 0,
+  onBudgetCapChange,
+  budgetCapRmLabel = "RM 0",
+  budgetCapStatusLabel = "",
 }: SettingsModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialState(settings));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -310,6 +330,49 @@ export default function SettingsModal({
                 {previewText}
               </div>
             ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-stone-200 bg-white p-5">
+            <div className="mb-4">
+              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Budget Cap</h4>
+              <p className="mt-1 text-[13px] text-stone-500">Set a personal PHP cap for cash and debit spending. `0` means no cap.</p>
+            </div>
+
+            <label className="block">
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-sm font-mono text-stone-500">PHP</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="500"
+                  value={budgetCapPhp || ""}
+                  placeholder="No cap"
+                  onChange={(event) => {
+                    const php = Math.max(0, Number(event.target.value) || 0);
+                    onBudgetCapChange?.(php);
+                  }}
+                  className="w-40 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
+                />
+                <span className="text-[11px] font-medium text-emerald-600">Auto-saved</span>
+              </div>
+              {budgetCapPhp > 0 && (
+                <p className="mt-1 text-[11px] text-stone-400">
+                  = {budgetCapRmLabel}
+                  {budgetCapStatusLabel ? <span className="ml-1">{budgetCapStatusLabel}</span> : null}
+                </p>
+              )}
+            </label>
+
+            {!session && (
+              <p className="mt-3 text-[11px] text-amber-600">
+                Sign in to sync cap across devices. Currently saved to this device only.
+              </p>
+            )}
+
+            <p className="mt-3 text-[11px] text-stone-400">
+              When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
+              {budgetCapPhp > 0 && <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</>}
+            </p>
           </section>
 
           <div className="flex items-center justify-end gap-3">

@@ -16,7 +16,7 @@ import {
 } from "../data/mapItinerary";
 import { supabase, supabaseMapDestinationsTable, tripKey } from "../lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, writeCachedDataset } from "../lib/offlineCache";
-import type { SyncStatus } from "../types";
+import type { SyncStatus, UserTripSettings } from "../types";
 
 type DraftState = {
   name: string;
@@ -108,6 +108,7 @@ interface MapTabProps {
   session: Session | null;
   canEdit?: boolean;
   isOnline?: boolean;
+  userSettings?: UserTripSettings | null;
   currentUser?: {
     userId: string;
     email: string;
@@ -160,7 +161,17 @@ const applyMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): Map
 const mapDestinations = (data: MapItineraryData): MapDestination[] =>
   data.days.flatMap((d) => d.destinations);
 
-export default function MapTab({ session: authSession, canEdit = false, isOnline = true, currentUser = null }: MapTabProps) {
+const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined) => {
+  if (!travelDates?.length) return null;
+  const index = dayNumber - 11;
+  const matchedDate = travelDates[index];
+  if (!matchedDate) return null;
+  const parsed = new Date(`${matchedDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+export default function MapTab({ session: authSession, canEdit = false, isOnline = true, userSettings = null, currentUser = null }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
   const [initialMapCache] = useState(() => {
     const cached = readCachedDataset<MapItineraryData>(mapCacheKey);
@@ -366,9 +377,21 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     );
   };
 
+  const displayDays = useMemo(
+    () =>
+      itineraryData.days.map((day, index) => {
+        const remappedLabel = formatMapDayLabel(day.day, userSettings?.travelDates);
+        return {
+          ...day,
+          label: remappedLabel ? `Day ${index + 1} - ${remappedLabel}` : day.label,
+        };
+      }),
+    [itineraryData.days, userSettings?.travelDates],
+  );
+
   const activeDay = useMemo(
-    () => itineraryData.days.find((day) => day.day === selectedDay) ?? itineraryData.days[0] ?? null,
-    [itineraryData.days, selectedDay],
+    () => displayDays.find((day) => day.day === selectedDay) ?? displayDays[0] ?? null,
+    [displayDays, selectedDay],
   );
 
   useEffect(() => {
@@ -948,7 +971,7 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
         </div>
 
         <div className="flex flex-wrap gap-2">
-      {itineraryData.days.map((day) => (
+      {displayDays.map((day) => (
               <button
                 key={day.day}
                 type="button"
