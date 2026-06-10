@@ -181,6 +181,12 @@ export default function Navigation({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handler = () => setShowMoreDrawer(true);
+    window.addEventListener("open-more-drawer", handler);
+    return () => window.removeEventListener("open-more-drawer", handler);
+  }, []);
+
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
