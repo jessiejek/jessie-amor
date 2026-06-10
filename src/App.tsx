@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { CalendarDays, CreditCard, Compass, Loader2, Map as MapIcon, Menu, NotebookText, Printer, RefreshCw, Share2, Ticket, Utensils, Wallet, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
@@ -1889,6 +1890,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isIosStandalonePwa) return;
+
+    const editableSelector =
+      "input, textarea, select, [contenteditable='true'], [contenteditable='']";
+
+    const hideNavBeforeKeyboard = (event: Event) => {
+      const target = event.target;
+
+      if (!(target instanceof HTMLElement)) return;
+
+      const editable = target.closest(editableSelector);
+
+      if (!editable) return;
+
+      document.documentElement.classList.add("ios-keyboard-open");
+      document.documentElement.classList.remove("ios-keyboard-settling");
+
+      flushSync(() => {
+        setIsIosKeyboardBlockingNav(true);
+        setShowNav(false);
+      });
+    };
+
+    document.addEventListener("pointerdown", hideNavBeforeKeyboard, true);
+    document.addEventListener("touchstart", hideNavBeforeKeyboard, true);
+    document.addEventListener("mousedown", hideNavBeforeKeyboard, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", hideNavBeforeKeyboard, true);
+      document.removeEventListener("touchstart", hideNavBeforeKeyboard, true);
+      document.removeEventListener("mousedown", hideNavBeforeKeyboard, true);
+    };
+  }, [isIosStandalonePwa]);
+
+  useEffect(() => {
     if (isIosStandalonePwa) {
       setShowNav(true);
       return;
@@ -2579,7 +2615,7 @@ export default function App() {
         {shouldRenderMobileBottomNav && (
         <footer
           key={mobileNavRenderKey}
-          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${mobileBottomNavTransformClass}`}
+          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${isIosStandalonePwa ? "" : "transition-transform duration-300"} ${mobileBottomNavTransformClass}`}
         >
           <div className="grid grid-cols-5 gap-2 px-3 pt-2">
             <button

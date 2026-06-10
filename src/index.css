@@ -870,7 +870,9 @@ textarea::placeholder {
   }
 
   html.ios-keyboard-open .mobile-bottom-nav,
-  html.ios-keyboard-settling .mobile-bottom-nav {
+  html.ios-keyboard-settling .mobile-bottom-nav,
+  html.ios-keyboard-open .ios-hide-when-keyboard,
+  html.ios-keyboard-settling .ios-hide-when-keyboard {
     display: none !important;
   }
 }
