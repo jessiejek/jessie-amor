@@ -405,6 +405,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1759,8 +1760,10 @@ export default function App() {
     const checkKeyboard = () => {
       const viewportHeight = window.visualViewport!.height;
       const windowHeight = window.innerHeight;
-      const isOpen = viewportHeight < windowHeight - 200;
+      const isOpen = viewportHeight < windowHeight - 150;
+      const offset = windowHeight - viewportHeight - window.visualViewport!.offsetTop;
       setKeyboardOpen(isOpen);
+      setKeyboardOffset(Math.max(0, Math.round(offset)));
     };
 
     window.visualViewport.addEventListener("resize", checkKeyboard);
@@ -2322,8 +2325,11 @@ export default function App() {
           </main>
         </div>
 
-        {/* STICKY BOTTOM NAV — TEST */}
-        <footer className={`no-print md:hidden sticky bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${keyboardOpen ? "hidden" : ""}`}>
+        {/* BOTTOM NAV */}
+        <footer
+          className="no-print md:hidden fixed inset-x-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))]"
+          style={{ bottom: `${keyboardOffset}px` }}
+        >
           <div className="grid grid-cols-5">
             <button
               onClick={() => navigateTo("/")}
