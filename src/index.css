@@ -32,6 +32,8 @@ body {
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  position: fixed;
+  width: 100%;
 }
 
 input,
