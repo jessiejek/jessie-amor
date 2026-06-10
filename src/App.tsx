@@ -404,7 +404,7 @@ export default function App() {
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [showNav, setShowNav] = useState(true);
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1740,49 +1740,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!window.visualViewport) {
-      const onFocusIn = (e: FocusEvent) => {
-        const tag = (e.target as HTMLElement)?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-          setKeyboardOpen(true);
-        }
-      };
-      const onFocusOut = () => setKeyboardOpen(false);
-      document.addEventListener("focusin", onFocusIn);
-      document.addEventListener("focusout", onFocusOut);
-      return () => {
-        document.removeEventListener("focusin", onFocusIn);
-        document.removeEventListener("focusout", onFocusOut);
-      };
-    }
+    let timer: ReturnType<typeof setTimeout>;
 
-    const checkKeyboard = () => {
-      const viewportHeight = window.visualViewport!.height;
-      const windowHeight = window.innerHeight;
-      const isOpen = viewportHeight < windowHeight - 200;
-      setKeyboardOpen(isOpen);
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+
+      if (currentY < 10) {
+        setShowNav(true);
+      } else {
+        setShowNav(false);
+      }
+
+      clearTimeout(timer);
+      timer = setTimeout(() => setShowNav(true), 200);
     };
 
-    window.visualViewport.addEventListener("resize", checkKeyboard);
-    checkKeyboard();
-
-    return () => window.visualViewport.removeEventListener("resize", checkKeyboard);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(timer);
+    };
   }, []);
-
-  useEffect(() => {
-    if (!keyboardOpen) {
-      requestAnimationFrame(() => {
-        const body = document.body;
-        const scrollY = window.scrollY;
-
-        body.style.minHeight = "calc(100vh + 1px)";
-        void body.offsetHeight;
-        body.style.minHeight = "";
-
-        window.scrollTo(0, scrollY);
-      });
-    }
-  }, [keyboardOpen]);
 
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
 
@@ -2323,7 +2301,7 @@ export default function App() {
         </div>
 
         {/* BOTTOM NAV */}
-        <footer className={`no-print md:hidden fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${keyboardOpen ? "hidden" : "block"}`}>
+        <footer className={`no-print md:hidden fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${showNav ? "translate-y-0" : "translate-y-full"}`}>
           <div className="grid grid-cols-5">
             <button
               onClick={() => navigateTo("/")}
