@@ -456,6 +456,30 @@ export default function App() {
   const expenseSnapshotOwnerRef = useRef<string>("");
   const checklistSnapshotOwnerRef = useRef<string>("");
   const diarySnapshotOwnerRef = useRef<string>("");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateViewportHeight = () => {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      root.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
+    };
+
+    updateViewportHeight();
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", updateViewportHeight);
+    viewport?.addEventListener("scroll", updateViewportHeight);
+    window.addEventListener("resize", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateViewportHeight);
+      viewport?.removeEventListener("scroll", updateViewportHeight);
+      window.removeEventListener("resize", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, []);
+
   const currentUser: CurrentUserInfo | null = session?.user
     ? {
         userId: session.user.id,
@@ -2070,7 +2094,7 @@ export default function App() {
           expenses={expenses}
         />
 
-        <div className="flex-1 pt-[112px] md:pt-0">
+        <div className="flex-1 pt-[88px] md:pt-0">
           <main
             className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0"
             style={{

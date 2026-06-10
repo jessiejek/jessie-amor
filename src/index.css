@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    --app-height: 100dvh;
+    --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
   --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
@@ -11,7 +18,7 @@ body,
 #root {
   width: 100%;
   max-width: 100%;
-  min-height: 100dvh;
+  min-height: var(--app-height);
   min-height: -webkit-fill-available;
 }
 
