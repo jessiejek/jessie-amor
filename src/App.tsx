@@ -405,6 +405,9 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [showNav, setShowNav] = useState(true);
+  const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
+  const [isIosKeyboardBlockingNav, setIsIosKeyboardBlockingNav] = useState(false);
+  const [mobileNavRenderKey, setMobileNavRenderKey] = useState(0);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1741,6 +1744,158 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const navStandalone =
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    const displayModeStandalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+
+    const isIosLike =
+      /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
+      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+
+    const enabled = isIosLike && (navStandalone || displayModeStandalone);
+
+    setIsIosStandalonePwa(enabled);
+
+    const root = document.documentElement;
+    root.classList.toggle("ios-standalone-pwa", enabled);
+
+    if (!enabled) {
+      return () => {
+        root.classList.remove("ios-standalone-pwa");
+        root.classList.remove("ios-keyboard-open");
+        root.classList.remove("ios-keyboard-settling");
+      };
+    }
+
+    const vv = window.visualViewport;
+    let baselineHeight = Math.max(window.innerHeight, vv?.height ?? 0);
+    let keyboardWasOpen = false;
+    let settleTimer: number | undefined;
+
+    const editableSelector =
+      "input, textarea, select, [contenteditable='true'], [contenteditable='']";
+
+    const hasEditableFocus = () => {
+      const active = document.activeElement;
+      return active instanceof HTMLElement && active.matches(editableSelector);
+    };
+
+    const forcePaintNudge = () => {
+      const scrollY = window.scrollY;
+
+      root.style.setProperty("--ios-paint-nudge", "1");
+      void root.offsetHeight;
+      root.style.removeProperty("--ios-paint-nudge");
+
+      window.scrollTo(0, scrollY);
+    };
+
+    const markKeyboardOpen = () => {
+      window.clearTimeout(settleTimer);
+
+      keyboardWasOpen = true;
+      root.classList.add("ios-keyboard-open");
+      root.classList.remove("ios-keyboard-settling");
+
+      setIsIosKeyboardBlockingNav(true);
+      setShowNav(false);
+    };
+
+    const markKeyboardClosing = () => {
+      if (!keyboardWasOpen) return;
+
+      keyboardWasOpen = false;
+
+      root.classList.remove("ios-keyboard-open");
+      root.classList.add("ios-keyboard-settling");
+
+      setIsIosKeyboardBlockingNav(true);
+      setShowNav(false);
+
+      window.clearTimeout(settleTimer);
+
+      settleTimer = window.setTimeout(() => {
+        root.classList.remove("ios-keyboard-settling");
+
+        setIsIosKeyboardBlockingNav(false);
+        setShowNav(true);
+
+        setMobileNavRenderKey((value) => value + 1);
+
+        requestAnimationFrame(forcePaintNudge);
+      }, 700);
+    };
+
+    const syncKeyboardState = () => {
+      const visualHeight = vv?.height ?? window.innerHeight;
+      const viewportLoss = baselineHeight - visualHeight;
+
+      const keyboardLooksOpen = hasEditableFocus() && viewportLoss > 100;
+
+      if (keyboardLooksOpen) {
+        markKeyboardOpen();
+        return;
+      }
+
+      if (keyboardWasOpen) {
+        markKeyboardClosing();
+        return;
+      }
+
+      if (!hasEditableFocus()) {
+        baselineHeight = Math.max(baselineHeight, window.innerHeight, visualHeight);
+      }
+    };
+
+    const onFocusIn = () => {
+      baselineHeight = Math.max(baselineHeight, window.innerHeight, vv?.height ?? 0);
+
+      requestAnimationFrame(syncKeyboardState);
+      window.setTimeout(syncKeyboardState, 80);
+    };
+
+    const onFocusOut = () => {
+      window.setTimeout(syncKeyboardState, 0);
+      window.setTimeout(syncKeyboardState, 250);
+      window.setTimeout(syncKeyboardState, 600);
+    };
+
+    const onOrientationChange = () => {
+      baselineHeight = Math.max(window.innerHeight, vv?.height ?? 0);
+      markKeyboardClosing();
+    };
+
+    window.addEventListener("focusin", onFocusIn);
+    window.addEventListener("focusout", onFocusOut);
+    window.addEventListener("orientationchange", onOrientationChange);
+
+    vv?.addEventListener("resize", syncKeyboardState);
+    vv?.addEventListener("scroll", syncKeyboardState);
+
+    return () => {
+      window.clearTimeout(settleTimer);
+
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("focusout", onFocusOut);
+      window.removeEventListener("orientationchange", onOrientationChange);
+
+      vv?.removeEventListener("resize", syncKeyboardState);
+      vv?.removeEventListener("scroll", syncKeyboardState);
+
+      root.classList.remove("ios-standalone-pwa");
+      root.classList.remove("ios-keyboard-open");
+      root.classList.remove("ios-keyboard-settling");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isIosStandalonePwa) {
+      setShowNav(true);
+      return;
+    }
+
     let timer: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
@@ -1757,24 +1912,29 @@ export default function App() {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
       clearTimeout(timer);
     };
-  }, []);
+  }, [isIosStandalonePwa]);
 
   useEffect(() => {
+    if (isIosStandalonePwa) return;
+
     if (showNav) {
       requestAnimationFrame(() => {
         const body = document.body;
         const scrollY = window.scrollY;
+
         body.style.minHeight = "calc(100vh + 1px)";
         void body.offsetHeight;
         body.style.minHeight = "";
+
         window.scrollTo(0, scrollY);
       });
     }
-  }, [showNav]);
+  }, [showNav, isIosStandalonePwa]);
 
   useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
@@ -2067,6 +2227,15 @@ export default function App() {
     </section>
   );
 
+  const shouldRenderMobileBottomNav =
+    screenSize === "small" && !isIosKeyboardBlockingNav;
+
+  const mobileBottomNavTransformClass = isIosStandalonePwa
+    ? "translate-y-0"
+    : showNav
+      ? "translate-y-0"
+      : "translate-y-full";
+
   return (
     <div
       className="flex min-h-[100dvh] flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
@@ -2321,8 +2490,11 @@ export default function App() {
           </main>
         </div>
 
-        {/* BOTTOM NAV */}
-        <footer className={`no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${screenSize === "small" ? "" : "hidden"} ${showNav ? "translate-y-0" : "translate-y-full"}`}>
+        {shouldRenderMobileBottomNav && (
+        <footer
+          key={mobileNavRenderKey}
+          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${mobileBottomNavTransformClass}`}
+        >
           <div className="grid grid-cols-5 gap-2 px-3 pt-2">
             <button
               onClick={() => navigateTo("/")}
@@ -2331,7 +2503,7 @@ export default function App() {
               <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/" ? "bg-white/18" : "bg-white/8"}`}>
                 <CalendarDays size={16} />
               </span>
-              <span>Itinerary1</span>
+              <span>Itinerary</span>
             </button>
             <button
               onClick={() => navigateTo("/budget")}
@@ -2371,6 +2543,7 @@ export default function App() {
             </button>
           </div>
         </footer>
+        )}
 
         <AuthPanel
         open={showAuthModal}
