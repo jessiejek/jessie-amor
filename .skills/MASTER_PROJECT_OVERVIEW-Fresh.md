@@ -1,230 +1,252 @@
 # MASTER PROJECT OVERVIEW
-## Jessie & Amor — Malaysia · Singapore Trip 2026
-### Full Reverse-Engineered Documentation
-> **Purpose:** This document is the single authoritative reference for every AI tool, developer, or AI coding agent working on this project. Every file, every type, every Supabase table, every sync behavior, every component, and every design decision is documented here.
+## Jessie & Amor's Malaysia and Singapore Trip 2026
+### Current Codebase Reference
+
+> Purpose: this document is meant to give an AI a dense, at-a-glance map of the whole project.
+> It is intentionally oversized. It is not a marketing summary.
+> It should reflect the current code, not an old snapshot.
 
 ---
 
-## TABLE OF CONTENTS
+## Table of Contents
 
-1. [Project Identity & Purpose](#1-project-identity--purpose)
-2. [Tech Stack](#2-tech-stack)
-3. [File & Folder Structure](#3-file--folder-structure)
-4. [TypeScript Types (types.ts)](#4-typescript-types-typests)
-5. [Data Layer](#5-data-layer)
-6. [Supabase — Full Backend Documentation](#6-supabase--full-backend-documentation)
-7. [Offline Cache System](#7-offline-cache-system)
-8. [Exchange Rates](#8-exchange-rates)
-9. [Routing System](#9-routing-system)
-10. [App.tsx — Master Orchestrator](#10-apptsx--master-orchestrator)
-11. [Components — Full Reference](#11-components--full-reference)
-12. [PWA & Deployment](#12-pwa--deployment)
-13. [Design System & Styling](#13-design-system--styling)
-14. [State Management Summary](#14-state-management-summary)
-15. [Supabase Realtime — Full Channel Map](#15-supabase-realtime--full-channel-map)
-16. [Auth System](#16-auth-system)
-17. [Offline/Online Sync Logic — Deep Dive](#17-offlineonline-sync-logic--deep-dive)
-18. [Third-Party APIs & External Services](#18-third-party-apis--external-services)
-19. [Firebase (Unused/Remnant)](#19-firebase-unusedremnant)
-20. [Regression Test Script](#20-regression-test-script)
-21. [Known Patterns & Conventions](#21-known-patterns--conventions)
+1. [Project Identity](#1-project-identity)
+2. [Current Stack](#2-current-stack)
+3. [Repo Layout](#3-repo-layout)
+4. [Types and Data Model](#4-types-and-data-model)
+5. [Data Files](#5-data-files)
+6. [Supabase and Sync](#6-supabase-and-sync)
+7. [Offline Cache](#7-offline-cache)
+8. [App State and Routes](#8-app-state-and-routes)
+9. [Component Reference](#9-component-reference)
+10. [Map, Diary, Budget, Settings Behaviors](#10-map-diary-budget-settings-behaviors)
+11. [PWA and Deployment](#11-pwa-and-deployment)
+12. [Scripts and Verification](#12-scripts-and-verification)
+13. [External Services](#13-external-services)
+14. [Current Notes](#14-current-notes)
 
 ---
 
-## 1. Project Identity & Purpose
+## 1. Project Identity
 
-| Field | Value |
+This is a private travel planning app for two travelers:
+
+- Jessie Jay Q. Rubi
+- Rizza Amor L. Caguco
+
+The app is built around a fixed Malaysia and Singapore trip and is not a generic itinerary product. It mixes:
+
+- daily itinerary viewing
+- budget tracking
+- map pin management
+- notes and checklist management
+- travel diary entries with photos
+- auth-gated cloud sync
+- offline first local caching
+- PWA install support
+
+Current title and branding used in the UI:
+
+- App title: `J&A Malaysia and Singapore Trip 2026`
+- Trip key: `jessie-amor-malaysia-singapore`
+- Countdown target: July 11, 2026 00:00:00
+- Theme color: `#0B3530`
+- Background color: `#F8FAFC`
+
+The app is focused on the specific trip timeline and travel experience, so a lot of the content is hardcoded or preauthored in the repo rather than fetched from a CMS.
+
+---
+
+## 2. Current Stack
+
+| Layer | Current Choice |
 |---|---|
-| **App Name** | Jessie & Amor's Malaysia · Singapore Trip 2026 |
-| **Short Name** | Jessie & Amor |
-| **Trip Key** | `jessie-amor-malaysia-singapore` |
-| **Trip Dates** | July 11–16, 2026 (6 days) |
-| **Trip Countdown Target** | July 11, 2026 00:00:00 (day of departure) |
-| **Travelers** | Jessie Jay Q. Rubi (admin) + Rizza Amor L. Caguco |
-| **Page Title** | `J&A Malaysia · Singapore Trip 2026` |
-| **Footer Copyright** | `© 2026 Jessie & Amor. All rights reserved.` |
-| **Theme Color** | `#0B3530` (dark forest green) |
-| **Background Color (PWA)** | `#F8FAFC` |
+| Framework | React 19 |
+| Language | TypeScript |
+| Bundler | Vite 6 |
+| Styling | Tailwind CSS v4 via `@tailwindcss/vite` |
+| Animation | `motion` |
+| Icons | `lucide-react` |
+| Map | Leaflet |
+| Backend | Supabase |
+| PDF generation | `jspdf` |
+| PWA | `vite-plugin-pwa` |
+| CLI scripting | `tsx` |
+| Extra libs | `html2pdf.js`, `dotenv`, `express`, `@google/genai` |
 
-**What this app is:** A fully private, collaborative, real-time travel itinerary web app (installable as a PWA) built for two specific travelers. It is NOT a generic product — all data, destinations, costs, and notes are hardcoded for a Malaysia + Singapore trip. The app supports:
-- Viewing a 6-day structured daily itinerary with timeline (days 11-16)
-- Real-time collaborative budget tracking with cloud sync
-- Interactive map with custom pins (Leaflet)
-- Trip notes + checklist (shared, synced)
-- Travel diary with photo upload
-- Offline operation with localStorage fallback + sync-on-reconnect
+Main things to know:
 
----
-
-## 2. Tech Stack
-
-| Layer | Technology | Version |
-|---|---|---|
-| **Framework** | React | 19.0.1 |
-| **Language** | TypeScript | ~5.8.2 |
-| **Build Tool** | Vite | 6.2.3 |
-| **CSS** | Tailwind CSS v4 (Vite plugin) | 4.1.14 |
-| **Animation** | `motion` (Framer Motion successor) | 12.23.24 |
-| **Icons** | `lucide-react` | 0.546.0 |
-| **Icon Font** | Tabler Icons Webfont (CDN, for itinerary items) | latest |
-| **PDF Generation** | `jspdf` (jsPDF) | 2.5+ |
-| **Map** | Leaflet | 1.9.4 |
-| **Backend/Auth** | Supabase (`@supabase/supabase-js`) | 2.107.0 |
-| **Geocoding (Map)** | Nominatim (OpenStreetMap) | free API |
-| **Exchange Rates** | Frankfurter API (`api.frankfurter.dev`) | free API |
-| **PWA** | `vite-plugin-pwa` | 1.3.0 |
-| **Deployment** | Vercel | SPA rewrite config |
-| **Dev Scripts** | `tsx` (TypeScript runner) | 4.21.0 |
-| **AI/Gemini** | `@google/genai` (in deps, not actively used in UI) | 2.4.0 |
+- `@google/genai` is installed but not active in the UI.
+- `motion` is installed, but much of the visible motion still comes from Tailwind animation classes and component-level transitions.
+- The app uses a SPA routing model, not a server routing model.
+- The repo currently uses `react-example` as the package name in `package.json`, even though the app branding is Jessie and Amor themed.
 
 ---
 
-## 3. File & Folder Structure
+## 3. Repo Layout
 
-```
+### Root
+
+```text
 /
-├── index.html                     # SPA entry, favicon/apple-touch-icon, PWA manifest link, Tabler icon CDN
-├── vite.config.ts                 # Vite + React + Tailwind + PWA config
-├── vercel.json                    # SPA rewrites: all paths → /index.html
-├── package.json                   # Dependencies and scripts (includes jspdf + html2pdf.js)
-├── tsconfig.json                  # TypeScript config
-├── .env.local                     # REAL Supabase credentials (DO NOT COMMIT)
-├── .env.example                   # Template for env vars
-├── metadata.json                  # App name/description, Gemini capability flag
-├── SUPABASE_SETUP.md              # Full SQL setup guide for all tables + RLS
-├── jessieandamor-b3c10-firebase-adminsdk-*.json  # Firebase service account (REMNANT — NOT USED IN CODE)
-├── mobile Screen Cap.jpg          # Reference screenshot/artifact
-│
+├── index.html
+├── vite.config.ts
+├── vercel.json
+├── package.json
+├── tsconfig.json
+├── README.md
+├── SUPABASE_SETUP.md
+├── metadata.json
+├── .env.example
+├── .env.local
+├── src.zip
 ├── public/
-│   ├── favicon.png                # Browser favicon
-│   ├── apple-touch-icon.png       # iOS home-screen icon
-│   ├── icon-192.png               # PWA icon (192x192)
-│   ├── icon-512.png               # PWA icon (512x512, any+maskable)
-│   ├── day12-kl-skyline.png        # Day 12 image — KL skyline (956KB)
-│   ├── day13-batu-caves.png        # Day 13 image — Batu Caves (1.15MB)
-│   └── day13-saloma-bridge.png     # Day 13 image — Saloma Bridge (1MB)
-│
 ├── scripts/
-│   ├── gen-days.cjs                 # Day itinerary generator / export helper
-│   ├── migrate-map.sql              # Migration from old map blob table to per-row table
-│   ├── map-update.sql               # SQL migration for map destinations
-│   └── offline-sync-regression-check.ts  # Node regression tests for sync logic
-│
-└── src/
-    ├── main.tsx                   # React root mount
-    ├── App.tsx                    # Master orchestrator (83KB — entire app state)
-    ├── index.css                  # Global CSS + Tailwind + custom animations
-    ├── vite-env.d.ts              # Vite env type declarations
-    ├── types.ts                   # All shared TypeScript types
-    │
-    ├── assets/
-    │   └── images/
-    │       ├── malaysia_singapore_hero_019e9d4d.png   # Hero banner (2.5MB)
-    │       ├── batu_caves_1780754522244.png            # Day 13 image (1.15MB)
-    │       ├── kl_skyline_1780754501759.png            # KL skyline (956KB)
-    │       └── saloma_bridge_1780754540468.png         # Day 13 image (1MB)
-    │
-    ├── data/
-    │   ├── itinerary.ts           # Default DayPlan[], default Expense[], exchangeRates, initialNotes
-    │   ├── code1Itinerary.ts      # Rich itinerary data (~2980 lines) — all types + content for UI rendering
-    │   └── mapItinerary.ts        # MapDestination/MapDay types, MapDestinationRow, coordinate hints, helper functions
-    │
-    ├── lib/
-    │   ├── supabase.ts            # Supabase client init + table name exports + tripKey
-    │   ├── offlineCache.ts        # localStorage cache layer with dirty-flag tracking
-    │   └── exchangeRates.ts       # Live exchange rate fetch (Frankfurter API)
-    │
-    └── components/
-        ├── Navigation.tsx         # Top header + bottom nav + countdown + share/immigration doc modals + side drawer
-        ├── Hero.tsx               # Hero image card with metadata overlay
-        ├── Legend.tsx             # Color legend pills for itinerary categories
-        ├── DailyItineraryView.tsx # 6-day timeline view with timeline items
-        ├── BudgetSummaryHeader.tsx # Budget cards per day + live spend toggle
-        ├── AlertBox.tsx           # Amber alert box (booking reminders)
-        ├── TipCard.tsx            # Individual trip tip card
-        ├── BudgetTab.tsx          # Full budget CRUD with voice input + filter
-        ├── MapTab.tsx             # Leaflet map with custom pins + Nominatim geocoding
-        ├── NotesTab.tsx           # Notes + checklist tab
-        ├── DiaryTab.tsx           # Travel diary with photo upload
-        ├── AuthPanel.tsx          # OAuth sign-in modal (Google/GitHub/Facebook)
-        ├── DestinationInfoModal.tsx # Destination guide modal (transport, food, tips)
-        └── RichText.tsx           # Renders Segment[] (text/strong/place) with Google Maps links
+├── src/
+├── dist/
+├── dev-dist/
+└── assets/
+```
+
+### Current `src/`
+
+```text
+src/
+├── App.tsx
+├── main.tsx
+├── index.css
+├── types.ts
+├── vite-env.d.ts
+├── assets/
+│   ├── images/
+│   │   ├── malaysia_singapore_hero_019e9d4d.png
+│   │   ├── batu_caves_1780754522244.png
+│   │   ├── kl_skyline_1780754501759.png
+│   │   └── saloma_bridge_1780754540468.png
+│   └── app-icons/
+├── components/
+│   ├── AlertBox.tsx
+│   ├── AuthPanel.tsx
+│   ├── BudgetSummaryHeader.tsx
+│   ├── BudgetTab.tsx
+│   ├── DailyItineraryView.tsx
+│   ├── DestinationInfoModal.tsx
+│   ├── DiaryTab.tsx
+│   ├── Hero.tsx
+│   ├── Legend.tsx
+│   ├── MapTab.tsx
+│   ├── Navigation.tsx
+│   ├── NotesTab.tsx
+│   ├── RichText.tsx
+│   ├── SettingsModal.tsx
+│   └── TipCard.tsx
+├── data/
+│   ├── itinerary.ts
+│   ├── code1Itinerary.ts
+│   └── mapItinerary.ts
+└── lib/
+    ├── supabase.ts
+    ├── offlineCache.ts
+    └── exchangeRates.ts
+```
+
+### Current scripts
+
+```text
+scripts/
+├── gen-days.cjs
+├── map-update.sql
+├── migrate-map.sql
+├── new-days-output.txt
+└── offline-sync-regression-check.ts
 ```
 
 ---
 
-## 4. TypeScript Types (types.ts)
+## 4. Types and Data Model
 
-### Enums / Union Types
+The canonical shared types live in `src/types.ts`.
 
-```typescript
+### Current type unions
+
+```ts
 type ExpenseCategory = "Transport" | "Accommodation" | "Food" | "Sightseeing" | "Other";
 type PaymentMethod = "Cash" | "Debit" | "Credit Card";
-type ExpenseCurrency = "RM" | "PHP" | "SGD";
+type ExpenseCurrency = string;
 type SyncStatus = "synced" | "pending";
 type DiaryEntryType = "Food" | "Landmark" | "Hotel" | "Transport" | "Shopping" | "Moment" | "Other";
 type ItineraryItemType = "transport" | "accommodation" | "sightseeing" | "food" | "general";
 ```
 
-### Interfaces
+Important correction:
+
+- `ExpenseCurrency` is currently `string`, not a closed union.
+- That matters because the budget UI and live exchange-rate hook now support more than the old fixed list.
+
+### Current interfaces
 
 #### `Expense`
-```typescript
+
+```ts
 interface Expense {
-  id: string;             // Unique string ID (e.g. "e-1", UUID, or timestamp)
-  day: number;            // Trip day number: 12, 13, 14, or 15
+  id: string;
+  day: number;
   category: ExpenseCategory;
-  item: string;           // Description of the expense
-  amount: number;         // Amount in RM (Malaysian Ringgit, the base currency)
+  item: string;
+  amount: number;
   paidWith: PaymentMethod;
-  originalAmount?: number;       // If paid in non-RM currency
+  originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
-  createdBy?: string;            // Supabase user ID of creator
-  savedByUserId?: string;        // Redundant alias for createdBy
-  savedByEmail?: string;         // Email of creator
-  createdAt?: string;            // ISO datetime string
+  createdBy?: string;
+  savedByUserId?: string;
+  savedByEmail?: string;
+  createdAt?: string;
   syncStatus?: SyncStatus;
 }
 ```
 
+Notes:
+
+- `createdBy` and `savedByUserId` are both used in ownership logic.
+- `amount` is stored in RM as the base budget currency.
+
 #### `ItineraryItem`
-```typescript
+
+```ts
 interface ItineraryItem {
   id: string;
-  time: string;          // e.g. "08:00 AM"
+  time: string;
   title: string;
   type: ItineraryItemType;
   description: string;
   estimatedCost?: string;
-  costValue?: number;    // Numerical for calculations
-  isCreditCard?: boolean; // Excluded from cash budget
+  costValue?: number;
+  isCreditCard?: boolean;
   duration?: string;
-  location?: {
-    lat: number;
-    lng: number;
-    name: string;
-  };
+  location?: { lat: number; lng: number; name: string; };
   syncStatus?: SyncStatus;
 }
 ```
 
 #### `DayPlan`
-```typescript
+
+```ts
 interface DayPlan {
-  day: number;           // 12, 13, 14, 15
-  dateStr: string;       // e.g. "July 12"
+  day: number;
+  dateStr: string;
   title: string;
-  budgetRange: string;   // e.g. "RM 130–200"
+  budgetRange: string;
   costMin: number;
   costMax: number;
-  badge: string;         // e.g. "WALK-ONLY DAY"
+  badge: string;
   items: ItineraryItem[];
   images?: { title: string; url: string; label: string }[];
 }
 ```
 
 #### `TravelNote`
-```typescript
+
+```ts
 interface TravelNote {
   id: string;
   title: string;
@@ -239,7 +261,8 @@ interface TravelNote {
 ```
 
 #### `ChecklistItem`
-```typescript
+
+```ts
 interface ChecklistItem {
   id: string;
   text: string;
@@ -252,1130 +275,839 @@ interface ChecklistItem {
 ```
 
 #### `DiaryEntry`
-```typescript
+
+```ts
 interface DiaryEntry {
   id: string;
   title: string;
   description: string;
   type: DiaryEntryType;
-  rating: number;           // 1–5, decimals allowed (stored as 1 decimal place)
-  dateVisited: string;      // YYYY-MM-DD
+  rating: number;
+  dateVisited: string;
   locationName: string;
   cityOrCountry?: string;
   tags: string[];
   wouldRevisit: boolean;
-  photoPath?: string;       // Supabase Storage path: {tripKey}/{userId}/{entryId}-photo.jpg
-  photoUrl?: string;        // Signed URL (1hr TTL) or base64 data: URL (local, pending upload)
+  photoPath?: string;
+  photoUrl?: string;
   createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
-  createdAt: string;        // ISO datetime
+  createdAt: string;
   updatedAt?: string;
   syncStatus?: SyncStatus;
 }
 ```
 
-### Types from `code1Itinerary.ts`
+#### User settings
 
-```typescript
-type Category = 'train' | 'bus' | 'food' | 'spot' | 'hotel' | 'walk' | 'free';
-type TagVariant = 'train' | 'bus' | 'food' | 'walk' | 'spot' | 'hotel' | 'free';
-type Segment = TextSegment | StrongSegment | PlaceSegment;
-// TextSegment: { kind: 'text'; value: string }
-// StrongSegment: { kind: 'strong'; value: string }
-// PlaceSegment: { kind: 'place'; label: string; placeType?: string; mapQuery: string }
-type ItineraryId = 'main' | 'partner';
+The code now has first-class trip settings.
+
+```ts
+interface CurrentUserInfo {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+interface UserTripSettings {
+  id: string;
+  userId: string;
+  tripKey: string;
+  baseCurrency: string;
+  currencies: string[];
+  travelDates: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
 ```
 
-### Types from `mapItinerary.ts`
+The settings model is important because it now drives:
 
-```typescript
+- preferred display currencies
+- travel date expansion
+- day labels in the budget and map views
+
+### Settings row mapping
+
+`src/types.ts` also contains:
+
+```ts
+interface UserTripSettingsRow {
+  id: string;
+  user_id: string;
+  trip_key: string;
+  base_currency: string;
+  currencies: string[];
+  travel_dates: string[];
+  created_at?: string;
+  updated_at: string;
+}
+```
+
+Helper functions:
+
+- `settingsToRow(settings)`
+- `rowToSettings(row)`
+
+Those are used to translate between the app object shape and the Supabase row shape.
+
+### Map types
+
+`src/data/mapItinerary.ts` defines:
+
+```ts
 interface MapDestination {
-  id: string; name: string; lat: number; lng: number; time: string; notes: string;
-  createdBy?: string; savedByUserId?: string; savedByEmail?: string; syncStatus?: SyncStatus;
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  time: string;
+  notes: string;
+  createdBy?: string;
+  savedByUserId?: string;
+  savedByEmail?: string;
+  syncStatus?: SyncStatus;
 }
-interface MapDay { day: number; label: string; title: string; destinations: MapDestination[]; }
-interface MapItineraryData { version: number; updatedAt: string; days: MapDay[]; }
-interface MapDestinationRow {
-  id: string; trip_key: string; day: number; name: string; lat: number; lng: number;
-  time: string; notes: string; created_by: string | null; saved_by_user_id: string | null;
-  saved_by_email: string | null; created_at: string; updated_at: string;
-}
-```
 
-`MapDestination` is used for local state/display. `MapDestinationRow` maps directly to Supabase `trip_map_destinations` columns.
+interface MapDay {
+  day: number;
+  label: string;
+  title: string;
+  destinations: MapDestination[];
+}
+
+interface MapItineraryData {
+  version: number;
+  updatedAt: string;
+  days: MapDay[];
+}
+
+type MapDestinationRow = {
+  id: string;
+  trip_key: string;
+  day: number;
+  name: string;
+  lat: number;
+  lng: number;
+  time: string;
+  notes: string;
+  created_by: string | null;
+  saved_by_user_id: string | null;
+  saved_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+};
+```
 
 ---
 
-## 5. Data Layer
+## 5. Data Files
 
 ### `src/data/itinerary.ts`
-- **`exchangeRates`** — Static fallback: `{ php: 15.5807, sgd: 0.3228 }` (1 RM = these values)
-- **`defaultDayPlans`** — Array of 4 `DayPlan` objects for days 12–15 (legacy budget itinerary, separate from the 6-day visual itinerary in code1Itinerary.ts)
-- **`defaultExpenses`** — Array of 13 seed `Expense` objects (IDs: "e-1" to "e-13") covering all 4 days
-- **`initialNotes`** — 3 seed `TravelNote` objects (shared coffee rule, transport hack, bus booking tip)
 
-### `src/data/code1Itinerary.ts` (~2980 lines)
-This is the **rich visual data file**. It contains:
-- Full type definitions for the visual itinerary (separate from `types.ts`)
-- `GUIDE_KEYS` — 60 guide keys (typed enum) for destination-specific modal content
-- `FOOD_GUIDE_KEYS` — 11 food guide keys for food area guides
-- `buildGuideForItem(item)` — Function that returns a `DestinationGuide` object based on `guideKey`
-- `selectedItinerary` — The currently active itinerary plan (export from `ITINERARIES_BY_ID[DEFAULT_ITINERARY_ID]`)
-- Contains: hero data, legend items, budget summary cards, alert box, tip cards, 6 day sections (days 11–16, 64 items), footer text
-- Two itinerary plans exist: `'main'` and `'partner'` (switchable by changing `DEFAULT_ITINERARY_ID`)
+This file contains the older structured itinerary seed data and static fallback exchange rates.
+
+Current notable exports:
+
+- `exchangeRates`
+- `exchangeRate`
+- `defaultDayPlans`
+- `defaultExpenses`
+
+Current fallback rates in the file:
+
+- `1 RM = 15.1449 PHP`
+- `1 RM = 0.31601 SGD`
+
+The day plan seeds are still present here and cover the older budget itinerary structure.
+
+### `src/data/code1Itinerary.ts`
+
+This is the main visual itinerary bundle used by `App.tsx`.
+
+Current notable exports:
+
+- `Category`
+- `TagVariant`
+- `Segment`
+- `BudgetCard`
+- `LegendItem`
+- `TimelineItemData`
+- `DaySectionData`
+- `HeroData`
+- `TipCardData`
+- `AlertBoxData`
+- `FoodSuggestion`
+- `FoodGuide`
+- `DestinationGuide`
+- `GuideKey`
+- `FoodGuideKey`
+- `ItineraryId`
+- `ItineraryPlan`
+- `destinationGuides`
+- `selectedItinerary`
+- `itinerary`
+
+Important detail:
+
+- `selectedItinerary` is what `App.tsx` uses.
+- There are two itinerary plans in the file: `main` and `partner`.
+- The current app surfaces the selected itinerary's `hero`, `legend`, `days`, `budgetSummary`, `alert`, `tips`, and `footer`.
+- The itinerary covers days 11 to 16 in the current visual data.
 
 ### `src/data/mapItinerary.ts`
-- `MAP_ITINERARY_VERSION = 3` — Used to detect schema migrations
-- `coordinateHints` — Array of 53 `{ match: string[], coords }` objects for fuzzy name→lat/lng resolution
-- `resolveCoordinatesFromName(name)` — Looks up coordinates from hint list by string matching
-- `destinationToRow(dest, tripKey, day)` — Converts `MapDestination` to `MapDestinationRow` for Supabase upsert
-- `rowToDestination(row)` — Converts `MapDestinationRow` to `MapDestination` for local state
-- `groupDestinationsByDay(destinations, dayGetter?)` — Groups flat destination array into `MapDay[]`
-- `buildInitialMapItinerary()` — Returns pre-populated default map data (used as fallback when DB is empty)
+
+Current important exports:
+
+- `MAP_ITINERARY_VERSION`
+- `resolveCoordinatesFromName(name)`
+- `destinationToRow(dest, tripKey, day)`
+- `rowToDestination(row)`
+- `groupDestinationsByDay(destinations, dayGetter?)`
+- `buildInitialMapItinerary()`
+- `buildEmptyMapItinerary()`
+- `normalizeMapItinerary(raw)`
+
+The file does three jobs:
+
+- stores the map itinerary schema
+- converts between local map state and Supabase rows
+- resolves coordinates using fuzzy name matching and fallback coordinates
+
+Map itinerary labels currently cover days 11 through 16 and match the trip flow:
+
+- day 11: arrival day
+- day 12: Chinatown, KLCC and dinner
+- day 13: Batu Caves, Genting and Jalan Alor
+- day 14: Melaka day trip
+- day 15: KL to Singapore travel day
+- day 16: Singapore city day and departure
+
+Coordinate hints are hardcoded for the major points of interest, so the map can plot destinations even when a row does not yet have precise coordinates.
 
 ---
 
-## 6. Supabase — Full Backend Documentation
+## 6. Supabase and Sync
 
-### Connection
+The Supabase client lives in `src/lib/supabase.ts`.
 
-```typescript
-// src/lib/supabase.ts
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;   // "https://mmkbwzpualvspgxymgna.supabase.co"
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const supabase = hasSupabaseConfig ? createClient(supabaseUrl!, supabaseAnonKey!) : null;
+### Current exports
+
+```ts
+export const supabaseExpenseTable = VITE_SUPABASE_EXPENSES_TABLE || "budget_expenses";
+export const supabaseChecklistTable = VITE_SUPABASE_CHECKLIST_TABLE || "trip_checklist_items";
+export const supabaseMapTable = VITE_SUPABASE_MAP_TABLE || "trip_map_itineraries";
+export const supabaseMapDestinationsTable = VITE_SUPABASE_MAP_DESTINATIONS_TABLE || "trip_map_destinations";
+export const supabaseNotesTable = VITE_SUPABASE_NOTES_TABLE || "trip_scratch_notes";
+export const supabaseDiaryTable = VITE_SUPABASE_DIARY_TABLE || "trip_diary_entries";
+export const supabaseDiaryBucket = VITE_SUPABASE_DIARY_BUCKET || "trip-diary-photos";
+export const supabaseBudgetSettingsTable = VITE_SUPABASE_BUDGET_SETTINGS_TABLE || "trip_settings";
+export const supabaseSettingsTable = VITE_SUPABASE_SETTINGS_TABLE || "user_trip_settings";
+export const tripKey = VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
+export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
+export const supabase = hasSupabaseConfig ? createClient(...) : null;
 ```
-**The client is nullable.** All Supabase operations are guarded with `if (!supabase) return`.
 
-### Table Name Constants (configurable via env)
+### Current table set
 
-| Export | Default Table Name | env var |
-|---|---|---|
-| `supabaseExpenseTable` | `budget_expenses` | `VITE_SUPABASE_EXPENSES_TABLE` |
-| `supabaseChecklistTable` | `trip_checklist_items` | `VITE_SUPABASE_CHECKLIST_TABLE` |
-| `supabaseMapTable` | `trip_map_itineraries` (DEPRECATED) | `VITE_SUPABASE_MAP_TABLE` |
-| `supabaseMapDestinationsTable` | `trip_map_destinations` | `VITE_SUPABASE_MAP_DESTINATIONS_TABLE` |
-| `supabaseNotesTable` | `trip_scratch_notes` | `VITE_SUPABASE_NOTES_TABLE` |
-| `supabaseDiaryTable` | `trip_diary_entries` | `VITE_SUPABASE_DIARY_TABLE` |
-| `supabaseDiaryBucket` | `trip-diary-photos` | `VITE_SUPABASE_DIARY_BUCKET` |
-| `tripKey` | `jessie-amor-malaysia-singapore` | `VITE_TRIP_KEY` |
+| Purpose | Table or Bucket |
+|---|---|
+| Expenses | `budget_expenses` |
+| Checklist | `trip_checklist_items` |
+| Notes | `trip_scratch_notes` |
+| Diary | `trip_diary_entries` |
+| Map destinations | `trip_map_destinations` |
+| Legacy map itinerary table | `trip_map_itineraries` |
+| Per-user budget settings | `trip_settings` |
+| Per-user trip settings | `user_trip_settings` |
+| Diary photo storage | `trip-diary-photos` |
+
+### Important architecture detail
+
+- `supabase` is nullable.
+- Every feature checks `if (!supabase)` or equivalent before trying to read or write cloud data.
+- Offline and unauthenticated behavior still works from local cache and local state.
+
+### Realtime channels in `App.tsx`
+
+Current channel names:
+
+- `trip-sync-{tripKey}`
+- `trip-diary-sync-{tripKey}`
+- `trip-map-sync-{tripKey}` inside `MapTab`
+
+High-level behavior:
+
+- expenses, checklist, and notes are synced on the main trip channel
+- diary is synced on its own channel because it is auth-gated and photo-aware
+- map destinations have their own channel inside the map tab
+
+Dirty-guard behavior:
+
+- local pending state protects against realtime overwriting local edits
+- the app keeps `syncedSignature`, `dirty`, and `syncedIds` in local cache snapshots
+
+### Current sync model pattern
+
+The app uses a repeated pattern for each dataset:
+
+1. Read from localStorage cache on mount.
+2. Mark cached items as pending or synced depending on dirty state.
+3. Bootstrap from Supabase if online and authenticated.
+4. Merge remote rows with local pending state.
+5. Debounce writes to avoid thrashing.
+6. Ignore realtime events while local state is dirty.
+7. Persist updated cache snapshots back to localStorage.
+
+This pattern exists for:
+
+- expenses
+- checklist items
+- notes
+- diary entries
+- map data
+
+### Notes storage shape
+
+Notes are stored as one JSONB payload per trip row rather than one row per note. The app serializes the full `TravelNote[]` array on each update.
+
+### Diary storage shape
+
+Diary entries include photo support:
+
+- local photos are compressed to a data URL first
+- then uploaded to Supabase Storage
+- then replaced with a signed URL
+- then the row is upserted
 
 ---
 
-### Database Schema (Full SQL)
+## 7. Offline Cache
 
-#### Table: `budget_expenses`
-```sql
-create table public.budget_expenses (
-  id                  text primary key,
-  trip_key            text not null,          -- "jessie-amor-malaysia-singapore"
-  day                 integer not null,        -- 12, 13, 14, or 15
-  category            text not null,          -- ExpenseCategory union
-  item                text not null,          -- Description
-  amount              numeric not null,       -- In RM
-  paid_with           text not null,          -- "Cash" | "Debit" | "Credit Card"
-  original_amount     numeric,               -- Optional original amount in foreign currency
-  original_currency   text,                  -- "RM" | "PHP" | "SGD"
-  saved_by_user_id    text,                  -- Supabase auth.users.id
-  saved_by_email      text,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
-);
-create index budget_expenses_trip_key_idx on public.budget_expenses (trip_key);
-```
+`src/lib/offlineCache.ts` provides the local persistence layer.
 
-**RLS Policies:** All CRUD operations require `auth.role() = 'authenticated'`. No row-level ownership restriction — any authenticated user can read/edit any expense. However, the app logic only writes/modifies rows owned by the current user (unless `isAdmin = true`).
+### Current export surface
 
-#### Table: `trip_checklist_items`
-```sql
-create table public.trip_checklist_items (
-  id                  text primary key,
-  trip_key            text not null,
-  text                text not null,
-  completed           boolean not null default false,
-  saved_by_user_id    text,
-  saved_by_email      text,
-  updated_at          timestamptz not null default now()
-);
-create index trip_checklist_items_trip_key_idx on public.trip_checklist_items (trip_key);
-```
-
-**RLS Policies:** All CRUD requires `auth.role() = 'authenticated'`.
-
-#### Table: `trip_scratch_notes`
-```sql
-create table public.trip_scratch_notes (
-  trip_key            text primary key,       -- One row per trip (upserted by trip_key)
-  notes               jsonb not null,         -- Array of TravelNote objects (entire collection)
-  saved_by_user_id    text,
-  saved_by_email      text,
-  updated_at          timestamptz not null default now()
-);
-```
-
-**IMPORTANT:** This table stores all notes as a **single JSONB array** keyed by `trip_key`. It is NOT a row-per-note table. The entire notes array is serialized and stored as one record, then upserted on every change using `onConflict: "trip_key"`.
-
-**RLS Policies:** All CRUD requires `auth.role() = 'authenticated'`.
-
-#### Table: `trip_map_itineraries` (DEPRECATED — replaced by `trip_map_destinations`)
-```sql
--- OLD APPROACH: single JSONB blob per trip. No longer used in code.
-create table public.trip_map_itineraries (
-  trip_key            text primary key,
-  data                jsonb not null,
-  saved_by_user_id    text,
-  saved_by_email      text,
-  updated_at          timestamptz not null default now()
-);
-```
-
-#### Table: `trip_map_destinations` (CURRENT — per-destination rows)
-```sql
-create table public.trip_map_destinations (
-  id                text primary key,
-  trip_key          text not null,
-  day               integer not null,
-  name              text not null,
-  lat               numeric not null,
-  lng               numeric not null,
-  time              text not null default '09:00 AM',
-  notes             text not null default '',
-  created_by        text,
-  saved_by_user_id  text,
-  saved_by_email    text,
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
-);
-create index trip_map_destinations_trip_key_idx on public.trip_map_destinations (trip_key);
-create index trip_map_destinations_day_idx on public.trip_map_destinations (day);
-```
-
-**IMPORTANT:** Each destination is an **individual row**. Previously, the entire map (all days + all destinations) was stored as a single JSONB blob in `trip_map_itineraries`. Now, read/write/realtime operate on individual destination rows, matching the pattern used by `budget_expenses`, `trip_checklist_items`, and `trip_diary_entries`. Simultaneous edits to different destinations no longer conflict.
-
-#### Table: `trip_diary_entries`
-```sql
-create table public.trip_diary_entries (
-  id                  text primary key,
-  trip_key            text not null,
-  title               text not null,
-  description         text not null,
-  type                text not null,          -- DiaryEntryType
-  rating              integer not null check (rating between 1 and 5),  -- NOTE: stored as integer, app normalizes
-  date_visited        date,
-  location_name       text,
-  city_or_country     text,
-  tags                text[] not null default '{}',
-  would_revisit       boolean not null default false,
-  photo_path          text,                  -- Supabase Storage path
-  saved_by_user_id    text,
-  saved_by_email      text,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now()
-);
-create index trip_diary_entries_trip_key_idx on public.trip_diary_entries (trip_key);
-create index trip_diary_entries_type_idx on public.trip_diary_entries (type);
-create index trip_diary_entries_rating_idx on public.trip_diary_entries (rating);
-```
-
-**RLS Policies:** All CRUD requires `auth.role() = 'authenticated'`.
-
-#### Table: `user_profiles` (inferred from code — NOT in SUPABASE_SETUP.md)
-```sql
--- Referenced in App.tsx but SQL not included in setup guide
--- Must be created manually
-create table public.user_profiles (
-  id        text primary key,  -- matches auth.users.id
-  is_admin  boolean
-);
-```
-**Used to determine:** If current user is admin (`isAdmin = true`). Admin users can manage ALL expenses/diary/checklist entries regardless of ownership. Non-admins can only edit their own entries.
-
-#### Storage Bucket: `trip-diary-photos`
-```sql
-insert into storage.buckets (id, name, public)
-values ('trip-diary-photos', 'trip-diary-photos', false);
--- public = false → requires signed URLs
-```
-
-**Photo path format:** `{tripKey}/{userId}/{entryId}-photo.jpg`
-e.g. `jessie-amor-malaysia-singapore/abc-123/entry-001-photo.jpg`
-
-**Signed URL TTL:** 1 hour (`createSignedUrl(path, 60 * 60)`)
-
-**Storage RLS Policies:** All operations (select, insert, update, delete) on `storage.objects` require `bucket_id = 'trip-diary-photos'` AND `auth.role() = 'authenticated'`.
-
----
-
-### Supabase Queries — Full Reference
-
-#### Read: Expenses (bootstrap on load)
-```typescript
-supabase
-  .from("budget_expenses")
-  .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email, created_at")
-  .eq("trip_key", tripKey)
-  .order("day", { ascending: true })
-  .order("item", { ascending: true })
-```
-
-#### Read: Checklist (bootstrap on load)
-```typescript
-supabase
-  .from("trip_checklist_items")
-  .select("id, trip_key, text, completed, saved_by_user_id, saved_by_email")
-  .eq("trip_key", tripKey)
-  .order("id", { ascending: true })
-```
-
-#### Read: Notes (bootstrap on load)
-```typescript
-supabase
-  .from("trip_scratch_notes")
-  .select("trip_key, notes, saved_by_user_id, saved_by_email")
-  .eq("trip_key", tripKey)
-  .maybeSingle()    // returns null if no row exists, not an error
-```
-
-#### Read: Diary (bootstrap, session required)
-```typescript
-supabase
-  .from("trip_diary_entries")
-  .select("id, trip_key, title, description, type, rating, date_visited, location_name, city_or_country, tags, would_revisit, photo_path, saved_by_user_id, saved_by_email, created_at, updated_at")
-  .eq("trip_key", tripKey)
-  .order("created_at", { ascending: false })
-  .order("id", { ascending: false })
-```
-
-#### Read: User Profile (admin check)
-```typescript
-supabase
-  .from("user_profiles")
-  .select("is_admin")
-  .eq("id", session.user.id)
-  .maybeSingle()
-```
-
-#### Read: Map (in MapTab component — per-destination rows)
-```typescript
-supabase
-  .from("trip_map_destinations")
-  .select("*")
-  .eq("trip_key", tripKey)
-```
-
-#### Write: Expenses (upsert)
-```typescript
-supabase
-  .from("budget_expenses")
-  .upsert(payload, { onConflict: "id" })
-// payload: SupabaseExpenseRow[] with updated_at: new Date().toISOString()
-```
-
-#### Write: Expenses (delete removed IDs)
-```typescript
-supabase
-  .from("budget_expenses")
-  .delete()
-  .in("id", removedIds)
-```
-
-#### Write: Checklist (upsert)
-```typescript
-supabase
-  .from("trip_checklist_items")
-  .upsert(payload, { onConflict: "id" })
-```
-
-#### Write: Checklist (delete)
-```typescript
-supabase.from("trip_checklist_items").delete().in("id", removedIds)
-```
-
-#### Write: Notes (upsert — entire array)
-```typescript
-supabase
-  .from("trip_scratch_notes")
-  .upsert({ trip_key, notes: [...], saved_by_user_id, saved_by_email, updated_at }, { onConflict: "trip_key" })
-```
-
-#### Write: Diary (upsert)
-```typescript
-supabase
-  .from("trip_diary_entries")
-  .upsert(payload, { onConflict: "id" })
-// includes trip_key in each row
-```
-
-#### Write: Diary (delete entries)
-```typescript
-supabase.from("trip_diary_entries").delete().in("id", removedIds)
-```
-
-#### Write: Map (upsert — per destination)
-```typescript
-supabase
-  .from("trip_map_destinations")
-  .upsert(row, { onConflict: "id" })
-// row: MapDestinationRow — individual destination
-
-#### Write: Map (delete — per destination)
-```typescript
-supabase.from("trip_map_destinations").delete().eq("id", destinationId)
-```
-
-#### Storage: Upload diary photo
-```typescript
-supabase.storage
-  .from("trip-diary-photos")
-  .upload(photoPath, blob, { contentType: blob.type || "image/jpeg", upsert: true })
-```
-
-#### Storage: Create signed URL
-```typescript
-supabase.storage.from("trip-diary-photos").createSignedUrl(photoPath, 60 * 60)
-```
-
-#### Storage: Delete diary photos
-```typescript
-supabase.storage.from("trip-diary-photos").remove(photoPaths)
-```
-
----
-
-## 7. Offline Cache System
-
-**File:** `src/lib/offlineCache.ts`
-
-### Overview
-All 5 data types (expenses, checklist, notes, map, diary) are cached in `localStorage`. This allows the app to work fully offline and sync when the connection returns.
-
-### Cache Key Format
-```typescript
-makeOfflineCacheKey(tripKey, dataset)
-// Returns: "offline-cache:jessie-amor-malaysia-singapore:expenses"
-// Other keys: :checklist, :notes, :map, :diary
-```
-
-### Cache Schema
-```typescript
+```ts
 type CachedDataset<T> = {
-  data: T;                    // The actual data (array or object)
-  syncedSignature: string;    // JSON.stringify of last synced state (for change detection)
-  dirty: boolean;             // true = local changes not yet pushed to Supabase
-  syncedIds?: string[];       // IDs present at last successful sync (used to detect remote deletes)
+  data: T;
+  syncedSignature: string;
+  dirty: boolean;
+  syncedIds?: string[];
+};
+
+makeOfflineCacheKey(tripKey, dataset)
+readCachedDataset(key)
+writeCachedDataset(key, snapshot)
+useCachedDataset(key)
+useOnlineStatus()
+```
+
+### What it does
+
+- Stores serialized dataset snapshots in localStorage.
+- Keeps a `dirty` flag so the app knows whether local changes are pending sync.
+- Keeps `syncedSignature` so unchanged datasets do not keep re-syncing.
+- Keeps optional `syncedIds` to help detect deletions.
+- Emits a custom `offline-cache-update` event so multiple parts of the app can refresh in the same browser tab.
+
+This is one of the key reasons the app still works well when offline or when auth is not ready yet.
+
+---
+
+## 8. App State and Routes
+
+`src/App.tsx` is still the central orchestrator.
+
+### What App currently owns
+
+- auth session state
+- current user state
+- admin flag
+- route state
+- settings state
+- expenses
+- notes
+- checklist
+- diary entries
+- selected home day
+- selected destination guide
+- budget cap state
+- pull-to-refresh state
+- online/offline state
+- sync loading flags
+- realtime and cache snapshots
+
+### Current routes
+
+The router is client-side and path-driven.
+
+Current paths:
+
+- `/` main itinerary home
+- `/budget`
+- `/map`
+- `/notes`
+- `/diary`
+- `/account`
+- `/settings`
+
+### Home page coupling
+
+Two home-page widgets now share the same selected day:
+
+- `DailyItineraryView`
+- `BudgetSummaryHeader`
+
+That selected day is held in parent state as `selectedHomeDay`.
+
+### Budget page coupling
+
+The budget page now uses `userSettings.travelDates` when available, so the date chips and the expense form can stay in sync with the configured trip dates instead of assuming only a fixed July 12 to July 15 range.
+
+### Settings state
+
+The settings modal is now a first-class surface.
+
+Important behavior:
+
+- It expands a start and end date into a full `travelDates` array.
+- It writes per-user settings using the settings rows.
+- It controls base currency and up to two extra display currencies.
+- It is used both for first setup and for later editing.
+
+### Local budget cap
+
+`App.tsx` also keeps a local budget cap in PHP for the settings route.
+
+Important note:
+
+- this cap is separate from the trip settings rows
+- it is still shown in the `/settings` view as a local control
+
+---
+
+## 9. Component Reference
+
+### `Navigation.tsx`
+
+Current job:
+
+- top header
+- bottom nav
+- route switching
+- online status display
+- countdown
+- share modal
+- download modal
+- more drawer
+- print
+- immigration PDF generation via `jsPDF`
+
+Important details:
+
+- the countdown target is July 11, 2026
+- the nav includes Itinerary, Budget, Map, Notes, and Diary tabs
+- the more drawer exposes settings and account actions
+
+### `Hero.tsx`
+
+Renders the itinerary hero banner and the top visual entry point on the home route.
+
+### `Legend.tsx`
+
+Renders the color legend for the itinerary categories.
+
+### `DailyItineraryView.tsx`
+
+Renders the day-by-day itinerary timeline.
+
+Important:
+
+- receives `selectedMobileDay`
+- can notify the parent when the day changes
+
+### `BudgetSummaryHeader.tsx`
+
+Shows budget cards across configured travel dates.
+
+Current behavior:
+
+- can derive day labels from `userSettings.travelDates`
+- can fall back to the fixed July 12 to July 15 cards
+- shows target and calculated active spend together
+- formats values using live exchange rates
+
+### `AlertBox.tsx`
+
+Renders the itinerary alert callout.
+
+### `TipCard.tsx`
+
+Renders the individual trip tip cards.
+
+### `BudgetTab.tsx`
+
+Budget management surface with:
+
+- create expense
+- edit expense
+- delete expense
+- filter by category
+- filter by owner
+- voice input
+- day selection synced to configured travel dates
+- live exchange-rate display
+- budget cap alert handling
+
+The tab uses the currently selected `userSettings` if present, otherwise it falls back to default currencies and dates.
+
+### `MapTab.tsx`
+
+Current features:
+
+- Leaflet map rendering
+- custom destination pins
+- destination CRUD
+- Nominatim search and reverse geocoding
+- current user location tracking
+- day grouping
+- offline cache for map state
+- Supabase sync
+
+Important current behaviors:
+
+- visible day labels can be remapped from `userSettings.travelDates`
+- saved destination rows are not rewritten just because visible labels change
+- realtime updates are ignored when local map state is dirty
+
+### `NotesTab.tsx`
+
+Handles:
+
+- trip notes
+- checklist management
+- local and cloud sync
+
+### `DiaryTab.tsx`
+
+Handles:
+
+- travel diary entries
+- image compression before upload
+- reverse geocoding for location display
+- star ratings
+- tags
+- photo attachment workflow
+
+### `AuthPanel.tsx`
+
+OAuth sign-in modal for:
+
+- Google
+- GitHub
+- Facebook
+
+### `SettingsModal.tsx`
+
+Current first-class settings surface.
+
+It manages:
+
+- base currency
+- extra display currencies
+- start date
+- end date
+- expanded travel dates
+
+Important logic:
+
+- dates are expanded using UTC-safe parsing so day boundaries do not shift incorrectly
+- the modal can be used for first setup
+- the modal can also be reopened later from the app
+
+### `DestinationInfoModal.tsx`
+
+Shows destination-specific guidance pulled from itinerary guide data.
+
+### `RichText.tsx`
+
+Renders segment arrays used by itinerary content:
+
+- text
+- strong text
+- place links
+
+Place links point to Google Maps directions queries.
+
+---
+
+## 10. Map, Diary, Budget, Settings Behaviors
+
+This section captures the important current behavior without pretending the app is simpler than it is.
+
+### Budget summary and day selection
+
+- `DailyItineraryView` and `BudgetSummaryHeader` share one selected day on the home route.
+- `BudgetSummaryHeader` now derives its date pills from `userSettings.travelDates` when available.
+- If a configured travel date has no target card yet, the UI can still show a placeholder such as `No target set`.
+
+### Budget page date synchronization
+
+- the top expense form date selector and the lower transaction registry chips mirror each other
+- travel dates come from the user settings if available
+- the budget page can show days that have no transactions yet
+
+### Settings travel date expansion
+
+- start and end dates are expanded into a full inclusive list
+- the resulting dates are stored as `UserTripSettings.travelDates`
+- the code intentionally avoids the old UTC shift bug
+
+### Map label remapping
+
+- map destination rows stay in their saved form
+- visible labels can remap based on configured travel dates
+- this keeps the UI flexible without rewriting persisted rows
+
+### Mobile layout
+
+Current main mobile bottom padding in `App.tsx`:
+
+```css
+pb-[calc(6rem+env(safe-area-inset-bottom,0px))]
+```
+
+This is the current value in the app shell.
+
+### Auth-gated features
+
+Cloud sync and diary upload are auth-aware.
+
+Auth-related features include:
+
+- cloud writes
+- diary loading
+- diary realtime sync
+- photo upload
+- admin ownership checks
+
+### Current admin pattern
+
+`currentUser.isAdmin` is used to loosen ownership restrictions for some actions.
+
+General pattern:
+
+- authenticated users can read the shared trip data
+- ownership checks control edit/delete surface visibility
+- admins can override ownership in relevant places
+
+---
+
+## 11. PWA and Deployment
+
+### `vite.config.ts`
+
+Current Vite config includes:
+
+- React plugin
+- Tailwind Vite plugin
+- PWA plugin
+- alias `@` to the repo root
+- HMR behavior controlled by `DISABLE_HMR`
+
+### PWA manifest
+
+Current manifest settings include:
+
+- name: `Jessie & Amor's Malaysia Singapore`
+- short name: `Jessie & Amor`
+- theme color: `#0B3530`
+- background color: `#F8FAFC`
+- standalone display
+- app icons for 192 and 512
+
+### PWA assets included
+
+Current included assets include:
+
+- `favicon.png`
+- `apple-touch-icon.png`
+- `icon-192.png`
+- `icon-512.png`
+- `day12-kl-skyline.png`
+- `day13-batu-caves.png`
+- `day13-saloma-bridge.png`
+
+### Runtime caching
+
+Current PWA runtime caching includes:
+
+- Tabler icon font from jsDelivr
+- OpenStreetMap tiles
+
+### `index.html`
+
+Important current head metadata:
+
+- viewport meta with `viewport-fit=cover`
+- theme color meta
+- favicon link
+- apple touch icon link
+- manifest link
+- Tabler Icons CDN stylesheet
+
+### Deployment
+
+The project is configured as a SPA, so client routes should resolve to `index.html`.
+
+`vercel.json` contains rewrite behavior for this.
+
+---
+
+## 12. Scripts and Verification
+
+### package scripts
+
+Current scripts in `package.json`:
+
+```json
+{
+  "dev": "vite --port=3000 --host=0.0.0.0",
+  "build": "vite build",
+  "preview": "vite preview",
+  "clean": "rm -rf dist server.js",
+  "lint": "tsc --noEmit",
+  "test:offline-sync": "tsx scripts/offline-sync-regression-check.ts"
 }
 ```
 
-### Key Functions
-- `readCachedDataset<T>(key)` → `CachedDataset<T> | null` — Reads from localStorage
-- `writeCachedDataset<T>(key, snapshot)` — Writes to localStorage, dispatches custom `offline-cache-update` event
-- `useCachedDataset<T>(key)` — React hook: reads + listens to storage changes
-- `useOnlineStatus()` — React hook: tracks `navigator.onLine` via `online`/`offline` events
+### Regression script
 
-### Cross-tab Sync
-When `writeCachedDataset` is called:
-1. Writes to `localStorage`
-2. Dispatches `CustomEvent("offline-cache-update", { detail: { key } })`
+`scripts/offline-sync-regression-check.ts` is the current offline sync regression script.
 
-`useCachedDataset` listens to both `storage` events (cross-tab) and `offline-cache-update` events (same-tab), refreshing state when the relevant key changes.
+It covers:
 
----
+- merge behavior for pending local items vs remote items
+- deletion tracking
+- notes signature behavior
+- diary protection behavior
 
-## 8. Exchange Rates
+### Practical verification targets
 
-**File:** `src/lib/exchangeRates.ts`
+When checking this repo, the useful commands are:
 
-- **Live API base:** PHP
-- **API:** `https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD`
-- **Fallback rates (static):** `PHP: 15.5807`, `SGD: 0.3228` (from `itinerary.ts`)
-- **Fetch strategy:** `cache: "no-store"`, fires once on mount, updates React state
-- **Normalization:** API response is converted back into RM-normalized exchange values so stored expenses stay stable
-- **Source field:** `"live"`, `"cached"`, or `"fallback"`
-- **Format helper:** `formatLiveRateLabel(rates)` → `"RM 1 = PHP 15.58 | RM 1 = SGD 0.3228"`
-- Used in: `BudgetTab`, `BudgetSummaryHeader`, `App.tsx` settings page
+- `npm run lint`
+- `npm run test:offline-sync`
+- `npm run build`
 
 ---
 
-## 9. Routing System
+## 13. External Services
 
-**Router type:** Manual client-side routing using `window.history.pushState` + `popstate` event. **No React Router, no routing library.**
+### Supabase
 
-### Routes
+Used for:
 
-| Path | Component/View | Description |
-|---|---|---|
-| `/` | Itinerary tab | Hero + Legend + DailyItineraryView + BudgetSummaryHeader + AlertBox + Tips + Map promo |
-| `/budget` | `<BudgetTab>` | Expense tracking, add/delete, voice input, filters |
-| `/map` | `<MapTab>` | Leaflet interactive map with custom destinations |
-| `/notes` | `<NotesTab>` | Notes + checklist |
-| `/diary` | `<DiaryTab>` | Travel diary with photo upload |
-| `/settings` | Settings view (inline in App.tsx) | Budget cap configuration + exchange-rate reference |
-| `/account` | Mobile account card (inline in App.tsx) | User info, share, print, sign out (mobile only) |
+- auth
+- database rows
+- storage
+- realtime channels
 
-### Navigation Logic
-```typescript
-const navigateTo = (path: string) => {
-  if (path === activeRoute) return;
-  window.history.pushState({}, "", path);
-  setActiveRoute(routeFromPath(path));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+### Frankfurter exchange rates
+
+Current hook:
+
+- `src/lib/exchangeRates.ts`
+- `useLiveExchangeRates(additionalSymbols)`
+
+Behavior:
+
+- fetches live exchange rates from Frankfurter
+- stores a cached snapshot in localStorage
+- falls back to static rates if the request fails
+
+Current exchange-rate snapshot shape:
+
+```ts
+type ExchangeRates = {
+  rates: Record<string, number>;
+  php: number;
+  sgd: number;
+  updatedAt?: string;
+  source: "live" | "cached" | "fallback";
 };
-// popstate listener restores route on browser back/forward
 ```
 
-Vercel is configured to rewrite all paths to `/index.html` (`vercel.json`), enabling direct URL access.
+### Nominatim
+
+Used by the map and diary features for geocoding.
+
+- map search: forward geocoding
+- diary: reverse geocoding
+
+### Google Maps
+
+Used for place links in rich itinerary text.
+
+### jsDelivr Tabler icon font
+
+Used for the icon webfont loaded in the app shell.
 
 ---
 
-## 10. App.tsx — Master Orchestrator
+## 14. Current Notes
 
-App.tsx is the **single top-level component** (83KB). It owns ALL state and ALL Supabase interaction. Child components receive data + setters via props — there is no Context, no Redux, no Zustand.
+This section captures the current corrections that matter most when reading the code.
 
-### State Variables
+### Current architecture corrections
 
-| State | Type | Initial Value |
-|---|---|---|
-| `activeRoute` | `string` | from `window.location.pathname` |
-| `session` | `Session \| null` | `null` |
-| `authReady` | `boolean` | `!supabase` (true if no Supabase config) |
-| `showAuthModal` | `boolean` | `false` |
-| `authError` | `string` | `""` |
-| `isAdmin` | `boolean` | `false` |
-| `showLiveSpends` | `boolean` | `false` |
-| `selectedGuide` | `DestinationGuide \| null` | `null` |
-| `pullDistance` | `number` | `0` |
-| `isRefreshing` | `boolean` | `false` |
-| `showScrollTop` | `boolean` | `false` |
-| `budgetCapPhp` | `number` | `0` |
-| `expensesLoaded` | `boolean` | `!hasSupabaseConfig` |
-| `checklistLoaded` | `boolean` | `!hasSupabaseConfig` |
-| `notesLoaded` | `boolean` | `!hasSupabaseConfig` |
-| `diaryLoaded` | `boolean` | `!hasSupabaseConfig` |
-| `expenses` | `Expense[]` | from localStorage cache |
-| `notes` | `TravelNote[]` | from localStorage cache |
-| `checklist` | `ChecklistItem[]` | from localStorage cache |
-| `diaryEntries` | `DiaryEntry[]` | from localStorage cache |
-| `expenseSyncNonce` | `number` | `0` |
-| `checklistSyncNonce` | `number` | `0` |
-| `notesSyncNonce` | `number` | `0` |
-| `diarySyncNonce` | `number` | `0` |
+- `SettingsModal.tsx` is a first-class surface now.
+- `UserTripSettings` is part of the current shared model.
+- `src/lib/supabase.ts` exports `supabaseBudgetSettingsTable` and `supabaseSettingsTable`.
+- `ExpenseCurrency` is `string`.
+- `selectedHomeDay` is shared between the home itinerary and the budget summary.
 
-### Ref Variables (non-reactive, used for sync logic)
+### Budget UI corrections
 
-| Ref | Purpose |
-|---|---|
-| `expenseSignatureRef` | JSON signature of last synced expense state |
-| `checklistSignatureRef` | JSON signature of last synced checklist |
-| `notesSignatureRef` | JSON signature of last synced notes |
-| `diarySignatureRef` | JSON signature of last synced diary |
-| `expenseDirtyRef` | Is there a pending local expense change? |
-| `checklistDirtyRef` | Is there a pending local checklist change? |
-| `notesDirtyRef` | Is there a pending local notes change? |
-| `diaryDirtyRef` | Is there a pending local diary change? |
-| `expenseIdsRef` | IDs present at last sync (deletion detection) |
-| `checklistIdsRef` | IDs present at last sync |
-| `notesIdsRef` | IDs present at last sync |
-| `diaryIdsRef` | IDs present at last sync |
-| `diarySyncedEntriesRef` | Map of id→DiaryEntry at last sync (for realtime protection) |
-| `diaryPhotoRetryBlockRef` | Prevents infinite retry loops for failed photo uploads |
-| `expenseSyncInFlightRef` | Lock to prevent concurrent expense syncs |
-| `checklistSyncInFlightRef` | Lock for checklist |
-| `notesSyncInFlightRef` | Lock for notes |
-| `diarySyncInFlightRef` | Lock for diary |
-| `expenseSyncQueuedRef` | Queued retry for expenses |
-| `checklistSyncQueuedRef` | Queued retry for checklist |
-| `notesSyncQueuedRef` | Queued retry for notes |
-| `diarySyncQueuedRef` | Queued retry for diary |
-| `expenseSnapshotOwnerRef` | Tracks which user's snapshot is loaded (resets on user change) |
-| `checklistSnapshotOwnerRef` | Same for checklist |
-| `diarySnapshotOwnerRef` | Same for diary |
+- `BudgetSummaryHeader.tsx` now renders target and calculated active amounts in the same card.
+- It can render configured travel dates that do not yet have a target budget card.
+- `/budget` synchronizes the top date selector and the lower registry date chips.
+- `BudgetTab.tsx` builds day options from `userSettings.travelDates` when available.
 
-### Pull-to-Refresh
-- Trigger distance: 84px (`PULL_REFRESH_TRIGGER`)
-- Max pull distance: 108px (`PULL_REFRESH_MAX`)
-- Resistance multiplier: 0.55 (friction)
-- On release at threshold: `window.location.reload()` after 180ms
-- Touch resistance + transform: `translate3d(0, ${pullDistance * 0.28}px, 0)` on main content
-- Only active on mobile (`window.innerWidth < 768`) + at top of scroll
-- Pull indicator: floating pill with `RefreshCw` (rotating based on progress) or `Loader2` (on refresh)
+### Settings and date handling corrections
 
-### `currentUser` object
-```typescript
-type CurrentUserInfo = { userId: string; email: string; isAdmin: boolean; };
-// Derived from session: non-null only when session exists
-```
+- `SettingsModal.tsx` expands travel dates from the selected start and end dates.
+- The travel date expansion logic is UTC-safe.
+- `MapTab.tsx` remaps labels from `userSettings.travelDates` without rewriting saved destination rows.
 
-### Ownership Logic
-- **Expenses:** `createdBy` OR `savedByUserId` field
-- **Checklist:** `createdBy` OR `savedByUserId` field  
-- **Diary:** `createdBy` OR `savedByUserId` field
-- **Notes:** globally owned (anyone authenticated can edit all notes)
-- **Admin:** `isAdmin = true` → can read/write ALL entries regardless of owner
+### Map and mobile corrections
+
+- Map syncing is still separate from the main trip sync in `App.tsx`.
+- The current mobile app shell padding is `pb-[calc(6rem+env(safe-area-inset-bottom,0px))]`.
+
+### Current verification status in the repo
+
+- The repo includes a TypeScript no-emit lint script.
+- The repo includes an offline sync regression script.
 
 ---
 
-## 11. Components — Full Reference
+## Quick Mental Model
 
-### `Navigation.tsx`
-**Props:** `activeTab`, `setActiveTab`, `session`, `isOnline`, `onOpenAuth`, `onSignOut`, `metadata`, `expenses?`
+If you need the shortest possible current mental model of the app, use this:
 
-**Features:**
-- **Desktop header:** Dark forest green (`#0B3530`) with app title, online/offline dot indicator, Login/Logout button, Share, Download, Print buttons, desktop nav tabs (Itinerary/Budget/Map/Notes/Diary)
-- **Mobile header:** Compact dark header with title, online dot, Share + Download icon buttons
-- **Countdown timer:** Live countdown (updates every second) to July 11, 2026. Shows `{days} DAYS LEFT` + `HH:MM:SS`. Hides on scroll > 10px.
-- **Bottom nav (mobile):** 5 tabs: Itinerary (`CalendarDays`), Budget (`Wallet`), Map (`Map`), Notes (`NotebookText`), + "More" (`Menu`) → opens side drawer
-- **Side drawer (mobile):** Slides in from left, lists all 5 tabs including Diary, shows user avatar/initials + email + logout button at bottom. Dismissible via overlay click or Escape key.
-- **Share modal:** Shows QR code placeholder + URL copy button. Uses `navigator.share` if available.
-- **Download/Export modal:** Single option — **Immigration Document (PDF)**. Generates a formatted A4 document using jsPDF with travelers, flights, hotels, and daily itinerary. Opens new tab and auto-triggers print dialog for PDF download.
-- **Active tab indicator (desktop):** `border-b-2 border-[#7ec96b]` + `bg-white/12`
-- **Active tab indicator (mobile bottom nav):** Text + icon turn `text-[#7ec96b]`
-- **Connection dot:** `bg-emerald-400` (online) / `bg-red-500` (offline)
-
-### `Hero.tsx`
-**Props:** `hero: HeroData`
-
-- Full-width rounded image (`malaysia_singapore_hero_019e9d4d.png`) with gradient overlay
-- Floating white card (bottom-left) with: eyebrow text, title, subtitle, meta tags (badges), and a rich-text note
-- Hover: subtle scale on image (`group-hover:scale-[1.01]`)
-- Animation: `animate-in fade-in slide-in-from-bottom-4`
-
-### `Legend.tsx`
-**Props:** `items: LegendItem[]`
-
-- Horizontal scrollable row of pills (colored dot + label)
-- Each item: `{ label: string, color: string }` where color is a hex/css value
-
-### `DailyItineraryView.tsx`
-**Props:** `days: DaySectionData[]`, `onInfoClick?: (item) => void`
-
-- Renders 6 day sections (July 11–16) in vertical timeline layout
-- Each `TimelineItemData` is a card with: time, title, category badge (color-coded), description (`RichText`), tags, cost, optional image
-- Category badge colors: `train`=blue, `bus`=amber, `food`=rose, `spot`=violet, `hotel`=emerald, `walk`=stone, `free`=sky
-- "Info" button on each item triggers `onInfoClick` → opens `DestinationInfoModal`
-- Day section headers show the day number, date, title, and budgetLabel
-- Day 12 has KL skyline image, Day 13 has Batu Caves + Saloma Bridge images
-
-### `BudgetSummaryHeader.tsx`
-**Props:** `cards`, `expenses`, `showLiveSpends`, `setShowLiveSpends`, `exchangeRates`
-
-- Horizontal scrollable set of budget cards per day (Day 12–15) + one total card
-- Each card: label, RM budget range, PHP conversion
-- **Live Spends toggle:** When enabled, each day card shows actual expenses summed from `expenses` state (Cash + Debit only, Credit Card excluded)
-- Currency display: RM amount + PHP equivalent + SGD equivalent (calculated live)
-- Total card shows combined budget for all days
-
-### `BudgetTab.tsx`
-**Props:** `expenses`, `setExpenses`, `isSupabaseConnected`, `isOnline`, `canEdit`, `currentUser`, `exchangeRates`, `budgetCapPhp`
-
-**Features:**
-1. **Expense list** — Filterable by category, owner ("All" / "Mine"), and by day. Shows description, amount (RM + PHP conversion), payment method, sync status dot, who added it (email prefix or user ID prefix), delete button (own entries only, or admin)
-2. **Add expense form** — Fields: description (text), amount + currency selector (RM/PHP/SGD), day selector (12–15), category selector, payment method selector
-3. **Currency conversion on input** — If PHP or SGD entered, converts to RM using live exchange rates before storing
-4. **Voice input** — Uses `window.SpeechRecognition` / `webkitSpeechRecognition`. Parses natural language:
-   - Recognizes number words ("twenty", "fifty") → digits
-   - Recognizes currency aliases ("ringgit"→RM, "peso"→PHP, "sing dollar"→SGD)
-   - Recognizes payment aliases ("debit card"→Debit, "credit"→Credit Card)
-   - Recognizes category aliases ("grab"→Transport, "hotel"→Accommodation, etc.)
-   - Voice corrections: "egg dose" → "egg toast"
-5. **Sync status indicators:** Green dot (synced), amber dot (pending), spinner (syncing)
-6. **Filter controls:** Category dropdown + day dropdown
-7. **Summary row:** Total cash spend (RM + PHP), total credit card spend, budget-cap warning if configured
-
-### `MapTab.tsx`
-**Props:** `session`, `canEdit`, `isOnline`, `currentUser`
-
-**Uses:** Leaflet for map rendering, Nominatim for geocoding
-
-**Features:**
-1. **Leaflet map** — Centered on KL initially, shows numbered circular markers for all destinations
-2. **Days panel** — Left sidebar listing trip days with their destinations
-3. **Destination list** — Per-day list of pins, each showing name, time, notes, edit/delete buttons
-4. **Add destination form** — Fields: name (with autocomplete), time (30-min interval dropdown), notes, lat/lng (auto-filled from geocoding)
-5. **Nominatim geocoding** — As user types in name field, searches `https://nominatim.openstreetmap.org/search?q=...&format=json&limit=5`, shows dropdown suggestions, auto-fills lat/lng on selection
-6. **Coordinate hints** — ~55 hardcoded location hints (checked first before Nominatim)
-7. **"Locate me" button** — Uses `navigator.geolocation.getCurrentPosition()`, shows user on map
-8. **Marker icons** — Custom `L.divIcon` HTML: numbered circles, dark green when selected, white with border when unselected
-9. **Map popup** — Shows stop number, name, time, notes
-10. **Supabase sync** — Map destinations stored as individual rows in `trip_map_destinations`. Each add/update/delete syncs only the affected row (no more full-blob overwrites).
-11. **Offline cache** — Map data cached in localStorage under `offline-cache:{tripKey}:map` as `MapItineraryData` with per-destination `syncStatus`.
-12. **Realtime** — Subscribes to `trip-map-sync-{tripKey}` channel on `trip_map_destinations` table for per-row INSERT/UPDATE/DELETE events.
-13. **Route line** — Polyline connecting all destinations in a day in order
-
-### `NotesTab.tsx`
-**Props:** `notes`, `setNotes`, `checklist`, `setChecklist`, `isOnline`, `canEdit`, `currentUser`
-
-**Two sections:**
-
-**Notes section:**
-- List of `TravelNote` cards with title, content, category badge (Rule=red, Requirement=amber, General=blue)
-- Add form: title, content, category selector
-- Delete button (own notes or admin)
-- Sync status dot per note
-
-**Checklist section:**
-- List of `ChecklistItem` rows with checkbox toggle + text
-- Add form: text field + submit
-- Delete button (own items or admin)
-- Copy all checklist text to clipboard button
-- Sync status dot per item
-- Owner filter: `All` / `Mine`
-
-### `DiaryTab.tsx`
-**Props:** `diaryEntries`, `setDiaryEntries`, `isOnline`, `canEdit`, `currentUser`
-
-**Features:**
-1. **Diary list** — Cards showing: photo (thumbnail), title, type icon, date, location, rating (stars), tags, "Would revisit" badge
-2. **Search** — Filter by title/description/tags/location (client-side, case-insensitive)
-3. **Filter by type** — Dropdown: All + all DiaryEntryType values
-4. **Sort** — By date (default newest first) or by rating
-5. **Add/Edit form** — Fields: title, description, type, rating (1–5 star selector), date, location name, city/country, tags (comma-separated), would revisit toggle, photo upload
-6. **Photo handling:**
-   - User selects image file → compressed to max 1200px × 1200px, quality 0.82, as JPEG data URL
-   - Stored as `photoUrl` with `data:` prefix while pending upload
-   - On sync: `fetch(photoUrl)` → blob → `supabase.storage.upload()` → signed URL replaces data URL
-   - `isDiaryLocalPhotoUrl(photoUrl)` = `photoUrl.startsWith("data:")`
-7. **Image compression** — `compressImageFileToDataUrl(file)` uses `<canvas>` to resize/compress
-8. **Sync status** per entry: pending if `syncStatus === "pending"` OR has local data: URL photo
-9. **Owner filter** — `All` / `Mine` toggle for signed-in users
-
-### `AuthPanel.tsx`
-**Props:** `open`, `title`, `description`, `session`, `loading`, `errorMessage`, `onClose`, `onSignIn`, `onSignOut`, `isConfigured`
-
-- Modal overlay (z-index 5000, highest in the app)
-- Dark gradient header (`#0B3530` → `#18534C`)
-- Three OAuth provider buttons: Google (`G`), GitHub (`GH`), Facebook (`f`)
-- Shows current user email if signed in
-- Shows warning if Supabase not configured
-- Disabled state if `loading` or `!isConfigured`
-- Escape key closes modal
-
-### `DestinationInfoModal.tsx`
-**Props:** `guide: DestinationGuide | null`, `onClose`
-
-- Modal with guide for a specific itinerary item
-- Shows: title, summary, service/ticket info, transport steps (goHere/buyThis/tapHere/getOffHere/extra), food guide (nearby foods, suggested order, tips, price note), general steps, tips
-- Escape key + body overflow lock
-- Scroll within modal (`max-h-[88vh] overflow-y-auto`)
-
-### `AlertBox.tsx`
-**Props:** `alert: AlertBoxData`
-
-- Amber-colored info box with icon
-- `title` + `body` (Segment[] rendered via `RichText`)
-- Typically used for booking reminders (e.g. "Book Malacca buses in advance")
-
-### `TipCard.tsx`
-**Props:** `tip: TipCardData`
-
-- White card with emoji icon + description (Segment[] via RichText)
-
-### `RichText.tsx`
-**Props:** `segments: Segment[]`
-
-Renders an array of text segments:
-- `{ kind: "text", value }` → plain `<span>`
-- `{ kind: "strong", value }` → `<strong>`
-- `{ kind: "place", label, placeType?, mapQuery }` → styled `<a>` linking to Google Maps directions from "My Location" to `mapQuery`
+- `App.tsx` owns the shell, auth, routes, settings, budget cap, and synced datasets.
+- `code1Itinerary.ts` owns the main visual itinerary content.
+- `mapItinerary.ts` owns map schema, coordinate resolution, and map row conversion.
+- `types.ts` owns the current shared data contracts.
+- `supabase.ts` owns env-backed table names and the nullable client.
+- `offlineCache.ts` owns localStorage snapshot sync support.
+- `Navigation.tsx` owns the shell UI and trip-level actions.
+- `SettingsModal.tsx` is the current trip preferences surface.
+- `BudgetTab.tsx`, `MapTab.tsx`, `NotesTab.tsx`, and `DiaryTab.tsx` are the main workspace tabs.
 
 ---
 
-## 12. PWA & Deployment
-
-### PWA Configuration
-```javascript
-// vite.config.ts
-VitePWA({
-  registerType: "autoUpdate",
-  includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "day12-kl-skyline.png", "day13-batu-caves.png", "day13-saloma-bridge.png"],
-  workbox: {
-    runtimeCaching: [
-      { urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*tabler.*/i, handler: "CacheFirst" },
-      { urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i, handler: "StaleWhileRevalidate" }
-    ]
-  },
-  manifest: {
-    name: "Jessie & Amor's Malaysia Singapore",
-    short_name: "Jessie & Amor",
-    theme_color: "#0B3530",
-    background_color: "#F8FAFC",
-    display: "standalone",       // Hides browser chrome when installed
-    start_url: "/",
-    icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-    ]
-  }
-})
-```
-- **Auto-update:** Service worker registers itself and updates automatically
-- **Install prompt:** Standard browser install prompt (no custom prompt code)
-- **Offline:** Service worker caches app shell; data falls back to localStorage
-
-### Vercel Deployment
-```json
-{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
-```
-All routes (including `/budget`, `/map`, etc.) return `index.html` for client-side routing.
-
-### Build Scripts
-```bash
-npm run dev      # vite --port=3000 --host=0.0.0.0
-npm run build    # vite build
-npm run preview  # vite preview
-npm run lint     # tsc --noEmit
-npm run test:offline-sync  # tsx scripts/offline-sync-regression-check.ts
-```
-
-### `index.html` — Key Meta Tags
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0B3530">
-<link rel="icon" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-```
-- `viewport-fit=cover` + `env(safe-area-inset-*)` — handles iPhone notch/home bar
-- `maximum-scale=1, user-scalable=no` — prevents zoom on mobile
-- Tabler Icons are loaded as a webfont for itinerary icon rendering
-
----
-
-## 13. Design System & Styling
-
-### Color Palette
-
-| Token | Value | Usage |
-|---|---|---|
-| Primary dark | `#0B3530` | Nav background, buttons, headings |
-| Primary mid | `#18534C` | Button hover, header gradient |
-| Primary light | `#1a3328` | Mobile header |
-| Accent green | `#88B04B` | Active state, countdown, eyebrow text, underline |
-| Accent green light | `#7ec96b` | Countdown badge, active mobile nav |
-| Background | `bg-stone-50` | App background |
-| Footer | `#041D1A` | Footer background (darkest) |
-| Selection | `#88B04B/35` bg, `#0b3530` text | Browser text selection highlight |
-
-### Typography
-- **Headers/Display:** `font-serif` (browser default serif)
-- **Body/UI:** `font-sans` (browser default sans)
-- **Monospace/Labels:** `font-mono` (browser default mono)
-
-### Z-Index Stack (bottom to top)
-| z-index | Element |
-|---|---|
-| 50 | Share/Download modals |
-| 60 | DestinationInfoModal |
-| 1100 | Mobile top header |
-| 1200 | Bottom nav |
-| 1350 | Side drawer overlay |
-| 1600 | Pull-to-refresh indicator |
-| 5000 | AuthPanel |
-
-### Spacing & Layout
-- Max content width: `max-w-7xl` with `mx-auto`
-- Mobile padding: `px-4`
-- Desktop padding: `px-8`
-- Mobile bottom padding: `pb-[calc(8.5rem+env(safe-area-inset-bottom))]` (clears bottom nav + iPhone home bar)
-- Desktop top padding: none (nav is in document flow)
-- Mobile top padding: `pt-[112px]` (clears fixed mobile header)
-
-### Print Styles
-- `.no-print` class → `display: none` on print
-- Navigation, auth panel, hero section, tips, map promo are all hidden on print
-- Print shows: daily itinerary, budget summary, notes, checklist
-
-### Animations
-- `animate-in fade-in` — fade in on mount
-- `animate-in zoom-in` — modal appear
-- `slide-in-from-bottom-4` — hero card
-- `slide-in-from-left-12` — side drawer
-- `animate-spin` — loading spinner
-- `animate-spin-slow` — Compass icon on map promo (custom in `index.css`)
-- Pull-to-refresh: `cubic-bezier(0.16, 1, 0.3, 1)` spring easing
-
----
-
-## 14. State Management Summary
-
-**Pattern:** Prop-drilling from `App.tsx` down to all components. No context API, no global state library.
-
-```
-App.tsx (owns all state)
-├── expenses / setExpenses → BudgetTab
-├── notes / setNotes → NotesTab
-├── checklist / setChecklist → NotesTab
-├── diaryEntries / setDiaryEntries → DiaryTab
-├── session, isOnline → Navigation, BudgetTab, MapTab, NotesTab, DiaryTab, AuthPanel
-├── currentUser → BudgetTab, MapTab, NotesTab, DiaryTab
-├── exchangeRates → BudgetTab, BudgetSummaryHeader
-└── selectedGuide / setSelectedGuide → DestinationInfoModal
-```
-
-**Map state** is an exception — `MapTab` has its own internal state for the map itinerary, synced independently with its own Supabase channel (not through App.tsx).
-
----
-
-## 15. Supabase Realtime — Full Channel Map
-
-### Channel 1: `trip-sync-{tripKey}` = `trip-sync-jessie-amor-malaysia-singapore`
-**Subscribed when:** `authReady === true` AND `isOnline === true`
-
-| Table | Events | Filter | Behavior |
-|---|---|---|---|
-| `budget_expenses` | `*` (INSERT/UPDATE/DELETE) | `trip_key=eq.jessie-amor-malaysia-singapore` | If not dirty: merges/removes row in local state |
-| `trip_checklist_items` | `*` | `trip_key=eq.jessie-amor-malaysia-singapore` | If not dirty: merges/removes row |
-| `trip_scratch_notes` | `*` | `trip_key=eq.jessie-amor-malaysia-singapore` | If not dirty: replaces entire notes array |
-
-**Dirty guard:** If `expenseDirtyRef.current === true` (local unsync'd changes exist), realtime updates for expenses are **completely ignored** to prevent overwriting local work.
-
-### Channel 2: `trip-diary-sync-{tripKey}` = `trip-diary-sync-jessie-amor-malaysia-singapore`
-**Subscribed when:** `authReady === true` AND `isOnline === true` AND `session !== null` (diary requires login)
-
-| Table | Events | Filter | Behavior |
-|---|---|---|---|
-| `trip_diary_entries` | `*` | none (checked client-side) | Filters by `row.trip_key === tripKey`. For INSERT/UPDATE: hydrates photo URL, then merges. For DELETE: removes if not protected. |
-
-**Diary realtime protection — `isDiaryEntryProtectedFromRealtime(entry, syncedEntry)`:**
-An incoming realtime event is **ignored** for a specific entry if:
-1. Entry's `syncStatus === "pending"` (local unsaved changes), OR
-2. Entry has a local data URL photo (`photoUrl.startsWith("data:")`)
-3. The local entry differs from the last known synced version (content mismatch guard)
-
-This prevents overwriting local diary edits with stale realtime pushes.
-
-### Auth Token Setup for Realtime
-```typescript
-// On session load:
-supabase.realtime.setAuth(session?.access_token ?? "");
-// On auth state change:
-supabase.realtime.setAuth(nextSession?.access_token ?? "");
-```
-This is required for realtime channels to respect RLS policies.
-
-### Map Channel (inside MapTab.tsx — separate channel)
-**Channel:** `trip-map-sync-{tripKey}` = `trip-map-sync-jessie-amor-malaysia-singapore`
-
-MapTab manages its own realtime subscription internally (not via App.tsx), subscribing to `trip_map_destinations` table for per-row INSERT/UPDATE/DELETE events. Each event is applied individually to the local state. If `mapDirtyRef.current === true`, incoming realtime events are ignored.
-
----
-
-## 16. Auth System
-
-**Provider:** Supabase Auth with OAuth
-
-**Providers enabled:** Google, GitHub, Facebook
-
-**Flow:**
-1. User clicks Login → `showAuthModal = true` → `AuthPanel` opens
-2. User selects provider → `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin + pathname } })`
-3. Browser redirects to OAuth provider → callback returns to app URL
-4. `supabase.auth.getSession()` resolves the session on page load
-5. `supabase.auth.onAuthStateChange()` keeps session fresh
-6. On sign out: `supabase.auth.signOut()`
-
-**Session type:** `Session` from `@supabase/supabase-js`
-
-**User metadata fields used:**
-- `user.id` → `userId` in `currentUser`
-- `user.email` → `email` in `currentUser`
-- `user.user_metadata.full_name` or `.name` → display name in Navigation
-- `user.user_metadata.avatar_url` or `.picture` → avatar in Navigation sidebar
-- `user.email.split("@")[0]` → fallback display name
-
-**Admin check:** On session load, queries `user_profiles` table for `is_admin` flag. If `true`, user can CRUD all entries regardless of ownership.
-
-**Auth-gated features:**
-- Writing to Supabase (all sync operations require `session !== null`)
-- Diary tab data loading (requires session — diary is auth-only)
-- Diary realtime subscription (requires session)
-- Photo upload (requires `currentSavedBy` which requires session)
-
----
-
-## 17. Offline/Online Sync Logic — Deep Dive
-
-### Core Pattern (same for expenses, checklist, diary)
-1. **On mount:** Read from localStorage cache → initialize state with `syncStatus` = `"pending"` if cache was dirty, else `"synced"`
-2. **On first online + authReady:** Fetch remote data → `mergeBootstrapItems()` to reconcile
-3. **On state change:** `useEffect` watches state → computes signature → if different from last synced signature → mark dirty → debounced upsert after 300ms
-4. **On realtime event:** If NOT dirty → apply remote change immediately
-5. **On reconnect (isOnline changes):** Sync effects re-run because `isOnline` is in dependency arrays
-
-### `mergeBootstrapItems<T>(localItems, remoteItems, syncedIds)`
-Merge algorithm at bootstrap:
-- Items that exist locally with `syncStatus = "pending"` → keep local version (local wins)
-- Items that exist in both remote + local (synced) → use remote version
-- Items only in remote → add to merged
-- Items only in local (pending) → add to merged
-- Items in `syncedIds` but not in local → treated as deleted locally → excluded from merged
-
-### Signature-based Change Detection
-```typescript
-// Expenses: signature excludes updated_at to avoid spurious changes
-const expenseSignature = (expenses) =>
-  JSON.stringify(expenses.map(e => { const { updated_at, ...row } = expenseToRow(e); return row; }));
-```
-If `currentSignature === lastSignature` → no sync needed.
-
-### Sync Debounce
-All writes are debounced by 300ms using `window.setTimeout`. If state changes again during the 300ms, the timeout is cleared and restarted.
-
-### In-Flight Lock Pattern
-```
-if (syncInFlight) { queue = true; return; }
-syncInFlight = true;
-// ... do sync ...
-syncInFlight = false;
-if (queue) { queue = false; triggerNonce++; }  // re-triggers the effect
-```
-
-### Notes Special Case
-Notes are stored as a SINGLE JSONB blob. The entire `TravelNote[]` array is serialized and sent as one Supabase row every time any note changes. There is no per-note upsert.
-
-### Photo Upload Flow (Diary)
-```
-1. User picks photo → compress → store as data: URL in state (syncStatus = "pending")
-2. Sync effect fires → detects data: URL → isDiaryLocalPhotoUrl = true
-3. fetch(photoUrl) → blob → supabase.storage.upload(photoPath, blob, { upsert: true })
-4. createSignedUrl(photoPath) → signedUrl
-5. Update entry: photoPath = resolved path, photoUrl = signedUrl, syncStatus = "synced"
-6. Upsert diary row to Supabase
-```
-
----
-
-## 18. Third-Party APIs & External Services
-
-| Service | URL | Usage | Auth |
-|---|---|---|---|
-| Supabase | `https://mmkbwzpualvspgxymgna.supabase.co` | Database + Auth + Storage + Realtime | Anon key |
-| Frankfurter (Exchange Rates) | `https://api.frankfurter.dev/v1/latest?base=PHP&symbols=MYR,SGD` | Live PHP-base rates, normalized back to RM-based app values | None (free) |
-| Nominatim (Geocoding) | `https://nominatim.openstreetmap.org/search` | Map pin geocoding (place name → lat/lng) | None (User-Agent required) |
-| Google Maps | `https://www.google.com/maps/dir/?api=1&...` | Links in RichText `<PlaceSegment>` | None (just links) |
-| Tabler Icons CDN | `https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css` | Icon webfont for itinerary | None |
-| Google Genai (not active) | n/a | Package installed (`@google/genai`) but not used in current UI code | Would need GEMINI_API_KEY |
-
----
-
-## 19. Firebase (Unused/Remnant)
-
-The file `jessieandamor-b3c10-firebase-adminsdk-fbsvc-c8a892818d.json` is a Firebase Admin SDK service account credential file for project `jessieandamor-b3c10`. 
-
-**This file is NOT used anywhere in the codebase.** No Firebase SDK is installed, no Firebase imports exist. This is a leftover artifact, likely from an earlier iteration or planning phase.
-
-> ⚠️ **Security Note:** This file contains a real private key. It should be removed from the repository and added to `.gitignore`. The key should be revoked in the Firebase console.
-
----
-
-## 20. Regression Test Script
-
-**File:** `scripts/offline-sync-regression-check.ts`
-**Run via:** `npm run test:offline-sync` (uses `tsx`)
-
-Tests the offline sync merge logic (checklist, notes, diary) using an in-memory `Map` as a localStorage substitute. Covers scenarios like:
-- Merging local pending changes with remote data
-- Deletion detection via `syncedIds`
-- Notes signature comparison
-- Diary entry protection rules (pending status, local photo URL)
-
-The test uses Node's `assert/strict` module. No test framework (Jest/Vitest) is used.
-
----
-
-## 21. Known Patterns & Conventions
-
-### ID Generation
-- Expenses: `"e-" + Date.now()` or similar
-- Notes: `"note-" + Date.now()`
-- Checklist: timestamp-based string
-- Diary: UUID or timestamp
-- Map destinations: timestamp-based
-
-### `createdBy` vs `savedByUserId` Redundancy
-Both fields exist because the data model evolved. The app checks `createdBy ?? savedByUserId` in all ownership lookups. Both fields are set to the same value (`currentUser.userId`) on creation.
-
-### Sync Status Dot Display Convention
-- 🟢 Green (`bg-emerald-500`) = `"synced"`
-- 🟡 Amber (`bg-amber-500`) = `"pending"` or `"dirty"` or `"unsynced"`
-- ⚫ Slate (`bg-slate-500`) = `"syncing"` (in-progress)
-
-### `canEdit` Prop Pattern
-Most tab components receive `canEdit: Boolean(session)`. Any add/delete/edit operation inside a component is gated on `if (!canEdit) return`. This prevents mutations when not logged in.
-
-### `currentUser.isAdmin` Usage
-Admin flag: if `true`, user sees and can delete ALL entries. If `false`, user can only see their own entries' delete buttons. Read access is always global (all expenses/checklist/notes visible to all authenticated users).
-
-### `no-print` CSS Class
-Applied to navigation, hero, tip cards, map promo block, auth panels — hides them in print/PDF export. Core itinerary content (day plans, budget, notes) is print-friendly.
-
-### Tailwind v4 Note
-This project uses Tailwind CSS v4 which uses the `@tailwindcss/vite` Vite plugin instead of `postcss`. There is no `tailwind.config.js` file. All custom animations are in `src/index.css`.
-
-### `motion` Library
-`motion` (v12, the rebranded Framer Motion) is installed but usage appears limited. Most animations use Tailwind's `animate-in` utility classes (from `tailwindcss-animate` or similar plugin baked into Tailwind v4).
-
----
-
-## APPENDIX: Environment Variables Reference
-
-```bash
-# Required for Supabase features (auth, sync, storage)
-VITE_SUPABASE_URL="https://mmkbwzpualvspgxymgna.supabase.co"
-VITE_SUPABASE_ANON_KEY="sb_publishable_2_4KxEW5GhFn1eiW6E_2YA_lK5Cxg3b"
-
-# Optional — defaults shown
-VITE_SUPABASE_EXPENSES_TABLE="budget_expenses"
-VITE_SUPABASE_CHECKLIST_TABLE="trip_checklist_items"
-VITE_SUPABASE_MAP_TABLE="trip_map_itineraries"
-VITE_SUPABASE_MAP_DESTINATIONS_TABLE="trip_map_destinations"
-VITE_SUPABASE_NOTES_TABLE="trip_scratch_notes"
-VITE_SUPABASE_DIARY_TABLE="trip_diary_entries"
-VITE_SUPABASE_DIARY_BUCKET="trip-diary-photos"
-VITE_TRIP_KEY="jessie-amor-malaysia-singapore"
-
-# For Gemini AI (package installed, feature not active)
-GEMINI_API_KEY="..."
-APP_URL="https://your-deployed-url.vercel.app"
-```
-
----
-
-*End of MASTER_PROJECT_OVERVIEW.md — Generated by reverse-engineering assets.zip*
-## AUDIT UPDATE: June 9, 2026
-
-This section supersedes older statements above where they conflict with current code.
-
-### Current Architecture Corrections
-
-- `src/components/SettingsModal.tsx` is now a first-class settings surface.
-- Per-user trip preferences are stored through `UserTripSettings` in `src/types.ts`.
-- `src/lib/supabase.ts` now exports both `supabaseBudgetSettingsTable` (`trip_settings`) and `supabaseSettingsTable` (`user_trip_settings`).
-- `ExpenseCurrency` is currently typed as `string`, not a fixed `"RM" | "PHP" | "SGD"` union.
-
-### Budget UI Corrections
-
-- `BudgetSummaryHeader.tsx` no longer uses a live-spend toggle in practice. It renders `Target` and `Calculated Active` together in the same card.
-- Home-page mobile date selection is now shared between `DailyItineraryView` and `BudgetSummaryHeader` through parent state in `App.tsx` (`selectedHomeDay`).
-- `/budget` mobile date behavior is also synchronized: the top expense-form `Date` selector and the lower transaction-registry date chips update each other.
-- `BudgetTab.tsx` builds active day options from `userSettings.travelDates` when available, rather than assuming only July 12-15.
-- Transaction registry date chips in `/budget` now come from configured travel dates, so dates like July 16 appear even when no transactions exist yet.
-- `BudgetSummaryHeader.tsx` can render configured travel dates that do not yet have a target budget card by showing a placeholder such as `No target set`.
-
-### Settings and Date Handling Corrections
-
-- `SettingsModal.tsx` expands travel dates from the selected start and end dates and writes them to `UserTripSettings.travelDates`.
-- Travel date expansion was updated to avoid the off-by-one UTC/date-shift issue seen in earlier builds.
-- `MapTab.tsx` remaps visible day labels from `userSettings.travelDates` without rewriting saved destination rows.
-
-### Mobile Layout Correction
-
-- The main mobile bottom padding in `App.tsx` is currently `pb-[calc(6rem+env(safe-area-inset-bottom,0px))]`.
-
-### Verification Status
-
-- `npx tsc --noEmit` passes.
-- `npm run test:offline-sync` passes.
-
-*Last updated: June 9, 2026 (audit refresh applied)*
+*Last updated after a code cross-check against the current repo tree and source files.*
