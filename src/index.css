@@ -838,3 +838,9 @@ textarea::placeholder {
     padding: 0 !important;
   }
 }
+
+@supports (-webkit-touch-callout: none) {
+  body {
+    height: -webkit-fill-available;
+  }
+}

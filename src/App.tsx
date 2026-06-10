@@ -1764,6 +1764,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (showNav) {
+      requestAnimationFrame(() => {
+        const body = document.body;
+        const scrollY = window.scrollY;
+        body.style.minHeight = "calc(100vh + 1px)";
+        void body.offsetHeight;
+        body.style.minHeight = "";
+        window.scrollTo(0, scrollY);
+      });
+    }
+  }, [showNav]);
+
+  useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -2318,7 +2331,7 @@ export default function App() {
               <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/" ? "bg-white/18" : "bg-white/8"}`}>
                 <CalendarDays size={16} />
               </span>
-              <span>Itinerary</span>
+              <span>Itinerary1</span>
             </button>
             <button
               onClick={() => navigateTo("/budget")}

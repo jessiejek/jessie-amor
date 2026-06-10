@@ -83,7 +83,7 @@ type NavTab = {
 };
 
 const navItems: NavTab[] = [
-  { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true },
+  { label: "Itinerary2", path: "/", icon: CalendarDays, showInBottom: true },
   { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true },
   { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true },
