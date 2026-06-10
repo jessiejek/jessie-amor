@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   CalendarDays,
   Copy,
@@ -159,13 +159,17 @@ export default function Navigation({
   }, [showMoreDrawer]);
 
   const [showCountdown, setShowCountdown] = useState(true);
-  const lastScrollY = useRef(0);
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setShowCountdown(currentScrollY < 10);
-      lastScrollY.current = currentScrollY;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setShowCountdown(window.scrollY < 10);
+        ticking = false;
+      });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -415,7 +419,7 @@ export default function Navigation({
           </div>
         </div>
 
-        <div className="hidden bg-[#0B3530] text-stone-100 shadow-md md:block">
+        <div className="hidden bg-[#0B3530] text-stone-100 shadow-md md:block sticky top-0 z-[1100]">
           <div className="mx-auto max-w-7xl px-6 py-3">
             <div className="flex items-center justify-between gap-4 pb-3">
               <div className="min-w-0">
@@ -479,7 +483,7 @@ export default function Navigation({
 
             <div className="border-t border-white/8" />
 
-            <div className="flex items-center justify-between gap-4 pt-2.5 pb-[10px]">
+            <div className="flex items-center gap-2 whitespace-nowrap pt-2.5 pb-[10px]">
               <nav className="flex items-center gap-2 whitespace-nowrap">
                 {desktopNavItems.map((tab) => (
                   <button
@@ -495,7 +499,15 @@ export default function Navigation({
                   </button>
                 ))}
               </nav>
+            </div>
 
+            <div
+              className={`overflow-hidden transition-all duration-300 pb-[10px] ${
+                showCountdown && (shouldShowCountdown || shouldShowHolidayBanner)
+                  ? "max-h-[60px] opacity-100"
+                  : "max-h-0 pb-0 opacity-0"
+              }`}
+            >
               {shouldShowHolidayBanner ? (
                 <div className="rounded-[20px] border border-amber-300/30 bg-gradient-to-r from-amber-200/15 via-lime-300/10 to-emerald-300/15 px-[16px] py-[8px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/75">Holiday mode</div>

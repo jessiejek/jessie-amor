@@ -2071,7 +2071,7 @@ export default function App() {
           expenses={expenses}
         />
 
-        <div className="flex-1 min-h-0 pt-[112px] md:pt-0">
+        <div className="flex-1 min-h-0 pt-[112px] md:pt-[128px]">
           <main
             className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0"
             style={pullDistance > 0 ? {
