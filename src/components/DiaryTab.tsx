@@ -5,6 +5,7 @@ import {
   Camera,
   CloudUpload,
   Image as ImageIcon,
+  LoaderCircle,
   MapPin,
   PencilLine,
   Plus,
@@ -135,6 +136,51 @@ const formatDateLabel = (value: string) => {
     day: "numeric",
     year: "numeric",
   });
+};
+
+const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
+
+const formatNominatimDisplayName = (displayName: string) =>
+  displayName
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(", ");
+
+const formatNominatimCountryOrCity = (address: Record<string, string | undefined>) => {
+  const cityOrRegion = address.city || address.town || address.state;
+  const country = address.country;
+
+  if (cityOrRegion && country) return `${cityOrRegion}, ${country}`;
+  return cityOrRegion || country || "";
+};
+
+const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
+  const url = `${NOMINATIM_REVERSE_URL}?lat=${encodeURIComponent(String(latitude))}&lon=${encodeURIComponent(String(longitude))}&format=json&addressdetails=1`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "TravelItineraryApp/1.0",
+    } as HeadersInit,
+  });
+
+  if (!response.ok) {
+    throw new Error("The location lookup service returned an unexpected response.");
+  }
+
+  const payload = (await response.json()) as {
+    display_name?: string;
+    address?: Record<string, string | undefined>;
+  };
+
+  if (!payload.display_name) {
+    throw new Error("The location lookup service did not return a usable address.");
+  }
+
+  return {
+    locationName: formatNominatimDisplayName(payload.display_name),
+    cityOrCountry: formatNominatimCountryOrCity(payload.address ?? {}),
+  };
 };
 
 const formatTimestamp = (value: string) => {
@@ -327,6 +373,8 @@ export default function DiaryTab({
   const [filterRating, setFilterRating] = useState<string>("All");
   const [ownerFilter, setOwnerFilter] = useState<"all" | "mine">("mine");
   const [photoError, setPhotoError] = useState("");
+  const [locationLookupError, setLocationLookupError] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const ratingTrackRef = useRef<HTMLDivElement | null>(null);
@@ -431,6 +479,7 @@ export default function DiaryTab({
     setEditingId(null);
     setForm(createEmptyForm());
     setPhotoError("");
+    setLocationLookupError("");
   };
 
   const focusForm = () => {
@@ -462,10 +511,62 @@ export default function DiaryTab({
     }
   };
 
+  const handleLocateMe = () => {
+    if (!canEdit || isLocating) return;
+
+    const geolocation = navigator.geolocation;
+    if (!geolocation) {
+      setLocationLookupError("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+    if (!window.isSecureContext && !isLocalhost) {
+      setLocationLookupError("Location requires HTTPS or localhost.");
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationLookupError("");
+
+    geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const located = await reverseGeocodeLocation(position.coords.latitude, position.coords.longitude);
+          setForm((current) => ({
+            ...current,
+            locationName: located.locationName,
+            cityOrCountry: located.cityOrCountry,
+          }));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "The location lookup failed.";
+          setLocationLookupError(message);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location access was denied. Please allow location permissions and try again."
+            : "Unable to get your current location right now.";
+        setLocationLookupError(message);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    );
+  };
+
   const startEdit = (entry: DiaryEntry) => {
     if (!canManageEntry(entry)) return;
     setEditingId(entry.id);
     setPhotoError("");
+    setLocationLookupError("");
     setForm({
       title: entry.title,
       description: entry.description,
@@ -697,8 +798,23 @@ export default function DiaryTab({
               />
             </label>
 
-            <label>
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Location name</span>
+            <div className="md:col-span-2">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <span className="block text-[12px] font-semibold text-stone-600">Location name</span>
+                <button
+                  type="button"
+                  onClick={handleLocateMe}
+                  disabled={!canEdit || isLocating}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                    canEdit && !isLocating
+                      ? "bg-[#0b3b34] text-white hover:bg-[#062d27]"
+                      : "cursor-not-allowed bg-stone-100 text-stone-400"
+                  }`}
+                >
+                  {isLocating ? <LoaderCircle size={14} className="animate-spin" /> : <MapPin size={14} />}
+                  {isLocating ? "Locating..." : "Locate Me"}
+                </button>
+              </div>
               <input
                 type="text"
                 value={form.locationName}
@@ -709,7 +825,7 @@ export default function DiaryTab({
                 maxLength={120}
                 required
               />
-            </label>
+            </div>
 
             <label className="md:col-span-2">
               <span className="mb-1 block text-[12px] font-semibold text-stone-600">Country or city</span>
@@ -723,6 +839,8 @@ export default function DiaryTab({
                 maxLength={80}
               />
             </label>
+
+            {locationLookupError && <p className="md:col-span-2 -mt-1 text-[12px] text-rose-600">{locationLookupError}</p>}
 
             <div className="md:col-span-2">
               <span className="mb-1 block text-[12px] font-semibold text-stone-600">Rating</span>

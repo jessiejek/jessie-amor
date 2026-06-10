@@ -28,6 +28,7 @@ const TRAVELER_1 = "Jessie Jay Q. Rubi";
 const TRAVELER_2 = "Rizza Amor L. Caguco";
 const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0);
 const HEADER_TITLE = "J&A Malaysia · Singapore Trip 2026";
+const HOLIDAY_DISPLAY_DATE = { year: 2026, month: 6, day: 11 };
 
 type CountdownState = {
   days: number;
@@ -46,6 +47,17 @@ const getCountdownState = (): CountdownState => {
     minutes: Math.floor((totalSeconds % 3600) / 60),
     seconds: totalSeconds % 60,
   };
+};
+
+const isHolidayDisplayDate = (date: Date) =>
+  date.getFullYear() === HOLIDAY_DISPLAY_DATE.year &&
+  date.getMonth() === HOLIDAY_DISPLAY_DATE.month &&
+  date.getDate() === HOLIDAY_DISPLAY_DATE.day;
+
+const getNextLocalMidnightDelay = () => {
+  const now = new Date();
+  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return Math.max(1000, nextMidnight.getTime() - now.getTime());
 };
 
 interface NavigationProps {
@@ -94,13 +106,35 @@ export default function Navigation({
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState<CountdownState>(() => getCountdownState());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
 
   useEffect(() => {
-    const updateCountdown = () => setCountdown(getCountdownState());
-    updateCountdown();
-    const interval = window.setInterval(updateCountdown, 1000);
+    const updateCountdown = () => {
+      const nextCountdown = getCountdownState();
+      setCountdown(nextCountdown);
+      return nextCountdown.days === 0 && nextCountdown.hours === 0 && nextCountdown.minutes === 0 && nextCountdown.seconds === 0;
+    };
+
+    if (updateCountdown()) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (updateCountdown()) {
+        window.clearInterval(interval);
+      }
+    }, 1000);
+
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setCurrentDate(new Date());
+    }, getNextLocalMidnightDelay());
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentDate]);
 
   useEffect(() => {
     if (!showMoreDrawer) {
@@ -283,6 +317,8 @@ export default function Navigation({
   };
 
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
+  const shouldShowHolidayBanner = isHolidayDisplayDate(currentDate);
+  const shouldShowCountdown = !shouldShowHolidayBanner && currentDate.getTime() < TRIP_COUNTDOWN_TARGET.getTime();
   const desktopNavItems = navItems;
   const bottomNavItems = navItems.filter((tab) => tab.showInBottom);
   const bottomNavPaths = bottomNavItems.map((tab) => tab.path);
@@ -352,17 +388,30 @@ export default function Navigation({
             </div>
           </div>
 
-          <div className={`overflow-hidden transition-all duration-300 ${showCountdown ? "max-h-[48px] mt-[10px] opacity-100" : "max-h-0 mt-0 opacity-0"}`}>
-            <div className="flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
-              <div className="flex items-center gap-2 whitespace-nowrap leading-none">
-                <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-                <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              showCountdown && (shouldShowCountdown || shouldShowHolidayBanner)
+                ? "max-h-[64px] mt-[10px] opacity-100"
+                : "max-h-0 mt-0 opacity-0"
+            }`}
+          >
+            {shouldShowHolidayBanner ? (
+              <div className="rounded-[20px] border border-amber-300/40 bg-gradient-to-r from-amber-200/20 via-lime-300/15 to-emerald-300/20 px-4 py-[9px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-100/80">Holiday mode</div>
+                <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
               </div>
+            ) : shouldShowCountdown ? (
+              <div className="flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
+                <div className="flex items-center gap-2 whitespace-nowrap leading-none">
+                  <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
+                  <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
+                </div>
 
-              <div className="mx-2 h-6 w-px bg-white/15" />
+                <div className="mx-2 h-6 w-px bg-white/15" />
 
-              <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
-            </div>
+                <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -447,18 +496,25 @@ export default function Navigation({
                 ))}
               </nav>
 
-              <div className="flex items-center rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/12 px-[14px] py-[5px]">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 whitespace-nowrap leading-none">
-                    <span className="text-[20px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-                    <span className="text-[13px] uppercase tracking-[0.07em] leading-none text-white/50">
-                      DAYS LEFT
-                    </span>
-                  </div>
-                  <div className="h-6 w-px bg-white/15" />
-                  <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+              {shouldShowHolidayBanner ? (
+                <div className="rounded-[20px] border border-amber-300/30 bg-gradient-to-r from-amber-200/15 via-lime-300/10 to-emerald-300/15 px-[16px] py-[8px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/75">Holiday mode</div>
+                  <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
                 </div>
-              </div>
+              ) : shouldShowCountdown ? (
+                <div className="flex items-center rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/12 px-[14px] py-[5px]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 whitespace-nowrap leading-none">
+                      <span className="text-[20px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
+                      <span className="text-[13px] uppercase tracking-[0.07em] leading-none text-white/50">
+                        DAYS LEFT
+                      </span>
+                    </div>
+                    <div className="h-6 w-px bg-white/15" />
+                    <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
