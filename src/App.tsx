@@ -480,6 +480,45 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const isFormControl = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (window.innerWidth >= 768) return;
+      if (!isFormControl(event.target)) return;
+      lastScrollY = window.scrollY;
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      if (window.innerWidth >= 768) return;
+      if (!isFormControl(event.target)) return;
+
+      window.requestAnimationFrame(() => {
+        const active = document.activeElement;
+        const stillEditing =
+          active instanceof HTMLElement &&
+          Boolean(active.closest("input, textarea, select, [contenteditable='true']"));
+
+        if (!stillEditing) {
+          window.scrollTo({ top: lastScrollY, behavior: "auto" });
+        }
+      });
+    };
+
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
+
   const currentUser: CurrentUserInfo | null = session?.user
     ? {
         userId: session.user.id,
