@@ -407,7 +407,6 @@ export default function App() {
   const [showNav, setShowNav] = useState(true);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
   const [isIosKeyboardBlockingNav, setIsIosKeyboardBlockingNav] = useState(false);
-  const [isIosBottomRepaintShieldActive, setIsIosBottomRepaintShieldActive] = useState(false);
   const [mobileNavRenderKey, setMobileNavRenderKey] = useState(0);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
@@ -1797,11 +1796,11 @@ export default function App() {
       window.clearTimeout(settleTimer);
 
       keyboardWasOpen = true;
+
       root.classList.add("ios-keyboard-open");
       root.classList.remove("ios-keyboard-settling");
 
       setIsIosKeyboardBlockingNav(true);
-      setIsIosBottomRepaintShieldActive(false);
       setShowNav(false);
     };
 
@@ -1814,7 +1813,6 @@ export default function App() {
       root.classList.add("ios-keyboard-settling");
 
       setIsIosKeyboardBlockingNav(true);
-      setIsIosBottomRepaintShieldActive(true);
       setShowNav(false);
 
       window.clearTimeout(settleTimer);
@@ -1822,14 +1820,7 @@ export default function App() {
       settleTimer = window.setTimeout(() => {
         root.classList.remove("ios-keyboard-settling");
 
-        setIsIosKeyboardBlockingNav(false);
-        setShowNav(true);
-
         setMobileNavRenderKey((value) => value + 1);
-
-        window.setTimeout(() => {
-          setIsIosBottomRepaintShieldActive(false);
-        }, 350);
 
         requestAnimationFrame(forcePaintNudge);
       }, 1200);
@@ -1942,6 +1933,50 @@ export default function App() {
       });
     }
   }, [showNav, isIosStandalonePwa]);
+
+  useEffect(() => {
+    if (!isIosStandalonePwa) return;
+
+    let restoreTimer: ReturnType<typeof setTimeout>;
+
+    const restoreNavSafely = () => {
+      const active = document.activeElement;
+
+      const isStillEditing =
+        active instanceof HTMLElement &&
+        active.matches("input, textarea, select, [contenteditable='true'], [contenteditable='']");
+
+      if (isStillEditing) return;
+
+      window.clearTimeout(restoreTimer);
+
+      restoreTimer = window.setTimeout(() => {
+        setIsIosKeyboardBlockingNav(false);
+        setShowNav(true);
+        setMobileNavRenderKey((value) => value + 1);
+      }, 250);
+    };
+
+    window.addEventListener("scroll", restoreNavSafely, { passive: true });
+    window.addEventListener("touchstart", restoreNavSafely, { passive: true });
+    window.addEventListener("pageshow", restoreNavSafely);
+
+    return () => {
+      window.clearTimeout(restoreTimer);
+
+      window.removeEventListener("scroll", restoreNavSafely);
+      window.removeEventListener("touchstart", restoreNavSafely);
+      window.removeEventListener("pageshow", restoreNavSafely);
+    };
+  }, [isIosStandalonePwa]);
+
+  useEffect(() => {
+    if (!isIosStandalonePwa) return;
+
+    setIsIosKeyboardBlockingNav(false);
+    setShowNav(true);
+    setMobileNavRenderKey((value) => value + 1);
+  }, [activeRoute, isIosStandalonePwa]);
 
   useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
@@ -2541,13 +2576,6 @@ export default function App() {
           </main>
         </div>
 
-        {isIosStandalonePwa && isIosBottomRepaintShieldActive && (
-          <div
-            key={`ios-bottom-repaint-shield-${mobileNavRenderKey}`}
-            className="ios-bottom-repaint-shield"
-            aria-hidden="true"
-          />
-        )}
         {shouldRenderMobileBottomNav && (
         <footer
           key={mobileNavRenderKey}

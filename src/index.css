@@ -17,19 +17,6 @@ body,
   overscroll-behavior-x: none;
 }
 
-.ios-bottom-repaint-shield {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  height: calc(120px + env(safe-area-inset-bottom, 0px));
-  z-index: 1190;
-  pointer-events: none;
-  background: #122820;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  contain: strict;
-}
-
 html.ios-standalone-pwa,
 html.ios-standalone-pwa body {
   overscroll-behavior: none;
