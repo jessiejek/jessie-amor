@@ -2301,41 +2301,51 @@ export default function App() {
         </div>
 
         {/* BOTTOM NAV */}
-        <footer className={`no-print md:hidden fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${showNav ? "translate-y-0" : "translate-y-full"}`}>
-          <div className="grid grid-cols-5">
+        <footer className={`no-print md:hidden fixed inset-x-0 bottom-0 z-[1200] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] bg-black/15 backdrop-blur-lg transition-transform duration-300 ${showNav ? "translate-y-0" : "translate-y-full"}`}>
+          <div className="grid grid-cols-5 gap-2 px-3">
             <button
               onClick={() => navigateTo("/")}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/" ? "text-[#7ec96b]" : "text-white/50"}`}
+              className={`flex flex-col items-center gap-[2px] py-[6px] text-[11px] transition-colors ${activeRoute === "/" ? "text-white" : "text-white/60"}`}
             >
-              <CalendarDays size={17} />
+              <span className={`flex items-center justify-center rounded-xl px-3 py-1.5 ${activeRoute === "/" ? "bg-white/20" : "bg-white/10"}`}>
+                <CalendarDays size={18} />
+              </span>
               <span>Itinerary</span>
             </button>
             <button
               onClick={() => navigateTo("/budget")}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/budget" ? "text-[#7ec96b]" : "text-white/50"}`}
+              className={`flex flex-col items-center gap-[2px] py-[6px] text-[11px] transition-colors ${activeRoute === "/budget" ? "text-white" : "text-white/60"}`}
             >
-              <Wallet size={17} />
+              <span className={`flex items-center justify-center rounded-xl px-3 py-1.5 ${activeRoute === "/budget" ? "bg-white/20" : "bg-white/10"}`}>
+                <Wallet size={18} />
+              </span>
               <span>Budget</span>
             </button>
             <button
               onClick={() => navigateTo("/map")}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/map" ? "text-[#7ec96b]" : "text-white/50"}`}
+              className={`flex flex-col items-center gap-[2px] py-[6px] text-[11px] transition-colors ${activeRoute === "/map" ? "text-white" : "text-white/60"}`}
             >
-              <MapIcon size={17} />
+              <span className={`flex items-center justify-center rounded-xl px-3 py-1.5 ${activeRoute === "/map" ? "bg-white/20" : "bg-white/10"}`}>
+                <MapIcon size={18} />
+              </span>
               <span>Map</span>
             </button>
             <button
               onClick={() => navigateTo("/notes")}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/notes" ? "text-[#7ec96b]" : "text-white/50"}`}
+              className={`flex flex-col items-center gap-[2px] py-[6px] text-[11px] transition-colors ${activeRoute === "/notes" ? "text-white" : "text-white/60"}`}
             >
-              <NotebookText size={17} />
+              <span className={`flex items-center justify-center rounded-xl px-3 py-1.5 ${activeRoute === "/notes" ? "bg-white/20" : "bg-white/10"}`}>
+                <NotebookText size={18} />
+              </span>
               <span>Notes</span>
             </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent("open-more-drawer"))}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/diary" ? "text-[#7ec96b]" : "text-white/50"}`}
+              className={`flex flex-col items-center gap-[2px] py-[6px] text-[11px] transition-colors ${activeRoute === "/diary" ? "text-white" : "text-white/60"}`}
             >
-              <Menu size={17} />
+              <span className={`flex items-center justify-center rounded-xl px-3 py-1.5 ${activeRoute === "/diary" ? "bg-white/20" : "bg-white/10"}`}>
+                <Menu size={18} />
+              </span>
               <span>More</span>
             </button>
           </div>
