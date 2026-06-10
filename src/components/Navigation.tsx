@@ -176,29 +176,22 @@ export default function Navigation({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    let ticking = false;
-
-    const update = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const offset = window.innerHeight - vv.height - vv.offsetTop;
-        setKeyboardOffset(Math.max(0, Math.round(offset)));
-        ticking = false;
-      });
+    const onFocusIn = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        setKeyboardOpen(true);
+      }
     };
+    const onFocusOut = () => setKeyboardOpen(false);
 
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
     return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
     };
   }, []);
 
@@ -560,8 +553,9 @@ export default function Navigation({
 
       <footer className="no-print">
         <nav
-          className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden"
-          style={{ bottom: `${keyboardOffset}px` }}
+          className={`fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden transition-transform duration-200 ${
+            keyboardOpen ? "translate-y-full" : "translate-y-0"
+          }`}
         >
           <div className="grid grid-cols-5">
             {bottomNavItems.map((tab) => {
