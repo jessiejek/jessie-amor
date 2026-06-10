@@ -13,8 +13,7 @@
 }
 
 html,
-body,
-#root {
+body {
   width: 100%;
   max-width: 100%;
   min-height: 100dvh;
@@ -32,8 +31,6 @@ body {
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  position: fixed;
-  width: 100%;
 }
 
 input,
