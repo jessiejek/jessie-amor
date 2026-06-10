@@ -176,6 +176,25 @@ export default function Navigation({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, Math.round(offset)));
+    };
+
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -531,7 +550,10 @@ export default function Navigation({
           </div>
         </div>
 
-        <nav className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden">
+        <nav
+          className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden"
+          style={{ transform: `translateY(${-keyboardOffset}px)` }}
+        >
           <div className="grid grid-cols-5">
             {bottomNavItems.map((tab) => {
               const Icon = tab.icon ?? CalendarDays;
