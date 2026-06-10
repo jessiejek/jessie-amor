@@ -21,22 +21,13 @@ body,
   position: fixed;
   inset-inline: 0;
   bottom: 0;
-  height: 55vh;
+  height: calc(120px + env(safe-area-inset-bottom, 0px));
   z-index: 1190;
   pointer-events: none;
-  background: #fafaf9;
+  background: #122820;
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   contain: strict;
-}
-
-.ios-bottom-repaint-shield::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: calc(82px + env(safe-area-inset-bottom, 0px));
-  background: #122820;
 }
 
 html.ios-standalone-pwa,

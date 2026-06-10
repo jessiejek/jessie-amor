@@ -1801,8 +1801,8 @@ export default function App() {
       root.classList.remove("ios-keyboard-settling");
 
       setIsIosKeyboardBlockingNav(true);
+      setIsIosBottomRepaintShieldActive(false);
       setShowNav(false);
-      setIsIosBottomRepaintShieldActive(true);
     };
 
     const markKeyboardClosing = () => {
@@ -1814,6 +1814,7 @@ export default function App() {
       root.classList.add("ios-keyboard-settling");
 
       setIsIosKeyboardBlockingNav(true);
+      setIsIosBottomRepaintShieldActive(true);
       setShowNav(false);
 
       window.clearTimeout(settleTimer);
