@@ -1,5 +1,4 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { CalendarDays, CreditCard, Compass, Loader2, Map as MapIcon, Menu, NotebookText, Printer, RefreshCw, Share2, Ticket, Utensils, Wallet, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
@@ -407,8 +406,6 @@ export default function App() {
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [showNav, setShowNav] = useState(true);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
-  const [isIosKeyboardBlockingNav, setIsIosKeyboardBlockingNav] = useState(false);
-  const [mobileNavRenderKey, setMobileNavRenderKey] = useState(0);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1758,171 +1755,12 @@ export default function App() {
     const enabled = isIosLike && (navStandalone || displayModeStandalone);
 
     setIsIosStandalonePwa(enabled);
-
-    const root = document.documentElement;
-    root.classList.toggle("ios-standalone-pwa", enabled);
-
-    if (!enabled) {
-      return () => {
-        root.classList.remove("ios-standalone-pwa");
-        root.classList.remove("ios-keyboard-open");
-        root.classList.remove("ios-keyboard-settling");
-      };
-    }
-
-    const vv = window.visualViewport;
-    let baselineHeight = Math.max(window.innerHeight, vv?.height ?? 0);
-    let keyboardWasOpen = false;
-    let settleTimer: number | undefined;
-
-    const editableSelector =
-      "input, textarea, select, [contenteditable='true'], [contenteditable='']";
-
-    const hasEditableFocus = () => {
-      const active = document.activeElement;
-      return active instanceof HTMLElement && active.matches(editableSelector);
-    };
-
-    const forcePaintNudge = () => {
-      const scrollY = window.scrollY;
-
-      root.style.setProperty("--ios-paint-nudge", "1");
-      void root.offsetHeight;
-      root.style.removeProperty("--ios-paint-nudge");
-
-      window.scrollTo(0, scrollY);
-    };
-
-    const markKeyboardOpen = () => {
-      window.clearTimeout(settleTimer);
-
-      keyboardWasOpen = true;
-
-      root.classList.add("ios-keyboard-open");
-      root.classList.remove("ios-keyboard-settling");
-
-      setIsIosKeyboardBlockingNav(true);
-      setShowNav(false);
-    };
-
-    const markKeyboardClosing = () => {
-      if (!keyboardWasOpen) return;
-
-      keyboardWasOpen = false;
-
-      root.classList.remove("ios-keyboard-open");
-      root.classList.add("ios-keyboard-settling");
-
-      setIsIosKeyboardBlockingNav(true);
-      setShowNav(false);
-
-      window.clearTimeout(settleTimer);
-
-      settleTimer = window.setTimeout(() => {
-        root.classList.remove("ios-keyboard-settling");
-
-        setMobileNavRenderKey((value) => value + 1);
-
-        requestAnimationFrame(forcePaintNudge);
-      }, 1200);
-    };
-
-    const syncKeyboardState = () => {
-      const visualHeight = vv?.height ?? window.innerHeight;
-      const viewportLoss = baselineHeight - visualHeight;
-
-      const keyboardLooksOpen = hasEditableFocus() && viewportLoss > 100;
-
-      if (keyboardLooksOpen) {
-        markKeyboardOpen();
-        return;
-      }
-
-      if (keyboardWasOpen) {
-        markKeyboardClosing();
-        return;
-      }
-
-      if (!hasEditableFocus()) {
-        baselineHeight = Math.max(baselineHeight, window.innerHeight, visualHeight);
-      }
-    };
-
-    const onFocusIn = () => {
-      baselineHeight = Math.max(baselineHeight, window.innerHeight, vv?.height ?? 0);
-
-      requestAnimationFrame(syncKeyboardState);
-      window.setTimeout(syncKeyboardState, 80);
-    };
-
-    const onFocusOut = () => {
-      window.setTimeout(syncKeyboardState, 0);
-      window.setTimeout(syncKeyboardState, 250);
-      window.setTimeout(syncKeyboardState, 600);
-    };
-
-    const onOrientationChange = () => {
-      baselineHeight = Math.max(window.innerHeight, vv?.height ?? 0);
-      markKeyboardClosing();
-    };
-
-    window.addEventListener("focusin", onFocusIn);
-    window.addEventListener("focusout", onFocusOut);
-    window.addEventListener("orientationchange", onOrientationChange);
-
-    vv?.addEventListener("resize", syncKeyboardState);
-    vv?.addEventListener("scroll", syncKeyboardState);
+    document.documentElement.classList.toggle("ios-standalone-pwa", enabled);
 
     return () => {
-      window.clearTimeout(settleTimer);
-
-      window.removeEventListener("focusin", onFocusIn);
-      window.removeEventListener("focusout", onFocusOut);
-      window.removeEventListener("orientationchange", onOrientationChange);
-
-      vv?.removeEventListener("resize", syncKeyboardState);
-      vv?.removeEventListener("scroll", syncKeyboardState);
-
-      root.classList.remove("ios-standalone-pwa");
-      root.classList.remove("ios-keyboard-open");
-      root.classList.remove("ios-keyboard-settling");
+      document.documentElement.classList.remove("ios-standalone-pwa");
     };
   }, []);
-
-  useEffect(() => {
-    if (!isIosStandalonePwa) return;
-
-    const editableSelector =
-      "input, textarea, select, [contenteditable='true'], [contenteditable='']";
-
-    const hideNavBeforeKeyboard = (event: Event) => {
-      const target = event.target;
-
-      if (!(target instanceof HTMLElement)) return;
-
-      const editable = target.closest(editableSelector);
-
-      if (!editable) return;
-
-      document.documentElement.classList.add("ios-keyboard-open");
-      document.documentElement.classList.remove("ios-keyboard-settling");
-
-      flushSync(() => {
-        setIsIosKeyboardBlockingNav(true);
-        setShowNav(false);
-      });
-    };
-
-    document.addEventListener("pointerdown", hideNavBeforeKeyboard, true);
-    document.addEventListener("touchstart", hideNavBeforeKeyboard, true);
-    document.addEventListener("mousedown", hideNavBeforeKeyboard, true);
-
-    return () => {
-      document.removeEventListener("pointerdown", hideNavBeforeKeyboard, true);
-      document.removeEventListener("touchstart", hideNavBeforeKeyboard, true);
-      document.removeEventListener("mousedown", hideNavBeforeKeyboard, true);
-    };
-  }, [isIosStandalonePwa]);
 
   useEffect(() => {
     if (isIosStandalonePwa) {
@@ -1971,97 +1809,9 @@ export default function App() {
   }, [showNav, isIosStandalonePwa]);
 
   useEffect(() => {
-    if (!isIosStandalonePwa) return;
-
-    let restoreTimer: ReturnType<typeof setTimeout>;
-
-    const restoreNavSafely = () => {
-      const active = document.activeElement;
-
-      const isStillEditing =
-        active instanceof HTMLElement &&
-        active.matches("input, textarea, select, [contenteditable='true'], [contenteditable='']");
-
-      if (isStillEditing) return;
-
-      window.clearTimeout(restoreTimer);
-
-      restoreTimer = window.setTimeout(() => {
-        setIsIosKeyboardBlockingNav(false);
-        setShowNav(true);
-        setMobileNavRenderKey((value) => value + 1);
-      }, 250);
-    };
-
-    window.addEventListener("scroll", restoreNavSafely, { passive: true });
-    window.addEventListener("touchstart", restoreNavSafely, { passive: true });
-    window.addEventListener("pageshow", restoreNavSafely);
-
-    return () => {
-      window.clearTimeout(restoreTimer);
-
-      window.removeEventListener("scroll", restoreNavSafely);
-      window.removeEventListener("touchstart", restoreNavSafely);
-      window.removeEventListener("pageshow", restoreNavSafely);
-    };
-  }, [isIosStandalonePwa]);
-
-  useEffect(() => {
-    if (!isIosStandalonePwa) return;
-
-    setIsIosKeyboardBlockingNav(false);
-    setShowNav(true);
-    setMobileNavRenderKey((value) => value + 1);
-  }, [activeRoute, isIosStandalonePwa]);
-
-  useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-
-  useEffect(() => {
-    const isTouchDevice = window.navigator.maxTouchPoints > 0;
-
-    if (!isTouchDevice) return;
-
-    const preventGestureZoom = (event: Event) => {
-      event.preventDefault();
-    };
-
-    const preventPinchZoom = (event: TouchEvent) => {
-      if (event.touches.length > 1) {
-        event.preventDefault();
-      }
-    };
-
-    let lastTouchEnd = 0;
-
-    const preventDoubleTapZoom = (event: TouchEvent) => {
-      const now = Date.now();
-
-      if (now - lastTouchEnd <= 300) {
-        event.preventDefault();
-      }
-
-      lastTouchEnd = now;
-    };
-
-    document.addEventListener("gesturestart", preventGestureZoom, { passive: false });
-    document.addEventListener("gesturechange", preventGestureZoom, { passive: false });
-    document.addEventListener("gestureend", preventGestureZoom, { passive: false });
-
-    document.addEventListener("touchmove", preventPinchZoom, { passive: false });
-    document.addEventListener("touchend", preventDoubleTapZoom, { passive: false });
-
-    return () => {
-      document.removeEventListener("gesturestart", preventGestureZoom);
-      document.removeEventListener("gesturechange", preventGestureZoom);
-      document.removeEventListener("gestureend", preventGestureZoom);
-
-      document.removeEventListener("touchmove", preventPinchZoom);
-      document.removeEventListener("touchend", preventDoubleTapZoom);
-    };
   }, []);
 
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
@@ -2349,8 +2099,7 @@ export default function App() {
     </section>
   );
 
-  const shouldRenderMobileBottomNav =
-    screenSize === "small" && !isIosKeyboardBlockingNav;
+  const shouldRenderMobileBottomNav = screenSize === "small";
 
   const mobileBottomNavTransformClass = isIosStandalonePwa
     ? "translate-y-0"
@@ -2614,8 +2363,9 @@ export default function App() {
 
         {shouldRenderMobileBottomNav && (
         <footer
-          key={mobileNavRenderKey}
-          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${isIosStandalonePwa ? "" : "transition-transform duration-300"} ${mobileBottomNavTransformClass}`}
+          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${
+            isIosStandalonePwa ? "" : "transition-transform duration-300"
+          } ${mobileBottomNavTransformClass}`}
         >
           <div className="grid grid-cols-5 gap-2 px-3 pt-2">
             <button

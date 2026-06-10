@@ -12,34 +12,35 @@ body,
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-  touch-action: pan-x pan-y;
-  overscroll-behavior-x: none;
 }
 
-html.ios-standalone-pwa,
-html.ios-standalone-pwa body {
-  overscroll-behavior: none;
+html,
+body {
   background: #122820;
+  -webkit-text-size-adjust: 100%;
 }
 
-html.ios-standalone-pwa #root {
+#root {
   background: #fafaf9;
 }
 
-body {
-  overflow-x: clip;
-  overscroll-behavior-x: none;
-  font-size: 15px;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 
-.mobile-bottom-nav {
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  contain: layout paint;
-  will-change: transform;
+  html.ios-standalone-pwa:has(input:focus) .mobile-bottom-nav,
+  html.ios-standalone-pwa:has(textarea:focus) .mobile-bottom-nav,
+  html.ios-standalone-pwa:has(select:focus) .mobile-bottom-nav,
+  html.ios-standalone-pwa:has([contenteditable="true"]:focus) .mobile-bottom-nav,
+  html.ios-standalone-pwa:has(input:focus) .ios-hide-when-keyboard,
+  html.ios-standalone-pwa:has(textarea:focus) .ios-hide-when-keyboard,
+  html.ios-standalone-pwa:has(select:focus) .ios-hide-when-keyboard,
+  html.ios-standalone-pwa:has([contenteditable="true"]:focus) .ios-hide-when-keyboard {
+    display: none !important;
+  }
 }
 
 input,
@@ -425,7 +426,6 @@ textarea::placeholder {
   animation: spin-slow 15s linear infinite;
 }
 
-/* Prevent iOS Safari from zooming form controls on focus */
 @media (max-width: 768px) {
   .home-hero-section {
     position: relative !important;
@@ -837,7 +837,6 @@ textarea::placeholder {
   }
 }
 
-/* Custom print styles */
 @media print {
   .no-print {
     display: none !important;
@@ -850,29 +849,5 @@ textarea::placeholder {
   main {
     margin: 0 !important;
     padding: 0 !important;
-  }
-}
-
-@supports (-webkit-touch-callout: none) {
-  body {
-    height: -webkit-fill-available;
-  }
-
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
-
-  html.ios-standalone-pwa,
-  html.ios-standalone-pwa body {
-    background: #122820;
-  }
-
-  html.ios-keyboard-open .mobile-bottom-nav,
-  html.ios-keyboard-settling .mobile-bottom-nav,
-  html.ios-keyboard-open .ios-hide-when-keyboard,
-  html.ios-keyboard-settling .ios-hide-when-keyboard {
-    display: none !important;
   }
 }
