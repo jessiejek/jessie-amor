@@ -1,5 +1,41 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { CalendarDays, CreditCard, Compass, Loader2, Map as MapIcon, Menu, NotebookText, Printer, RefreshCw, Share2, Ticket, Utensils, Wallet, LogOut } from "lucide-react";
+import {
+  CalendarDays,
+  CreditCard,
+  Compass,
+  Loader2,
+  Map as MapIcon,
+  Menu,
+  NotebookText,
+  Printer,
+  RefreshCw,
+  Share2,
+  Ticket,
+  Utensils,
+  Wallet,
+  LogOut,
+} from "lucide-react";
+import {
+  IonApp,
+  IonContent,
+  IonIcon,
+  IonLabel,
+  IonPage,
+  IonRouterOutlet,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+} from "@ionic/react";
+import { IonReactRouter } from "@ionic/react-router";
+import { Redirect, Route, useHistory, useLocation } from "react-router-dom";
+import {
+  calendarOutline,
+  walletOutline,
+  mapOutline,
+  documentTextOutline,
+  menuOutline,
+} from "ionicons/icons";
+import { installKeyboardClass } from "./utils/keyboardClass";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -362,7 +398,7 @@ const normalizeTipIcon = (icon: string) => {
   return iconMap[normalized] ?? normalized;
 };
 
-export default function App() {
+function AppShell() {
   const PULL_REFRESH_TRIGGER = 84;
   const PULL_REFRESH_MAX = 108;
   const itinerary = selectedItinerary;
@@ -389,10 +425,9 @@ export default function App() {
     return "/";
   };
 
-  const [activeRoute, setActiveRoute] = useState<string>(() => {
-    if (typeof window === "undefined") return "/";
-    return routeFromPath(window.location.pathname);
-  });
+  const history = useHistory();
+  const location = useLocation();
+  const activeRoute = routeFromPath(location.pathname);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState<boolean>(!supabase);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -404,7 +439,6 @@ export default function App() {
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-  const [showNav, setShowNav] = useState(true);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
@@ -1727,21 +1761,6 @@ export default function App() {
   }, [isOnline, session]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setActiveRoute(routeFromPath(window.location.pathname));
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
     const navStandalone =
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
@@ -1762,51 +1781,7 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (isIosStandalonePwa) {
-      setShowNav(true);
-      return;
-    }
 
-    let timer: ReturnType<typeof setTimeout>;
-
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-
-      if (currentY < 10) {
-        setShowNav(true);
-      } else {
-        setShowNav(false);
-      }
-
-      clearTimeout(timer);
-      timer = setTimeout(() => setShowNav(true), 200);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(timer);
-    };
-  }, [isIosStandalonePwa]);
-
-  useEffect(() => {
-    if (isIosStandalonePwa) return;
-
-    if (showNav) {
-      requestAnimationFrame(() => {
-        const body = document.body;
-        const scrollY = window.scrollY;
-
-        body.style.minHeight = "calc(100vh + 1px)";
-        void body.offsetHeight;
-        body.style.minHeight = "";
-
-        window.scrollTo(0, scrollY);
-      });
-    }
-  }, [showNav, isIosStandalonePwa]);
 
   useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
@@ -1963,10 +1938,17 @@ export default function App() {
   };
 
   const navigateTo = (path: string) => {
-    if (path === activeRoute) return;
-    window.history.pushState({}, "", path);
-    setActiveRoute(routeFromPath(path));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const normalizedPath = routeFromPath(path);
+    if (normalizedPath === activeRoute) return;
+
+    history.push(path);
+
+    requestAnimationFrame(() => {
+      const content = document.querySelector("ion-content") as HTMLIonContentElement | null;
+      if (content?.scrollToTop) {
+        void content.scrollToTop(250);
+      }
+    });
   };
 
   const handleShareTrip = async () => {
@@ -1990,6 +1972,13 @@ export default function App() {
   const handleMobilePrint = () => {
     window.print();
   };
+
+  useEffect(() => {
+    const cleanup = installKeyboardClass();
+    return () => {
+      cleanup?.();
+    };
+  }, []);
 
   const canUsePullRefresh = () =>
     typeof window !== "undefined"
@@ -2099,325 +2088,386 @@ export default function App() {
     </section>
   );
 
-  const shouldRenderMobileBottomNav = screenSize === "small";
+  const renderSiteFooter = () => (
+    <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div>
+          <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">
+            Curating unforgettable Asian experiences.
+          </h3>
+          <p className="text-[14px] text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
+            {itinerary.footer}
+          </p>
+        </div>
 
-  const mobileBottomNavTransformClass = isIosStandalonePwa
-    ? "translate-y-0"
-    : showNav
-      ? "translate-y-0"
-      : "translate-y-full";
+        <div className="md:col-span-2 grid grid-cols-2 gap-6">
+          <div>
+            <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
+            <ul className="space-y-2 text-[14px] font-sans">
+              <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
+              <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
+              <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
+              <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
+              <li><button onClick={() => navigateTo("/diary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Diary</button></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
+            <ul className="space-y-2 text-[14px] font-sans">
+              <li><span className="text-stone-400">Transport Guide</span></li>
+              <li><span className="text-stone-400">Dining Notes</span></li>
+              <li><span className="text-stone-400">Safety Tips</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-stone-500">
+        <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
+        <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
+          <span className="hover:text-stone-400">Privacy</span>
+          <span className="hover:text-stone-400">Support</span>
+          <span className="hover:text-stone-400">Terms</span>
+        </div>
+      </div>
+    </footer>
+  );
+
+  const renderPage = (
+    children: React.ReactNode,
+    options?: { className?: string; showFooter?: boolean }
+  ) => (
+    <IonPage>
+      <IonContent
+        fullscreen
+        scrollY={true}
+        scrollEvents={true}
+        className="ja-ion-content"
+        onIonScroll={(event) => {
+          setShowScrollTop(event.detail.scrollTop > 400);
+        }}
+      >
+        <div
+          className={`ja-page-frame ${options?.className ?? ""}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+        >
+          <div
+            className={`pointer-events-none fixed left-1/2 top-0 z-[1600] -translate-x-1/2 transition-all duration-200 md:hidden ${
+              pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
+            }`}
+            style={{
+              transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})`,
+            }}
+          >
+            <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0A84FF]/10 text-[#0A84FF]">
+                {isRefreshing ? (
+                  <Loader2 size={13} className="animate-spin" strokeWidth={2.2} />
+                ) : (
+                  <RefreshCw
+                    size={13}
+                    strokeWidth={2.2}
+                    className="transition-transform duration-150"
+                    style={{
+                      transform: `rotate(${pullProgress * 180}deg)`,
+                    }}
+                  />
+                )}
+              </div>
+              <span className="text-[11px] font-medium tracking-[0.01em] text-stone-700">
+                {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}
+              </span>
+            </div>
+          </div>
+
+          <div className="ja-content-offset">
+            <main
+              className="flex-1 pb-4 md:pb-0"
+              style={pullDistance > 0 ? {
+                transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`,
+                transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
+                willChange: "transform",
+              } : undefined}
+            >
+              {children}
+            </main>
+            {options?.showFooter === false ? null : renderSiteFooter()}
+          </div>
+        </div>
+      </IonContent>
+    </IonPage>
+  );
 
   return (
-    <div
-      className="flex min-h-[100dvh] flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-    >
-        <div
-          className={`pointer-events-none fixed left-1/2 top-0 z-[1600] -translate-x-1/2 transition-all duration-200 md:hidden ${
-            pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})`,
-          }}
-        >
-          <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0A84FF]/10 text-[#0A84FF]">
-              {isRefreshing ? (
-                <Loader2 size={13} className="animate-spin" strokeWidth={2.2} />
-              ) : (
-                <RefreshCw
-                  size={13}
-                  strokeWidth={2.2}
-                  className="transition-transform duration-150"
-                  style={{
-                    transform: `rotate(${pullProgress * 180}deg)`,
-                  }}
+    <>
+      <Navigation
+        activeTab={activeRoute}
+        setActiveTab={navigateTo}
+        metadata={metadata}
+        session={session}
+        isOnline={isOnline}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenSettings={handleOpenSettings}
+        onSignOut={handleSignOut}
+        expenses={expenses}
+        screenSize={screenSize}
+      />
+
+      <IonTabs>
+        <IonRouterOutlet>
+          <Route exact path="/account">
+            {renderPage(mobileAccountCard, { showFooter: false })}
+          </Route>
+          <Route exact path="/">
+            {renderPage(
+              <div className="animate-in fade-in duration-300">
+                <div className="home-hero-section">
+                  <Hero hero={itinerary.hero} />
+                  <Legend items={itinerary.legend} />
+                </div>
+                <DailyItineraryView
+                  days={itinerary.days}
+                  onInfoClick={handleOpenGuide}
+                  selectedMobileDay={selectedHomeDay}
+                  onSelectedMobileDayChange={setSelectedHomeDay}
                 />
-              )}
-            </div>
-            <span className="text-[11px] font-medium tracking-[0.01em] text-stone-700">
-              {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}
-            </span>
-          </div>
-        </div>
-        <Navigation
-          activeTab={activeRoute}
-          setActiveTab={navigateTo}
-          metadata={metadata}
-          session={session}
-          isOnline={isOnline}
-          onOpenAuth={() => setShowAuthModal(true)}
-          onOpenSettings={handleOpenSettings}
-          onSignOut={handleSignOut}
-          expenses={expenses}
-          screenSize={screenSize}
-        />
+                <BudgetSummaryHeader
+                  cards={itinerary.budgetSummary}
+                  expenses={expenses}
+                  showLiveSpends={showLiveSpends}
+                  setShowLiveSpends={setShowLiveSpends}
+                  exchangeRates={exchangeRates}
+                  userSettings={userSettings}
+                  selectedMobileDay={selectedHomeDay}
+                  onSelectedMobileDayChange={setSelectedHomeDay}
+                />
+                <AlertBox alert={itinerary.alert} />
 
-        <div className="flex-1 min-h-0 pt-[calc(112px+env(safe-area-inset-top,0px))] md:pt-[calc(128px+env(safe-area-inset-top,0px))]">
-          <main
-            className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0"
-            style={pullDistance > 0 ? {
-              transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`,
-              transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-              willChange: "transform",
-            } : undefined}
-          >
-          {activeRoute === "/account" && mobileAccountCard}
-        {activeRoute === "/" && (
-          <div className="animate-in fade-in duration-300">
-            <div className="home-hero-section">
-              <Hero hero={itinerary.hero} />
-              <Legend items={itinerary.legend} />
-            </div>
-            <DailyItineraryView
-              days={itinerary.days}
-              onInfoClick={handleOpenGuide}
-              selectedMobileDay={selectedHomeDay}
-              onSelectedMobileDayChange={setSelectedHomeDay}
-            />
-            <BudgetSummaryHeader
-              cards={itinerary.budgetSummary}
-              expenses={expenses}
-              showLiveSpends={showLiveSpends}
-              setShowLiveSpends={setShowLiveSpends}
-              exchangeRates={exchangeRates}
-              userSettings={userSettings}
-              selectedMobileDay={selectedHomeDay}
-              onSelectedMobileDayChange={setSelectedHomeDay}
-            />
-            <AlertBox alert={itinerary.alert} />
-
-            <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
-                  <p className="mt-1 text-[14px] font-sans text-stone-500">
-                    Code 1's itinerary reminders, folded into Code 2's visual system.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {normalizedTips.map((tip, index) => (
-                  <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
-                ))}
-              </div>
-            </section>
-
-            <section className="bg-stone-100/50 border-t border-b border-stone-200/50 py-12 px-4 md:px-8 no-print">
-              <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-10">
-                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">
-                    Pro-Traveler Insights
-                  </h3>
-                  <p className="text-[14px] text-stone-500 font-sans mt-1">
-                    Smart hacks and safety strategies recommended by our logistics team
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <CreditCard size={20} />
+                <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
+                      <p className="mt-1 text-[14px] font-sans text-stone-500">
+                        Code 1's itinerary reminders, folded into Code 2's visual system.
+                      </p>
                     </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Touch 'n Go Card</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.
-                    </p>
                   </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {normalizedTips.map((tip, index) => (
+                      <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
+                    ))}
+                  </div>
+                </section>
 
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <Ticket size={20} />
+                <section className="bg-stone-100/50 border-t border-b border-stone-200/50 py-12 px-4 md:px-8 no-print">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-10">
+                      <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">
+                        Pro-Traveler Insights
+                      </h3>
+                      <p className="text-[14px] text-stone-500 font-sans mt-1">
+                        Smart hacks and safety strategies recommended by our logistics team
+                      </p>
                     </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Advance Booking</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.
-                    </p>
-                  </div>
 
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <Utensils size={20} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
+                          <CreditCard size={20} />
+                        </div>
+                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Touch 'n Go Card</h4>
+                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
+                          The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.
+                        </p>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
+                          <Ticket size={20} />
+                        </div>
+                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Advance Booking</h4>
+                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
+                          Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.
+                        </p>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
+                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
+                          <Utensils size={20} />
+                        </div>
+                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Street Food Strategy</h4>
+                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
+                          At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.
+                        </p>
+                      </div>
                     </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Street Food Strategy</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.
-                    </p>
                   </div>
-                </div>
-              </div>
-            </section>
+                </section>
 
-            <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 no-print">
-              <div
-                onClick={() => navigateTo("/map")}
-                className="relative cursor-pointer overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
+                <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 no-print">
+                  <div
+                    onClick={() => navigateTo("/map")}
+                    className="relative cursor-pointer overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
+                  >
+                    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
 
-                <div className="absolute top-[20%] left-[30%] w-3 h-3 rounded-full bg-stone-300"></div>
-                <div className="absolute top-[50%] left-[70%] w-3 h-3 rounded-full bg-[#88B04B]/60"></div>
-                <div className="absolute top-[30%] left-[60%] w-3 h-3 rounded-full bg-[#0B3530]/40"></div>
-                <div className="absolute top-[70%] left-[25%] w-3 h-3 rounded-full bg-stone-400"></div>
+                    <div className="absolute top-[20%] left-[30%] w-3 h-3 rounded-full bg-stone-300"></div>
+                    <div className="absolute top-[50%] left-[70%] w-3 h-3 rounded-full bg-[#88B04B]/60"></div>
+                    <div className="absolute top-[30%] left-[60%] w-3 h-3 rounded-full bg-[#0B3530]/40"></div>
+                    <div className="absolute top-[70%] left-[25%] w-3 h-3 rounded-full bg-stone-400"></div>
 
-                <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
-                  <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
-                  <p className="text-[13px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
-                    INTERACTIVE MAP NOW ACTIVE
-                  </p>
-                  <p className="text-[13px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {activeRoute === "/budget" && (
-           <BudgetTab
-            expenses={expenses}
-            setExpenses={setExpenses}
-            isSupabaseConnected={Boolean(supabase && session)}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-            exchangeRates={exchangeRates}
-            budgetCapPhp={budgetCapPhp}
-            userSettings={userSettings}
-          />
-        )}
-        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} userSettings={userSettings} currentUser={currentUser} />}
-        {activeRoute === "/notes" && (
-          <NotesTab
-            notes={notes}
-            setNotes={setNotes}
-            checklist={checklist}
-            setChecklist={setChecklist}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-          />
-        )}
-        {activeRoute === "/diary" && (
-          <DiaryTab
-            diaryEntries={diaryEntries}
-            setDiaryEntries={setDiaryEntries}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-          />
-        )}
-        {activeRoute === "/settings" && (
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-            <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
-              <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="text-sm font-semibold text-stone-600">Budget Cap</span>
-                  <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm font-mono text-stone-500">PHP</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="500"
-                      value={budgetCapPhp || ""}
-                      placeholder="No cap"
-                      onChange={(e) => {
-                        const php = Math.max(0, Number(e.target.value) || 0);
-                        setBudgetCapPhp(php);
-                      }}
-                      className="w-36 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
-                    />
-                    <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
+                    <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
+                      <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
+                      <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
+                      <p className="text-[13px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
+                        INTERACTIVE MAP NOW ACTIVE
+                      </p>
+                      <p className="text-[13px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
+                    </div>
                   </div>
-                  {budgetCapPhp > 0 && (
-                    <p className="mt-1 text-[11px] text-stone-400">
-                      = {phpToRm(budgetCapPhp)}
-                      {exchangeRates.source === "live" ? (
-                        <span className="text-emerald-600">live rate</span>
-                      ) : exchangeRates.source === "cached" ? (
-                        <span className="text-sky-600">cached rate</span>
-                      ) : (
-                        <span className="text-amber-600">static rate</span>
+                </section>
+              </div>
+            )}
+          </Route>
+          <Route exact path="/budget">
+            {renderPage(
+              <BudgetTab
+                expenses={expenses}
+                setExpenses={setExpenses}
+                isSupabaseConnected={Boolean(supabase && session)}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+                exchangeRates={exchangeRates}
+                budgetCapPhp={budgetCapPhp}
+                userSettings={userSettings}
+              />
+            )}
+          </Route>
+          <Route exact path="/map">
+            {renderPage(
+              <MapTab
+                session={session}
+                canEdit={Boolean(session)}
+                isOnline={isOnline}
+                userSettings={userSettings}
+                currentUser={currentUser}
+              />,
+              { className: "ja-map-page-frame", showFooter: false }
+            )}
+          </Route>
+          <Route exact path="/notes">
+            {renderPage(
+              <NotesTab
+                notes={notes}
+                setNotes={setNotes}
+                checklist={checklist}
+                setChecklist={setChecklist}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+              />
+            )}
+          </Route>
+          <Route exact path="/diary">
+            {renderPage(
+              <DiaryTab
+                diaryEntries={diaryEntries}
+                setDiaryEntries={setDiaryEntries}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+              />
+            )}
+          </Route>
+          <Route exact path="/settings">
+            {renderPage(
+              <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
+                  <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-sm font-semibold text-stone-600">Budget Cap</span>
+                      <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-sm font-mono text-stone-500">PHP</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          value={budgetCapPhp || ""}
+                          placeholder="No cap"
+                          onChange={(e) => {
+                            const php = Math.max(0, Number(e.target.value) || 0);
+                            setBudgetCapPhp(php);
+                          }}
+                          className="w-36 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
+                        />
+                        <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
+                      </div>
+                      {budgetCapPhp > 0 && (
+                        <p className="mt-1 text-[11px] text-stone-400">
+                          = {phpToRm(budgetCapPhp)}
+                          {exchangeRates.source === "live" ? (
+                            <span className="text-emerald-600">live rate</span>
+                          ) : exchangeRates.source === "cached" ? (
+                            <span className="text-sky-600">cached rate</span>
+                          ) : (
+                            <span className="text-amber-600">static rate</span>
+                          )}
+                        </p>
                       )}
+                    </label>
+                    {!session && (
+                      <p className="text-[11px] text-amber-600">Sign in to sync cap across devices. Currently saved to this device only.</p>
+                    )}
+                    <p className="text-[11px] text-stone-400">
+                      When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
+                      {budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}
                     </p>
-                  )}
-                </label>
-                {!session && (
-                  <p className="text-[11px] text-amber-600">Sign in to sync cap across devices. Currently saved to this device only.</p>
-                )}
-                <p className="text-[11px] text-stone-400">
-                  When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-                  {budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}
-                </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
-          </main>
-        </div>
+            )}
+          </Route>
+          <Redirect to="/" />
+        </IonRouterOutlet>
 
-        {shouldRenderMobileBottomNav && (
-        <footer
-          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${
-            isIosStandalonePwa ? "" : "transition-transform duration-300"
-          } ${mobileBottomNavTransformClass}`}
-        >
-          <div className="grid grid-cols-5 gap-2 px-3 pt-2">
-            <button
-              onClick={() => navigateTo("/")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/" ? "bg-white/18" : "bg-white/8"}`}>
-                <CalendarDays size={16} />
-              </span>
-              <span>Itinerary</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/budget")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/budget" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/budget" ? "bg-white/18" : "bg-white/8"}`}>
-                <Wallet size={16} />
-              </span>
-              <span>Budget</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/map")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/map" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/map" ? "bg-white/18" : "bg-white/8"}`}>
-                <MapIcon size={16} />
-              </span>
-              <span>Map</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/notes")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/notes" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/notes" ? "bg-white/18" : "bg-white/8"}`}>
-                <NotebookText size={16} />
-              </span>
-              <span>Notes</span>
-            </button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("open-more-drawer"))}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/diary" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/diary" ? "bg-white/18" : "bg-white/8"}`}>
-                <Menu size={16} />
-              </span>
-              <span>More</span>
-            </button>
-          </div>
-        </footer>
-        )}
+        <IonTabBar slot="bottom" className="ja-ion-tab-bar no-print">
+          <IonTabButton tab="itinerary" href="/">
+            <IonIcon icon={calendarOutline} />
+            <IonLabel>Itinerary</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="budget" href="/budget">
+            <IonIcon icon={walletOutline} />
+            <IonLabel>Budget</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="map" href="/map">
+            <IonIcon icon={mapOutline} />
+            <IonLabel>Map</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="notes" href="/notes">
+            <IonIcon icon={documentTextOutline} />
+            <IonLabel>Notes</IonLabel>
+          </IonTabButton>
+          <IonTabButton
+            tab="more"
+            onClick={(event) => {
+              event.preventDefault();
+              window.dispatchEvent(new CustomEvent("open-more-drawer"));
+            }}
+          >
+            <IonIcon icon={menuOutline} />
+            <IonLabel>More</IonLabel>
+          </IonTabButton>
+        </IonTabBar>
+      </IonTabs>
 
-        <AuthPanel
+      <AuthPanel
         open={showAuthModal}
         title={session ? "Manage your account" : "Sign in to sync your trip"}
         description={session ? "Your cloud sync is active for budget, checklist, notes, map, and diary data." : "Choose Google, GitHub, or Facebook to enable shared budget, checklist, notes, map, and diary sync."}
@@ -2429,50 +2479,6 @@ export default function App() {
         onSignOut={handleSignOut}
         isConfigured={hasSupabaseConfig}
       />
-
-      <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">
-              Curating unforgettable Asian experiences.
-            </h3>
-            <p className="text-[14px] text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
-              {itinerary.footer}
-            </p>
-          </div>
-
-          <div className="md:col-span-2 grid grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
-              <ul className="space-y-2 text-[14px] font-sans">
-                <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
-                <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
-                <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
-                <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
-                <li><button onClick={() => navigateTo("/diary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Diary</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
-              <ul className="space-y-2 text-[14px] font-sans">
-                <li><span className="text-stone-400">Transport Guide</span></li>
-                <li><span className="text-stone-400">Dining Notes</span></li>
-                <li><span className="text-stone-400">Safety Tips</span></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-stone-500">
-          <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
-          <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
-            <span className="hover:text-stone-400">Privacy</span>
-            <span className="hover:text-stone-400">Support</span>
-            <span className="hover:text-stone-400">Terms</span>
-          </div>
-        </div>
-      </footer>
 
       <DestinationInfoModal guide={selectedGuide} onClose={() => setSelectedGuide(null)} />
 
@@ -2505,7 +2511,12 @@ export default function App() {
 
       <button
         type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        onClick={() => {
+          const content = document.querySelector("ion-content") as HTMLIonContentElement | null;
+          if (content?.scrollToTop) {
+            void content.scrollToTop(300);
+          }
+        }}
         aria-label="Scroll to top"
         className={`fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[1300] flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-white shadow-lg transition-all duration-300 hover:bg-[#18534C] ${
           showScrollTop ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
@@ -2515,7 +2526,18 @@ export default function App() {
           <path d="M18 15l-6-6-6 6"/>
         </svg>
       </button>
-    </div>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <IonApp>
+      {/* @ts-expect-error IonReactRouterProps children type gap with React 19 JSX */}
+      <IonReactRouter>
+        <AppShell />
+      </IonReactRouter>
+    </IonApp>
   );
 }
 

@@ -8,20 +8,78 @@
 
 html,
 body,
-#root {
+#root,
+ion-app {
   width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 html,
 body {
+  overflow: hidden;
   background: #122820;
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
 }
 
 #root {
   background: #fafaf9;
+}
+
+ion-content.ja-ion-content {
+  --background: #fafaf9;
+}
+
+.ja-page-frame {
+  min-height: 100%;
+  background: #fafaf9;
+  color: rgb(41 37 36);
+  -webkit-overflow-scrolling: touch;
+}
+
+.ja-content-offset {
+  min-height: 100%;
+  padding-top: calc(112px + env(safe-area-inset-top, 0px));
+}
+
+@media (min-width: 768px) {
+  .ja-content-offset {
+    padding-top: calc(128px + env(safe-area-inset-top, 0px));
+  }
+}
+
+.ja-ion-tab-bar {
+  --background: #122820;
+  --border: 1px solid rgba(255, 255, 255, 0.08);
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  contain: layout paint;
+}
+
+.ja-ion-tab-bar ion-tab-button {
+  --color: rgba(255, 255, 255, 0.55);
+  --color-selected: #ffffff;
+  --background-focused: transparent;
+  --ripple-color: rgba(255, 255, 255, 0.16);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.ja-ion-tab-bar ion-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+@media (min-width: 768px) {
+  .ja-ion-tab-bar {
+    display: none;
+  }
+}
+
+.keyboard-open .ja-ion-tab-bar {
+  display: none;
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -29,17 +87,6 @@ body {
   select,
   textarea {
     font-size: 16px;
-  }
-
-  html.ios-standalone-pwa:has(input:focus) .mobile-bottom-nav,
-  html.ios-standalone-pwa:has(textarea:focus) .mobile-bottom-nav,
-  html.ios-standalone-pwa:has(select:focus) .mobile-bottom-nav,
-  html.ios-standalone-pwa:has([contenteditable="true"]:focus) .mobile-bottom-nav,
-  html.ios-standalone-pwa:has(input:focus) .ios-hide-when-keyboard,
-  html.ios-standalone-pwa:has(textarea:focus) .ios-hide-when-keyboard,
-  html.ios-standalone-pwa:has(select:focus) .ios-hide-when-keyboard,
-  html.ios-standalone-pwa:has([contenteditable="true"]:focus) .ios-hide-when-keyboard {
-    display: none !important;
   }
 }
 
@@ -54,6 +101,7 @@ textarea::placeholder {
   font-size: 14px;
 }
 
+/* Budget CSS - preserved */
 .budget-page {
   width: 100% !important;
   margin-left: auto !important;
@@ -835,6 +883,17 @@ textarea::placeholder {
   .budget-page .budget-registry-list .text-xs {
     font-size: 0.9375rem !important;
   }
+}
+
+/* Leaflet map safety CSS */
+.leaflet-container {
+  width: 100%;
+  min-height: 60vh;
+}
+
+.ja-map-page-frame .leaflet-container {
+  width: 100%;
+  min-height: calc(100dvh - 180px - env(safe-area-inset-bottom, 0px));
 }
 
 @media print {
