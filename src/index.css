@@ -2,7 +2,6 @@
 
 @layer base {
   :root {
-    --app-height: 100dvh;
     --app-safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
@@ -20,8 +19,6 @@ body,
   max-width: 100%;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
-  min-height: var(--app-height);
-  min-height: var(--app-height, 100dvh);
 }
 
 #root {

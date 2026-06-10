@@ -458,71 +458,57 @@ export default function App() {
   const diarySnapshotOwnerRef = useRef<string>("");
 
   useEffect(() => {
-    const root = document.documentElement;
-    const updateViewportHeight = () => {
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      root.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
-    };
-
-    updateViewportHeight();
-
-    const viewport = window.visualViewport;
-    viewport?.addEventListener("resize", updateViewportHeight);
-    viewport?.addEventListener("scroll", updateViewportHeight);
-    window.addEventListener("resize", updateViewportHeight);
-    window.addEventListener("orientationchange", updateViewportHeight);
-
-    return () => {
-      viewport?.removeEventListener("resize", updateViewportHeight);
-      viewport?.removeEventListener("scroll", updateViewportHeight);
-      window.removeEventListener("resize", updateViewportHeight);
-      window.removeEventListener("orientationchange", updateViewportHeight);
-    };
-  }, []);
-
-  useEffect(() => {
+    // iOS PWA keyboard gap fix
+    // Strategy: listen on both visualViewport AND window resize,
+    // whichever fires. Use a 300ms debounced scroll reset because
+    // iOS PWA keyboard animation takes ~250ms to complete.
     const vv = window.visualViewport;
-    if (!vv) return;
+    let scrollSnapshot = 0;
+    let debounceTimer = 0;
+    let keyboardVisible = false;
 
-    let lastStableScrollY = 0;
-    let keyboardOpen = false;
-    const KEYBOARD_THRESHOLD = 150; // px — keyboards are always taller than this
+    const getVisibleHeight = () =>
+      vv ? vv.height : window.innerHeight;
 
-    const onResize = () => {
-      const viewportHeight = vv.height;
-      const windowHeight = window.innerHeight;
-      const diff = windowHeight - viewportHeight;
+    const fullHeight = getVisibleHeight();
 
-      // Update the CSS variable so the shell height tracks the visible area
-      document.documentElement.style.setProperty("--app-height", `${viewportHeight}px`);
+    const onViewportChange = () => {
+      const currentHeight = getVisibleHeight();
+      const shrinkage = fullHeight - currentHeight;
 
-      if (diff > KEYBOARD_THRESHOLD) {
-        // Keyboard just opened — save current scroll position
-        if (!keyboardOpen) {
-          lastStableScrollY = window.scrollY;
-          keyboardOpen = true;
+      if (shrinkage > 120) {
+        // Keyboard opened
+        if (!keyboardVisible) {
+          keyboardVisible = true;
+          scrollSnapshot = window.scrollY;
         }
       } else {
-        // Keyboard just closed — restore scroll position after a frame
-        // The delay must be at least 1 rAF to let the browser finish collapsing the keyboard
-        if (keyboardOpen) {
-          keyboardOpen = false;
-          requestAnimationFrame(() => {
+        // Keyboard closed or never opened
+        if (keyboardVisible) {
+          keyboardVisible = false;
+          clearTimeout(debounceTimer);
+          debounceTimer = window.setTimeout(() => {
+            // Force body scroll reset — the only reliable fix in iOS PWA
+            document.body.style.overflow = "hidden";
+            window.scrollTo({ top: scrollSnapshot, behavior: "instant" });
             requestAnimationFrame(() => {
-              window.scrollTo({ top: lastStableScrollY, behavior: "instant" });
+              document.body.style.overflow = "";
             });
-          });
+          }, 300);
         }
       }
     };
 
-    // Set initial value immediately
-    document.documentElement.style.setProperty("--app-height", `${vv.height}px`);
+    if (vv) {
+      vv.addEventListener("resize", onViewportChange);
+    }
+    window.addEventListener("resize", onViewportChange);
 
-    vv.addEventListener("resize", onResize);
     return () => {
-      vv.removeEventListener("resize", onResize);
-      document.documentElement.style.removeProperty("--app-height");
+      if (vv) vv.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("resize", onViewportChange);
+      clearTimeout(debounceTimer);
+      document.body.style.overflow = "";
     };
   }, []);
 
