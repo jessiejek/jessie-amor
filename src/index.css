@@ -7,18 +7,45 @@
 }
 
 html,
-body {
+body,
+#root {
   width: 100%;
-  max-width: 100%;
-  min-height: -webkit-fill-available;
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: none;
+}
+
+.ios-bottom-repaint-shield {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  height: 55vh;
+  z-index: 1190;
+  pointer-events: none;
+  background: #fafaf9;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  contain: strict;
+}
+
+.ios-bottom-repaint-shield::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: calc(82px + env(safe-area-inset-bottom, 0px));
   background: #122820;
 }
 
-#root {
-  width: 100%;
-  max-width: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+html.ios-standalone-pwa,
+html.ios-standalone-pwa body {
+  overscroll-behavior: none;
+  background: #122820;
+}
+
+html.ios-standalone-pwa #root {
   background: #fafaf9;
 }
 

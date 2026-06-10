@@ -407,6 +407,7 @@ export default function App() {
   const [showNav, setShowNav] = useState(true);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
   const [isIosKeyboardBlockingNav, setIsIosKeyboardBlockingNav] = useState(false);
+  const [isIosBottomRepaintShieldActive, setIsIosBottomRepaintShieldActive] = useState(false);
   const [mobileNavRenderKey, setMobileNavRenderKey] = useState(0);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
@@ -1801,6 +1802,7 @@ export default function App() {
 
       setIsIosKeyboardBlockingNav(true);
       setShowNav(false);
+      setIsIosBottomRepaintShieldActive(true);
     };
 
     const markKeyboardClosing = () => {
@@ -1824,8 +1826,12 @@ export default function App() {
 
         setMobileNavRenderKey((value) => value + 1);
 
+        window.setTimeout(() => {
+          setIsIosBottomRepaintShieldActive(false);
+        }, 350);
+
         requestAnimationFrame(forcePaintNudge);
-      }, 700);
+      }, 1200);
     };
 
     const syncKeyboardState = () => {
@@ -1940,6 +1946,50 @@ export default function App() {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const isTouchDevice = window.navigator.maxTouchPoints > 0;
+
+    if (!isTouchDevice) return;
+
+    const preventGestureZoom = (event: Event) => {
+      event.preventDefault();
+    };
+
+    const preventPinchZoom = (event: TouchEvent) => {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    };
+
+    let lastTouchEnd = 0;
+
+    const preventDoubleTapZoom = (event: TouchEvent) => {
+      const now = Date.now();
+
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+
+      lastTouchEnd = now;
+    };
+
+    document.addEventListener("gesturestart", preventGestureZoom, { passive: false });
+    document.addEventListener("gesturechange", preventGestureZoom, { passive: false });
+    document.addEventListener("gestureend", preventGestureZoom, { passive: false });
+
+    document.addEventListener("touchmove", preventPinchZoom, { passive: false });
+    document.addEventListener("touchend", preventDoubleTapZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener("gesturestart", preventGestureZoom);
+      document.removeEventListener("gesturechange", preventGestureZoom);
+      document.removeEventListener("gestureend", preventGestureZoom);
+
+      document.removeEventListener("touchmove", preventPinchZoom);
+      document.removeEventListener("touchend", preventDoubleTapZoom);
+    };
   }, []);
 
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
@@ -2490,6 +2540,13 @@ export default function App() {
           </main>
         </div>
 
+        {isIosStandalonePwa && isIosBottomRepaintShieldActive && (
+          <div
+            key={`ios-bottom-repaint-shield-${mobileNavRenderKey}`}
+            className="ios-bottom-repaint-shield"
+            aria-hidden="true"
+          />
+        )}
         {shouldRenderMobileBottomNav && (
         <footer
           key={mobileNavRenderKey}
