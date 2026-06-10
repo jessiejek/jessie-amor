@@ -481,41 +481,48 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let lastScrollY = window.scrollY;
+    const vv = window.visualViewport;
+    if (!vv) return;
 
-    const isFormControl = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) return false;
-      return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
-    };
+    let lastStableScrollY = 0;
+    let keyboardOpen = false;
+    const KEYBOARD_THRESHOLD = 150; // px — keyboards are always taller than this
 
-    const handleFocusIn = (event: FocusEvent) => {
-      if (window.innerWidth >= 768) return;
-      if (!isFormControl(event.target)) return;
-      lastScrollY = window.scrollY;
-    };
+    const onResize = () => {
+      const viewportHeight = vv.height;
+      const windowHeight = window.innerHeight;
+      const diff = windowHeight - viewportHeight;
 
-    const handleFocusOut = (event: FocusEvent) => {
-      if (window.innerWidth >= 768) return;
-      if (!isFormControl(event.target)) return;
+      // Update the CSS variable so the shell height tracks the visible area
+      document.documentElement.style.setProperty("--app-height", `${viewportHeight}px`);
 
-      window.requestAnimationFrame(() => {
-        const active = document.activeElement;
-        const stillEditing =
-          active instanceof HTMLElement &&
-          Boolean(active.closest("input, textarea, select, [contenteditable='true']"));
-
-        if (!stillEditing) {
-          window.scrollTo({ top: lastScrollY, behavior: "auto" });
+      if (diff > KEYBOARD_THRESHOLD) {
+        // Keyboard just opened — save current scroll position
+        if (!keyboardOpen) {
+          lastStableScrollY = window.scrollY;
+          keyboardOpen = true;
         }
-      });
+      } else {
+        // Keyboard just closed — restore scroll position after a frame
+        // The delay must be at least 1 rAF to let the browser finish collapsing the keyboard
+        if (keyboardOpen) {
+          keyboardOpen = false;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: lastStableScrollY, behavior: "instant" });
+            });
+          });
+        }
+      }
     };
 
-    window.addEventListener("focusin", handleFocusIn);
-    window.addEventListener("focusout", handleFocusOut);
+    // Set initial value immediately
+    document.documentElement.style.setProperty("--app-height", `${vv.height}px`);
 
+    vv.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("focusin", handleFocusIn);
-      window.removeEventListener("focusout", handleFocusOut);
+      vv.removeEventListener("resize", onResize);
+      document.documentElement.style.removeProperty("--app-height");
     };
   }, []);
 
