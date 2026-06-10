@@ -457,61 +457,6 @@ export default function App() {
   const checklistSnapshotOwnerRef = useRef<string>("");
   const diarySnapshotOwnerRef = useRef<string>("");
 
-  useEffect(() => {
-    // iOS PWA keyboard gap fix
-    // Strategy: listen on both visualViewport AND window resize,
-    // whichever fires. Use a 300ms debounced scroll reset because
-    // iOS PWA keyboard animation takes ~250ms to complete.
-    const vv = window.visualViewport;
-    let scrollSnapshot = 0;
-    let debounceTimer = 0;
-    let keyboardVisible = false;
-
-    const getVisibleHeight = () =>
-      vv ? vv.height : window.innerHeight;
-
-    const fullHeight = getVisibleHeight();
-
-    const onViewportChange = () => {
-      const currentHeight = getVisibleHeight();
-      const shrinkage = fullHeight - currentHeight;
-
-      if (shrinkage > 120) {
-        // Keyboard opened
-        if (!keyboardVisible) {
-          keyboardVisible = true;
-          scrollSnapshot = window.scrollY;
-        }
-      } else {
-        // Keyboard closed or never opened
-        if (keyboardVisible) {
-          keyboardVisible = false;
-          clearTimeout(debounceTimer);
-          debounceTimer = window.setTimeout(() => {
-            // Force body scroll reset — the only reliable fix in iOS PWA
-            document.body.style.overflow = "hidden";
-            window.scrollTo({ top: scrollSnapshot, behavior: "instant" });
-            requestAnimationFrame(() => {
-              document.body.style.overflow = "";
-            });
-          }, 300);
-        }
-      }
-    };
-
-    if (vv) {
-      vv.addEventListener("resize", onViewportChange);
-    }
-    window.addEventListener("resize", onViewportChange);
-
-    return () => {
-      if (vv) vv.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("resize", onViewportChange);
-      clearTimeout(debounceTimer);
-      document.body.style.overflow = "";
-    };
-  }, []);
-
   const currentUser: CurrentUserInfo | null = session?.user
     ? {
         userId: session.user.id,
@@ -2080,7 +2025,7 @@ export default function App() {
 
   return (
     <div
-      className="flex min-h-[var(--app-height)] flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
+      className="flex min-h-full flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
