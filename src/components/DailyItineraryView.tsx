@@ -1,4 +1,12 @@
 import React, { useMemo, useState } from "react";
+import {
+  IonCard,
+  IonCardContent,
+  IonChip,
+  IonButton,
+  IonIcon,
+} from "@ionic/react";
+import { informationCircleOutline } from "ionicons/icons";
 import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Info, Footprints } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import RichText from "./RichText";
@@ -13,63 +21,63 @@ interface DailyItineraryViewProps {
 type CategoryMeta = {
   label: string;
   icon: React.ReactNode;
-  badgeClass: string;
-  cardClass: string;
+  chipColor: string;
+  cardBorder: string;
 };
 
 const CATEGORY_META: Record<string, CategoryMeta> = {
   train: {
     label: "TRAIN",
     icon: <Train size={14} />,
-    badgeClass: "bg-blue-50 text-blue-800",
-    cardClass: "border-blue-200/70",
+    chipColor: "#eff6ff",
+    cardBorder: "rgba(191,219,254,0.7)",
   },
   bus: {
     label: "BUS",
     icon: <Bus size={14} />,
-    badgeClass: "bg-amber-50 text-amber-800",
-    cardClass: "border-amber-200/70",
+    chipColor: "#fffbeb",
+    cardBorder: "rgba(252,211,77,0.5)",
   },
   food: {
     label: "FOOD",
     icon: <Utensils size={14} />,
-    badgeClass: "bg-rose-50 text-rose-800",
-    cardClass: "border-rose-200/70",
+    chipColor: "#fff1f2",
+    cardBorder: "rgba(254,205,211,0.6)",
   },
   spot: {
     label: "SIGHTSEEING",
     icon: <Camera size={14} />,
-    badgeClass: "bg-violet-50 text-violet-800",
-    cardClass: "border-violet-200/70",
+    chipColor: "#f5f3ff",
+    cardBorder: "rgba(221,214,254,0.6)",
   },
   hotel: {
     label: "HOTEL",
     icon: <Bed size={14} />,
-    badgeClass: "bg-emerald-50 text-emerald-800",
-    cardClass: "border-emerald-200/70",
+    chipColor: "#ecfdf5",
+    cardBorder: "rgba(167,243,208,0.6)",
   },
   walk: {
     label: "WALK",
     icon: <Footprints size={14} />,
-    badgeClass: "bg-stone-100 text-stone-700",
-    cardClass: "border-stone-200/70",
+    chipColor: "#fafaf9",
+    cardBorder: "rgba(231,229,228,0.6)",
   },
   free: {
     label: "FREE",
     icon: <MapPin size={14} />,
-    badgeClass: "bg-sky-50 text-sky-800",
-    cardClass: "border-sky-200/70",
+    chipColor: "#f0f9ff",
+    cardBorder: "rgba(186,230,253,0.6)",
   },
 };
 
-const TAG_STYLES: Record<TagVariant, string> = {
-  train: "bg-blue-50 text-blue-800 border-blue-100",
-  bus: "bg-amber-50 text-amber-800 border-amber-100",
-  food: "bg-rose-50 text-rose-800 border-rose-100",
-  walk: "bg-stone-100 text-stone-700 border-stone-200",
-  spot: "bg-violet-50 text-violet-800 border-violet-100",
-  hotel: "bg-emerald-50 text-emerald-800 border-emerald-100",
-  free: "bg-sky-50 text-sky-800 border-sky-100",
+const TAG_VARIANT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  train: { bg: "#eff6ff", text: "#1e40af", border: "#bfdbfe" },
+  bus: { bg: "#fffbeb", text: "#92400e", border: "#fde68a" },
+  food: { bg: "#fff1f2", text: "#9f1239", border: "#fecdd3" },
+  walk: { bg: "#fafaf9", text: "#44403c", border: "#e7e5e4" },
+  spot: { bg: "#f5f3ff", text: "#5b21b6", border: "#ddd6fe" },
+  hotel: { bg: "#ecfdf5", text: "#065f46", border: "#a7f3d0" },
+  free: { bg: "#f0f9ff", text: "#075985", border: "#bae6fd" },
 };
 
 const IMAGE_LABELS: Record<string, string> = {
@@ -161,83 +169,93 @@ export default function DailyItineraryView({
             <div key={item.id} className="relative">
               <div className="absolute -left-[21px] top-5 h-4 w-4 rounded-full border-4 border-stone-50 bg-[#88B04B] shadow-xs md:-left-[31px]" />
 
-              <div className={`rounded-2xl border bg-white p-4 md:p-5 shadow-xs transition-colors hover:border-stone-300 ${meta.cardClass}`}>
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 rounded font-mono text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 ${meta.badgeClass}`}>
-                        {meta.icon}
-                        {meta.label}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-stone-500">
-                        <Clock3 size={11} />
-                        {item.time}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-semibold font-serif text-stone-800">
-                        <a
-                          href={getMapsUrl(item.mapQuery)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 underline decoration-[#88B04B]/70 underline-offset-2 transition-colors hover:text-[#18534C]"
-                          aria-label={`Open ${item.title} in Google Maps`}
-                        >
-                          {item.title}
-                        </a>
-                      </h4>
-                      <p className="text-xs leading-relaxed text-stone-500">
-                        <RichText segments={item.description} />
-                      </p>
-                    </div>
-
-                    {item.tags.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {item.tags.map((tag) => (
-                          <span
-                            key={`${tag.variant}-${tag.label}`}
-                            className={`rounded-full border px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider ${TAG_STYLES[tag.variant]}`}
-                          >
-                            {tag.label}
+              <IonCard className="ja-itinerary-item-card" style={{ "--ja-item-border": meta.cardBorder } as React.CSSProperties}>
+                <IonCardContent>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <IonChip className="ja-itinerary-chip" style={{ background: meta.chipColor, color: "#1e293b" }}>
+                          <span className="flex items-center gap-1">
+                            {meta.icon}
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wider">{meta.label}</span>
                           </span>
-                        ))}
+                        </IonChip>
+                        <IonChip className="ja-itinerary-chip ja-itinerary-time-chip">
+                          <Clock3 size={11} />
+                          {item.time}
+                        </IonChip>
                       </div>
-                    ) : null}
-                  </div>
 
-                  <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
-                    {item.cost ? (
-                      <div className="rounded-xl bg-[#0B3530] px-3 py-2 text-right text-stone-100">
-                        <span className="block text-[8px] uppercase tracking-wider text-[#88B04B]">Estimated</span>
-                        <span className="block py-0.5 font-serif text-xs font-bold text-white">{item.cost}</span>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold font-serif text-stone-800">
+                          <a
+                            href={getMapsUrl(item.mapQuery)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 underline decoration-[#88B04B]/70 underline-offset-2 transition-colors hover:text-[#18534C]"
+                            aria-label={`Open ${item.title} in Google Maps`}
+                          >
+                            {item.title}
+                          </a>
+                        </h4>
+                        <p className="text-xs leading-relaxed text-stone-500">
+                          <RichText segments={item.description} />
+                        </p>
                       </div>
-                    ) : <div />}
 
-                    {onInfoClick ? (
-                      <button
-                        type="button"
-                        onClick={() => onInfoClick(item)}
-                        className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-500 transition-colors hover:border-[#88B04B]/50 hover:text-[#0B3530]"
-                      >
-                        <Info size={11} />
-                        Guide
-                      </button>
-                    ) : null}
+                      {item.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {item.tags.map((tag) => {
+                            const tagColors = TAG_VARIANT_COLORS[tag.variant] ?? TAG_VARIANT_COLORS.free;
+                            return (
+                              <IonChip
+                                key={`${tag.variant}-${tag.label}`}
+                                className="ja-itinerary-tag-chip"
+                                style={{ background: tagColors.bg, color: tagColors.text, border: `1px solid ${tagColors.border}` }}
+                              >
+                                {tag.label}
+                              </IonChip>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
+                      {item.cost ? (
+                        <div className="rounded-xl bg-[#0B3530] px-3 py-2 text-right text-stone-100">
+                          <span className="block text-[8px] uppercase tracking-wider text-[#88B04B]">Estimated</span>
+                          <span className="block py-0.5 font-serif text-xs font-bold text-white">{item.cost}</span>
+                        </div>
+                      ) : <div />}
+
+                      {onInfoClick ? (
+                        <IonButton
+                          fill="clear"
+                          size="small"
+                          onClick={() => onInfoClick(item)}
+                          className="ja-itinerary-action-btn"
+                        >
+                          <IonIcon icon={informationCircleOutline} slot="start" />
+                          Guide
+                        </IonButton>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <a
-                    href={getMapsUrl(item.mapQuery)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-500 transition-colors hover:border-[#88B04B]/50 hover:text-[#0B3530]"
-                    aria-label={`Open ${item.title} in Google Maps`}
-                  >
-                    Open in Maps
-                  </a>
-                </div>
-              </div>
+                  <div className="mt-3 flex justify-end">
+                    <IonButton
+                      fill="clear"
+                      size="small"
+                      href={getMapsUrl(item.mapQuery)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ja-itinerary-action-btn"
+                    >
+                      Open in Maps
+                    </IonButton>
+                  </div>
+                </IonCardContent>
+              </IonCard>
             </div>
           );
         })}
@@ -253,8 +271,12 @@ export default function DailyItineraryView({
           <p className="mt-0.5 text-xs font-sans text-stone-400">Detailed timeline and excursion checkpoints</p>
         </div>
         <div className="flex gap-2 font-mono text-[10px] font-bold uppercase select-none">
-          <span className="rounded-md bg-[#0B3530] px-2 py-1 text-[#88B04B]">4 Days</span>
-          <span className="rounded-md bg-[#18534C]/15 px-2 py-1 text-[#0B3530]">2 Cities</span>
+          <IonChip className="ja-itinerary-stats-chip ja-itinerary-stats-chip-dark">
+            4 Days
+          </IonChip>
+          <IonChip className="ja-itinerary-stats-chip">
+            2 Cities
+          </IonChip>
         </div>
       </div>
 
@@ -266,9 +288,9 @@ export default function DailyItineraryView({
               {selectedDay?.title ?? "Itinerary"}
             </h3>
           </div>
-          <span className="rounded-full bg-stone-100 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-stone-500">
+          <IonChip className="ja-itinerary-stats-chip">
             {selectedDay?.items.length ?? 0} Stops
-          </span>
+          </IonChip>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">

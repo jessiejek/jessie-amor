@@ -1,6 +1,30 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { CurrentUserInfo, UserTripSettings } from "../types";
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonCard,
+  IonCardContent,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
+  IonCheckbox,
+  IonChip,
+  IonBadge,
+  IonText,
+  IonSpinner,
+} from "@ionic/react";
+import { closeOutline } from "ionicons/icons";
 
 interface SettingsModalProps {
   open: boolean;
@@ -79,6 +103,11 @@ const expandDateRange = (start: string, end: string): string[] => {
   return dates;
 };
 
+const brandToolbar = {
+  "--background": "#0B3530",
+  "--color": "#ffffff",
+} as React.CSSProperties;
+
 export default function SettingsModal({
   open,
   onClose,
@@ -102,25 +131,6 @@ export default function SettingsModal({
     setErrors({});
   }, [open, settings]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isFirstSetup) {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isFirstSetup, onClose, open]);
-
   const additionalCurrencies = useMemo(
     () => form.currencies.filter((code) => code !== form.baseCurrency),
     [form.baseCurrency, form.currencies],
@@ -134,8 +144,6 @@ export default function SettingsModal({
     const expanded = expandDateRange(form.startDate, form.endDate);
     return `${expanded.length} days: ${formatPreviewDate(form.startDate)} -> ${formatPreviewDate(form.endDate)}`;
   }, [form.endDate, form.startDate]);
-
-  if (!open) return null;
 
   const handleBaseCurrencyChange = (baseCurrency: string) => {
     setForm((current) => ({
@@ -182,8 +190,7 @@ export default function SettingsModal({
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!validate()) return;
 
     const travelDates = expandDateRange(form.startDate, form.endDate);
@@ -202,206 +209,221 @@ export default function SettingsModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[5500] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xs no-print sm:items-center"
-      onClick={() => {
+    <IonModal
+      isOpen={open}
+      onDidDismiss={() => {
         if (!isFirstSetup) onClose();
       }}
+      backdropDismiss={!isFirstSetup}
+      className="ja-settings-modal"
     >
-      <div
-        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200"
-        onClick={(event) => event.stopPropagation()}
-      >
-        {!isFirstSetup && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-800"
-            aria-label="Close settings modal"
-          >
-            X
-          </button>
-        )}
-
-        <div className="bg-gradient-to-br from-[#0B3530] to-[#18534C] px-6 py-5 text-white">
-          <div className="text-[13px] uppercase tracking-[0.35em] text-[#88B04B] font-mono">Trip Preferences</div>
-          <h3 className="mt-1 text-lg font-serif font-bold md:text-xl">
+      <IonHeader>
+        <IonToolbar style={brandToolbar}>
+          {!isFirstSetup && (
+            <IonButtons slot="end">
+              <IonButton onClick={onClose} aria-label="Close settings modal">
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+            </IonButtons>
+          )}
+          <IonTitle>
             {isFirstSetup ? "Welcome! Set up your trip preferences" : "Trip Settings"}
-          </h3>
-          <p className="mt-1 max-w-2xl text-[14px] text-stone-200 md:text-[15px]">
+          </IonTitle>
+        </IonToolbar>
+        <div
+          className="px-4 pb-4 pt-1"
+          style={{ background: "#0B3530", color: "rgba(255,255,255,0.8)" }}
+        >
+          <p className="text-[14px] leading-relaxed">
             {isFirstSetup
               ? "Choose your currencies and travel dates. You can update these anytime in Settings."
               : "Update your currency preferences and travel dates."}
           </p>
         </div>
+      </IonHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-stone-50 p-6">
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Currencies</h4>
-              <p className="mt-1 text-[13px] text-stone-500">Choose your base currency plus up to 2 additional display currencies.</p>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Base Currency</label>
-                <select
-                  value={form.baseCurrency}
-                  onChange={(event) => handleBaseCurrencyChange(event.target.value)}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                >
-                  {currencyOptions.map((option) => (
-                    <option key={option.code} value={option.code}>
-                      {option.code} - {option.name}
-                    </option>
-                  ))}
-                </select>
+      <IonContent style={{ "--background": "#f5f5f4" } as React.CSSProperties}>
+        <div className="space-y-4 p-4">
+          {/* Currencies */}
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="mb-4">
+                <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Currencies</h4>
+                <p className="mt-1 text-[13px] text-stone-500">Choose your base currency plus up to 2 additional display currencies.</p>
               </div>
 
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Additional Currency</label>
-                <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50 p-3">
-                  {currencyOptions
-                    .filter((option) => option.code !== form.baseCurrency)
-                    .map((option) => {
-                      const checked = form.currencies.includes(option.code);
-                      const disabled = !checked && !canSelectMoreAdditional;
-                      return (
-                        <label
-                          key={option.code}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-[14px] transition-colors ${
-                            disabled
-                              ? "border-stone-200 bg-stone-100 text-stone-400"
-                              : checked
-                                ? "border-[#0B3530] bg-[#0B3530]/5 text-[#0B3530]"
-                                : "border-stone-200 bg-white text-stone-700 hover:border-[#0B3530]/40"
-                          }`}
-                        >
-                          <span>{option.code} - {option.name}</span>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={disabled}
-                            onChange={() => handleAdditionalCurrencyToggle(option.code)}
-                            className="h-4 w-4 accent-[#0B3530]"
-                          />
-                        </label>
-                      );
-                    })}
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[14px] font-semibold text-stone-600">Base Currency</label>
+                  <IonSelect
+                    value={form.baseCurrency}
+                    onIonChange={(event) => handleBaseCurrencyChange(event.detail.value)}
+                    interface="action-sheet"
+                    className="ja-settings-select"
+                  >
+                    {currencyOptions.map((option) => (
+                      <IonSelectOption key={option.code} value={option.code}>
+                        {option.code} - {option.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
                 </div>
-                <p className="mt-2 text-[12px] text-stone-500">You can pick up to 2 additional currencies for now. More currencies coming soon.</p>
-                {errors.currencies ? <p className="mt-1 text-[12px] text-rose-600">{errors.currencies}</p> : null}
+
+                <div>
+                  <label className="mb-1 block text-[14px] font-semibold text-stone-600">Additional Currency</label>
+                  <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
+                    <IonList className="ja-settings-checkbox-list">
+                      {currencyOptions
+                        .filter((option) => option.code !== form.baseCurrency)
+                        .map((option) => {
+                          const checked = form.currencies.includes(option.code);
+                          const isDisabled = !checked && !canSelectMoreAdditional;
+                          return (
+                            <IonItem
+                              key={option.code}
+                              className={`ja-settings-checkbox-item ${checked ? "ja-settings-checkbox-item-checked" : ""} ${isDisabled ? "ja-settings-checkbox-item-disabled" : ""}`}
+                            >
+                              <IonLabel className="text-[14px]">{option.code} - {option.name}</IonLabel>
+                              <IonCheckbox
+                                slot="end"
+                                checked={checked}
+                                disabled={isDisabled}
+                                onIonChange={() => handleAdditionalCurrencyToggle(option.code)}
+                              />
+                            </IonItem>
+                          );
+                        })}
+                    </IonList>
+                  </div>
+                  <p className="mt-2 text-[12px] text-stone-500">You can pick up to 2 additional currencies for now. More currencies coming soon.</p>
+                  {errors.currencies ? <p className="mt-1 text-[12px] text-rose-600">{errors.currencies}</p> : null}
+                </div>
               </div>
-            </div>
-          </section>
+            </IonCardContent>
+          </IonCard>
 
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Travel Dates</h4>
-              <p className="mt-1 text-[13px] text-stone-500">These dates drive the budget day labels without changing the stored day number format.</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip Start Date</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                />
-                {errors.startDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.startDate}</p> : null}
+          {/* Travel Dates */}
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="mb-4">
+                <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Travel Dates</h4>
+                <p className="mt-1 text-[13px] text-stone-500">These dates drive the budget day labels without changing the stored day number format.</p>
               </div>
 
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip End Date</label>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  onChange={(event) => setForm((current) => ({ ...current, endDate: event.target.value }))}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                />
-                {errors.endDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.endDate}</p> : null}
-              </div>
-            </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip Start Date</label>
+                  <IonInput
+                    type="date"
+                    value={form.startDate}
+                    onIonInput={(event) => {
+                      const value = event.detail.value ?? "";
+                      setForm((current) => ({ ...current, startDate: String(value) }));
+                    }}
+                    className="ja-settings-date-input"
+                  />
+                  {errors.startDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.startDate}</p> : null}
+                </div>
 
-            {previewText ? (
-              <div className="mt-4 rounded-xl border border-[#D0DFDC] bg-[#F1F5F4] px-4 py-3 text-[13px] font-medium text-[#0B3530]">
-                {previewText}
+                <div>
+                  <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip End Date</label>
+                  <IonInput
+                    type="date"
+                    value={form.endDate}
+                    onIonInput={(event) => {
+                      const value = event.detail.value ?? "";
+                      setForm((current) => ({ ...current, endDate: String(value) }));
+                    }}
+                    className="ja-settings-date-input"
+                  />
+                  {errors.endDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.endDate}</p> : null}
+                </div>
               </div>
-            ) : null}
-          </section>
 
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Budget Cap</h4>
-              <p className="mt-1 text-[13px] text-stone-500">Set a personal PHP cap for cash and debit spending. `0` means no cap.</p>
-            </div>
+              {previewText ? (
+                <div className="mt-4 rounded-xl border border-[#D0DFDC] bg-[#F1F5F4] px-4 py-3 text-[13px] font-medium text-[#0B3530]">
+                  {previewText}
+                </div>
+              ) : null}
+            </IonCardContent>
+          </IonCard>
 
-            <label className="block">
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-sm font-mono text-stone-500">PHP</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={budgetCapPhp || ""}
-                  placeholder="No cap"
-                  onChange={(event) => {
-                    const php = Math.max(0, Number(event.target.value) || 0);
-                    onBudgetCapChange?.(php);
-                  }}
-                  className="w-40 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
-                />
-                <span className="text-[11px] font-medium text-emerald-600">Auto-saved</span>
+          {/* Budget Cap */}
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="mb-4">
+                <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Budget Cap</h4>
+                <p className="mt-1 text-[13px] text-stone-500">Set a personal PHP cap for cash and debit spending. `0` means no cap.</p>
               </div>
-              {budgetCapPhp > 0 && (
-                <p className="mt-1 text-[11px] text-stone-400">
-                  = {budgetCapRmLabel}
-                  {budgetCapStatusLabel ? <span className="ml-1">{budgetCapStatusLabel}</span> : null}
+
+              <label className="block">
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-mono text-stone-500">PHP</span>
+                  <IonInput
+                    type="number"
+                    min={0}
+                    value={budgetCapPhp || ""}
+                    placeholder="No cap"
+                    onIonInput={(event) => {
+                      const raw = event.detail.value ?? "";
+                      const value = Number(raw);
+                      if (!Number.isNaN(value)) {
+                        onBudgetCapChange?.(Math.max(0, value));
+                      }
+                    }}
+                    className="ja-settings-cap-input"
+                  />
+                  <span className="text-[11px] font-medium text-emerald-600">Auto-saved</span>
+                </div>
+                {budgetCapPhp > 0 && (
+                  <p className="mt-1 text-[11px] text-stone-400">
+                    = {budgetCapRmLabel}
+                    {budgetCapStatusLabel ? (
+                      <IonChip className="ml-1 text-[10px] h-auto px-2 py-1 m-0 font-mono">
+                        {budgetCapStatusLabel}
+                      </IonChip>
+                    ) : null}
+                  </p>
+                )}
+              </label>
+
+              {!session && (
+                <p className="mt-3 text-[11px] text-amber-600">
+                  Sign in to sync cap across devices. Currently saved to this device only.
                 </p>
               )}
-            </label>
 
-            {!session && (
-              <p className="mt-3 text-[11px] text-amber-600">
-                Sign in to sync cap across devices. Currently saved to this device only.
+              <p className="mt-3 text-[11px] text-stone-400">
+                When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
+                {budgetCapPhp > 0 && <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</>}
               </p>
-            )}
+            </IonCardContent>
+          </IonCard>
 
-            <p className="mt-3 text-[11px] text-stone-400">
-              When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-              {budgetCapPhp > 0 && <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</>}
-            </p>
-          </section>
-
-          <div className="flex items-center justify-end gap-3">
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pb-4">
             {!isFirstSetup && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-[14px] font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:text-stone-900"
-              >
+              <IonButton fill="outline" onClick={onClose}>
                 Cancel
-              </button>
+              </IonButton>
             )}
-            <button
-              type="submit"
+            <IonButton
               disabled={isSaving}
-              className="inline-flex min-w-32 items-center justify-center gap-2 rounded-xl bg-[#0B3530] px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C] disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={handleSubmit}
+              className="ja-settings-save-btn"
             >
               {isSaving ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  <IonSpinner slot="start" name="crescent" />
                   Saving...
                 </>
               ) : (
                 "Save Settings"
               )}
-            </button>
+            </IonButton>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </IonContent>
+    </IonModal>
   );
 }

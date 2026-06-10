@@ -13,11 +13,28 @@ import {
   Printer,
   Settings,
   Share2,
-  X,
   User,
   Wallet,
   FileText,
+  X,
 } from "lucide-react";
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonModal,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonText,
+  IonChip,
+  IonToast,
+} from "@ionic/react";
+import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import { itinerary } from "../data/code1Itinerary";
 import type { Expense } from "../types";
@@ -106,6 +123,7 @@ export default function Navigation({
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [countdown, setCountdown] = useState<CountdownState>(() => getCountdownState());
   const [currentDate, setCurrentDate] = useState(() => new Date());
 
@@ -138,52 +156,6 @@ export default function Navigation({
   }, [currentDate]);
 
   useEffect(() => {
-    if (!showMoreDrawer) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setShowMoreDrawer(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [showMoreDrawer]);
-
-  useEffect(() => {
-    const handler = () => setShowMoreDrawer(true);
-    window.addEventListener("open-more-drawer", handler);
-    return () => window.removeEventListener("open-more-drawer", handler);
-  }, []);
-
-  const [showCountdown, setShowCountdown] = useState(true);
-
-  useEffect(() => {
-    let ticking = false;
-
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        setShowCountdown(window.scrollY < 10);
-        ticking = false;
-      });
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
     const handler = () => setShowMoreDrawer(true);
     window.addEventListener("open-more-drawer", handler);
     return () => window.removeEventListener("open-more-drawer", handler);
@@ -192,7 +164,11 @@ export default function Navigation({
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setShowCopiedToast(true);
+    setTimeout(() => {
+      setCopied(false);
+      setShowCopiedToast(false);
+    }, 2000);
   };
 
   const handlePrint = () => {
@@ -366,8 +342,12 @@ export default function Navigation({
 
   return (
     <>
-      <header className="no-print">
-        <div className={`fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-[10px] ${screenSize === "small" ? "" : "hidden"}`}>
+      {/* Mobile header */}
+      <header className={`no-print ${screenSize === "small" ? "" : "hidden"}`}>
+        <div
+          className="fixed top-0 left-0 right-0 z-[1100] px-[14px] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-[10px]"
+          style={{ background: "#1a3328", color: "#f5f5f4" }}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
@@ -388,51 +368,40 @@ export default function Navigation({
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-white/20 bg-transparent text-stone-100 transition-colors hover:bg-white/10"
-                title="Share Trip"
-              >
-                <Share2 size={16} />
-              </button>
-              <button
-                onClick={() => setShowDownloadModal(true)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-white/20 bg-transparent text-stone-100 transition-colors hover:bg-white/10"
-                title="Download Data"
-              >
-                <Download size={16} />
-              </button>
+              <IonButton fill="clear" onClick={() => setShowShareModal(true)} className="ja-nav-icon-btn" title="Share Trip">
+                <IonIcon icon={shareSocialOutline} />
+              </IonButton>
+              <IonButton fill="clear" onClick={() => setShowDownloadModal(true)} className="ja-nav-icon-btn" title="Download Data">
+                <IonIcon icon={downloadOutline} />
+              </IonButton>
             </div>
           </div>
 
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              showCountdown && (shouldShowCountdown || shouldShowHolidayBanner)
-                ? "max-h-[64px] mt-[10px] opacity-100"
-                : "max-h-0 mt-0 opacity-0"
-            }`}
-          >
-            {shouldShowHolidayBanner ? (
-              <div className="rounded-[20px] border border-amber-300/40 bg-gradient-to-r from-amber-200/20 via-lime-300/15 to-emerald-300/20 px-4 py-[9px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-100/80">Holiday mode</div>
-                <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
+          {/* Mobile countdown */}
+          {shouldShowHolidayBanner ? (
+            <div className="mt-[10px] rounded-[20px] border border-amber-300/40 bg-gradient-to-r from-amber-200/20 via-lime-300/15 to-emerald-300/20 px-4 py-[9px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-100/80">Holiday mode</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
+            </div>
+          ) : shouldShowCountdown ? (
+            <div className="mt-[10px] flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
+              <div className="flex items-center gap-2 whitespace-nowrap leading-none">
+                <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
+                <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
               </div>
-            ) : shouldShowCountdown ? (
-              <div className="flex w-full items-center justify-between rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/10 px-4 py-[7px]">
-                <div className="flex items-center gap-2 whitespace-nowrap leading-none">
-                  <span className="text-[22px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-                  <span className="text-[13px] uppercase tracking-[0.07em] text-white/50">DAYS LEFT</span>
-                </div>
-
-                <div className="mx-2 h-6 w-px bg-white/15" />
-
-                <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
-              </div>
-            ) : null}
-          </div>
+              <div className="mx-2 h-6 w-px bg-white/15" />
+              <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+            </div>
+          ) : null}
         </div>
+      </header>
 
-        <div className={`bg-[#0B3530] text-stone-100 shadow-md sticky top-0 z-[1100] ${screenSize === "large" ? "" : "hidden"}`}>
+      {/* Desktop header */}
+      <header className={`no-print ${screenSize === "large" ? "" : "hidden"}`}>
+        <div
+          className="sticky top-0 z-[1100] shadow-md"
+          style={{ background: "#0B3530", color: "#f5f5f4" }}
+        >
           <div className="mx-auto max-w-7xl px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3">
             <div className="flex items-center justify-between gap-4 pb-3">
               <div className="min-w-0">
@@ -453,44 +422,29 @@ export default function Navigation({
 
               <div className="flex items-center gap-2">
                 {session && onOpenSettings ? (
-                  <button
-                    onClick={onOpenSettings}
-                    className="inline-flex items-center gap-2 rounded-[6px] border border-white/25 bg-transparent px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-white/10"
-                    title="Settings"
-                  >
-                    <Settings size={14} />
+                  <IonButton fill="clear" onClick={onOpenSettings} className="ja-nav-desktop-btn" title="Settings">
+                    <IonIcon icon={settingsOutline} slot="start" />
                     Settings
-                  </button>
+                  </IonButton>
                 ) : null}
-                <button
+                <IonButton
+                  fill="clear"
                   onClick={session ? onSignOut : onOpenAuth}
-                  className="inline-flex items-center gap-2 rounded-[6px] border border-white/25 bg-transparent px-3 py-1 text-[13px] font-medium text-white transition-colors hover:bg-white/10"
+                  className="ja-nav-desktop-btn"
                   title={session ? "Log out" : "Login"}
                 >
                   {session ? <LogOut size={14} /> : <LogIn size={14} />}
                   {session ? "Log out" : "Login"}
-                </button>
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-white/20 bg-transparent text-stone-100 transition-colors hover:bg-white/10"
-                  title="Share Trip"
-                >
-                  <Share2 size={16} />
-                </button>
-                <button
-                  onClick={() => setShowDownloadModal(true)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-white/20 bg-transparent text-stone-100 transition-colors hover:bg-white/10"
-                  title="Download Data"
-                >
-                  <Download size={16} />
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-white/20 bg-transparent text-stone-100 transition-colors hover:bg-white/10"
-                  title="Print Itinerary"
-                >
+                </IonButton>
+                <IonButton fill="clear" onClick={() => setShowShareModal(true)} className="ja-nav-icon-btn" title="Share Trip">
+                  <IonIcon icon={shareSocialOutline} />
+                </IonButton>
+                <IonButton fill="clear" onClick={() => setShowDownloadModal(true)} className="ja-nav-icon-btn" title="Download Data">
+                  <IonIcon icon={downloadOutline} />
+                </IonButton>
+                <IonButton fill="clear" onClick={handlePrint} className="ja-nav-icon-btn" title="Print Itinerary">
                   <Printer size={16} />
-                </button>
+                </IonButton>
               </div>
             </div>
 
@@ -514,254 +468,249 @@ export default function Navigation({
               </nav>
             </div>
 
-            <div
-              className={`overflow-hidden transition-all duration-300 pb-[10px] ${
-                showCountdown && (shouldShowCountdown || shouldShowHolidayBanner)
-                  ? "max-h-[60px] opacity-100"
-                  : "max-h-0 pb-0 opacity-0"
-              }`}
-            >
-              {shouldShowHolidayBanner ? (
-                <div className="rounded-[20px] border border-amber-300/30 bg-gradient-to-r from-amber-200/15 via-lime-300/10 to-emerald-300/15 px-[16px] py-[8px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/75">Holiday mode</div>
-                  <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
-                </div>
-              ) : shouldShowCountdown ? (
-                <div className="flex items-center rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/12 px-[14px] py-[5px]">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 whitespace-nowrap leading-none">
-                      <span className="text-[20px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
-                      <span className="text-[13px] uppercase tracking-[0.07em] leading-none text-white/50">
-                        DAYS LEFT
-                      </span>
-                    </div>
-                    <div className="h-6 w-px bg-white/15" />
-                    <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
+            {/* Desktop countdown */}
+            {shouldShowHolidayBanner ? (
+              <div className="pb-[10px] rounded-[20px] border border-amber-300/30 bg-gradient-to-r from-amber-200/15 via-lime-300/10 to-emerald-300/15 px-[16px] py-[8px] text-center shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-100/75">Holiday mode</div>
+                <div className="mt-0.5 text-[16px] font-extrabold tracking-[-0.03em] text-white">Enjoy your holiday</div>
+              </div>
+            ) : shouldShowCountdown ? (
+              <div className="pb-[10px] flex items-center rounded-[20px] border border-[#7ec96b]/30 bg-[#7ec96b]/12 px-[14px] py-[5px]">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 whitespace-nowrap leading-none">
+                    <span className="text-[20px] font-bold leading-none text-[#7ec96b]">{countdown.days}</span>
+                    <span className="text-[13px] uppercase tracking-[0.07em] leading-none text-white/50">DAYS LEFT</span>
                   </div>
+                  <div className="h-6 w-px bg-white/15" />
+                  <div className="text-[13px] tracking-[0.03em] text-white/55">{countdownTime}</div>
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
 
-      {showMoreDrawer && (
-        <div className={`fixed inset-0 z-[1350] ${screenSize === "small" ? "" : "hidden"}`} aria-hidden="false">
-          <button
-            type="button"
-            aria-label="Close more menu"
-            className="absolute inset-0 bg-black/55 backdrop-blur-[1px] transition-opacity"
-            onClick={() => setShowMoreDrawer(false)}
-          />
-
-          <aside
-            id="mobile-more-drawer"
-            className="absolute left-0 top-0 z-10 flex h-[100dvh] w-[75vw] max-w-[300px] flex-col border-r border-white/10 bg-[#1a3a35] text-white shadow-2xl transition-transform duration-300 ease-out animate-in fade-in slide-in-from-left-12"
-            role="dialog"
-            aria-modal="true"
-            aria-label="More navigation"
-          >
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
-              <div>
-                <p className="text-[13px] font-mono uppercase tracking-[0.22em] text-[#7ec96b]/70">More</p>
-                <h2 className="mt-1 text-[15px] font-semibold text-white">Navigation</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowMoreDrawer(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white transition-colors hover:bg-white/10"
-                aria-label="Close sidebar"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-3 py-4">
-              <div className="space-y-1.5">
-                {navItems.map((item) => {
-                  const Icon = item.icon ?? CalendarDays;
-                  const isActive = activeTab === item.path;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => handleNavigate(item.path)}
-                      className={`flex min-h-12 w-full items-center gap-2.5 rounded-[12px] px-3 py-[10px] text-left text-[14px] font-medium transition-colors ${
-                        isActive ? "bg-white/12 text-white" : "text-white/75 hover:bg-white/10 hover:text-white"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          isActive ? "bg-[#7ec96b]/20 text-[#7ec96b]" : "bg-white/10 text-white/75"
-                        }`}
-                      >
-                        <Icon size={15} />
-                      </span>
-                      <span className="flex-1">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-auto border-t border-white/10 px-3 py-3">
-              {session && onOpenSettings ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMoreDrawer(false);
-                    onOpenSettings();
-                  }}
-                  className="mb-3 flex w-full items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.08)] px-4 py-[10px] text-left text-[14px] text-white transition-colors hover:bg-[rgba(255,255,255,0.12)]"
+      {/* More Drawer Modal */}
+      <IonModal
+        isOpen={showMoreDrawer}
+        onDidDismiss={() => setShowMoreDrawer(false)}
+        className="ja-more-modal"
+        swipeToClose={screenSize === "small"}
+      >
+        <IonHeader>
+          <IonToolbar style={{ "--background": "#1a3a35", "--color": "#ffffff" } as React.CSSProperties}>
+            <IonTitle className="text-[15px] font-semibold">More</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowMoreDrawer(false)}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent style={{ "--background": "#1a3a35" } as React.CSSProperties}>
+          <IonList className="ja-nav-list">
+            {navItems.map((item) => {
+              const Icon = item.icon ?? CalendarDays;
+              const isActive = activeTab === item.path;
+              return (
+                <IonItem
+                  key={item.label}
+                  button
+                  onClick={() => handleNavigate(item.path)}
+                  className={`ja-nav-item ${isActive ? "ja-nav-item-active" : ""}`}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80">
-                    <Settings size={15} />
-                  </span>
-                  <span className="flex-1">Settings</span>
-                </button>
-              ) : null}
-              {!session ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMoreDrawer(false);
-                    onOpenAuth();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.08)] px-4 py-[10px] text-left text-[14px] text-white transition-colors hover:bg-[rgba(255,255,255,0.12)]"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80">
-                    <User size={15} />
-                  </span>
-                  <span className="flex-1">Login</span>
-                </button>
-              ) : (
-                <div className="flex items-center gap-3 rounded-[8px] bg-[rgba(255,255,255,0.04)] px-3 py-[10px]">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-[14px] font-semibold text-white">
-                    {userAvatar ? (
-                      <img
-                        src={userAvatar}
-                        alt={userDisplayName}
-                        className="h-full w-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span>{userInitial}</span>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-medium leading-tight text-white">
-                      {userDisplayName}
-                    </div>
-                    <div className="truncate text-[14px] leading-tight text-white/50">{userEmail}</div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMoreDrawer(false);
-                      onSignOut();
+                  <span
+                    slot="start"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      background: isActive ? "rgba(126,201,107,0.2)" : "rgba(255,255,255,0.1)",
+                      color: isActive ? "#7ec96b" : "rgba(255,255,255,0.75)",
                     }}
-                    className="inline-flex shrink-0 items-center justify-center text-white/50 transition-colors hover:text-white"
-                    aria-label="Log out"
-                    title="Log out"
                   >
-                    <LogOut size={16} />
-                  </button>
+                    <Icon size={15} />
+                  </span>
+                  <IonLabel className="text-[14px] font-medium">{item.label}</IonLabel>
+                </IonItem>
+              );
+            })}
+          </IonList>
+
+          <div className="border-t border-white/10 px-3 py-4 mt-4">
+            {session && onOpenSettings ? (
+              <IonItem
+                button
+                onClick={() => {
+                  setShowMoreDrawer(false);
+                  onOpenSettings();
+                }}
+                className="ja-nav-item"
+              >
+                <span
+                  slot="start"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}
+                >
+                  <Settings size={15} />
+                </span>
+                <IonLabel className="text-[14px] font-medium">Settings</IonLabel>
+              </IonItem>
+            ) : null}
+
+            {!session ? (
+              <IonItem
+                button
+                onClick={() => {
+                  setShowMoreDrawer(false);
+                  onOpenAuth();
+                }}
+                className="ja-nav-item"
+              >
+                <span
+                  slot="start"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}
+                >
+                  <User size={15} />
+                </span>
+                <IonLabel className="text-[14px] font-medium">Login</IonLabel>
+              </IonItem>
+            ) : (
+              <div
+                className="flex items-center gap-3 rounded-[8px] px-3 py-[10px] mx-3"
+                style={{ background: "rgba(255,255,255,0.04)" }}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 text-[14px] font-semibold text-white">
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={userDisplayName}
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span>{userInitial}</span>
+                  )}
                 </div>
-              )}
-            </div>
-          </aside>
-        </div>
-      )}
 
-      {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-4 backdrop-blur-xs no-print">
-          <div className="relative w-full max-w-sm animate-in fade-in zoom-in duration-200 rounded-xl border border-stone-100 bg-white p-6 shadow-2xl">
-            <button
-              onClick={() => setShowShareModal(false)}
-              className="absolute right-4 top-4 font-sans text-stone-400 hover:text-stone-600"
-            >
-              X
-            </button>
-            <h3 className="mb-2 text-lg font-serif font-bold text-[#0B3530]">Share Travel Itinerary</h3>
-            <p className="mb-4 text-xs font-sans text-stone-500">
-              Share Jessie and Amor's exclusive Malaysia itinerary with others. Both web preview and responsive modes are supported.
-            </p>
-
-            <div className="mb-4 flex flex-col items-center justify-center rounded-lg border border-stone-100 bg-[#F7F9FA] p-4">
-              <div className="relative flex h-32 w-32 flex-wrap gap-1 overflow-hidden rounded-md bg-[#0B3530] p-2">
-                <div className="absolute inset-2 flex items-center justify-center rounded bg-white">
-                  <div className="grid h-full w-full grid-cols-5 gap-1.5 p-1 text-[#0B3530]">
-                    <div className="h-6 w-6 border-2 border-[#0B3530]"></div>
-                    <div className="col-start-5 h-6 w-6 border-2 border-[#0B3530]"></div>
-                    <div className="col-start-3 row-start-3 h-2 w-2 rounded-full bg-[#0B3530]"></div>
-                    <div className="col-start-1 row-start-5 h-6 w-6 border-2 border-[#0B3530]"></div>
-                    <div className="col-start-2 row-start-2 rounded-sm bg-[#0b3530]"></div>
-                    <div className="col-start-4 row-start-2 rounded-sm bg-[#0b3530]"></div>
-                    <div className="col-start-3 row-start-4 rounded-sm bg-[#0b3530]"></div>
-                    <div className="col-start-5 row-start-4 rounded-sm bg-[#0b3530]"></div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-medium leading-tight text-white">
+                    {userDisplayName}
                   </div>
+                  <div className="truncate text-[14px] leading-tight text-white/50">{userEmail}</div>
+                </div>
+
+                <IonButton
+                  fill="clear"
+                  onClick={() => {
+                    setShowMoreDrawer(false);
+                    onSignOut();
+                  }}
+                  title="Log out"
+                  style={{ "--color": "rgba(255,255,255,0.5)" } as React.CSSProperties}
+                >
+                  <LogOut size={16} />
+                </IonButton>
+              </div>
+            )}
+          </div>
+        </IonContent>
+      </IonModal>
+
+      {/* Share Modal */}
+      <IonModal isOpen={showShareModal} onDidDismiss={() => setShowShareModal(false)} className="ja-share-modal">
+        <IonHeader>
+          <IonToolbar style={{ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties}>
+            <IonTitle>Share Travel Itinerary</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowShareModal(false)}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
+          <p className="mb-4 text-xs text-stone-500">
+            Share Jessie and Amor's exclusive Malaysia itinerary with others. Both web preview and responsive modes are supported.
+          </p>
+
+          <div className="mb-4 flex flex-col items-center justify-center rounded-lg border border-stone-100 bg-[#F7F9FA] p-4">
+            <div className="relative flex h-32 w-32 flex-wrap gap-1 overflow-hidden rounded-md bg-[#0B3530] p-2">
+              <div className="absolute inset-2 flex items-center justify-center rounded bg-white">
+                <div className="grid h-full w-full grid-cols-5 gap-1.5 p-1 text-[#0B3530]">
+                  <div className="h-6 w-6 border-2 border-[#0B3530]" />
+                  <div className="col-start-5 h-6 w-6 border-2 border-[#0B3530]" />
+                  <div className="col-start-3 row-start-3 h-2 w-2 rounded-full bg-[#0B3530]" />
+                  <div className="col-start-1 row-start-5 h-6 w-6 border-2 border-[#0B3530]" />
+                  <div className="col-start-2 row-start-2 rounded-sm bg-[#0b3530]" />
+                  <div className="col-start-4 row-start-2 rounded-sm bg-[#0b3530]" />
+                  <div className="col-start-3 row-start-4 rounded-sm bg-[#0b3530]" />
+                  <div className="col-start-5 row-start-4 rounded-sm bg-[#0b3530]" />
                 </div>
               </div>
-              <span className="mt-2 text-[10px] font-mono text-stone-400">SCAN FOR MOBILE VIEW</span>
             </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={window.location.href}
-                className="flex-1 truncate rounded border border-stone-200 bg-stone-50 px-3 py-2 font-mono text-xs text-stone-600 outline-none select-all"
-              />
-              <button
-                onClick={copyUrlToClipboard}
-                className="flex items-center justify-center rounded bg-[#0B3530] p-2 text-white transition-colors hover:bg-[#18534C]"
-              >
-                {copied ? <Check size={16} className="text-[#88B04B]" /> : <Copy size={16} />}
-              </button>
-            </div>
-            {copied && <p className="mt-1 text-center text-[10px] font-medium text-green-600">Link copied to clipboard!</p>}
+            <span className="mt-2 text-[10px] font-mono text-stone-400">SCAN FOR MOBILE VIEW</span>
           </div>
-        </div>
-      )}
 
-      {showDownloadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-4 backdrop-blur-xs no-print">
-          <div className="relative w-full max-w-sm animate-in fade-in zoom-in duration-200 rounded-xl border border-stone-100 bg-white p-6 shadow-2xl">
-            <button
-              onClick={() => setShowDownloadModal(false)}
-              className="absolute right-4 top-4 font-sans text-stone-400 hover:text-stone-600"
-            >
-              X
-            </button>
-            <h3 className="mb-2 text-lg font-serif font-bold text-[#0B3530]">Immigration Document</h3>
-            <p className="mb-4 text-xs font-sans text-stone-500">
-              Generate a formatted letter for immigration purposes — includes traveler info, flights, hotels, and daily itinerary.
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={window.location.href}
+              className="flex-1 truncate rounded border border-stone-200 bg-stone-50 px-3 py-2 font-mono text-xs text-stone-600 outline-none select-all"
+            />
+            <IonButton onClick={copyUrlToClipboard} className="ja-nav-copy-btn">
+              {copied ? <Check size={16} style={{ color: "#88B04B" }} /> : <Copy size={16} />}
+            </IonButton>
+          </div>
+        </IonContent>
+      </IonModal>
+
+      {/* Copied Toast */}
+      <IonToast
+        isOpen={showCopiedToast}
+        message="Link copied to clipboard!"
+        duration={2000}
+        position="bottom"
+        color="success"
+        onDidDismiss={() => setShowCopiedToast(false)}
+      />
+
+      {/* Download/Immigration Modal */}
+      <IonModal isOpen={showDownloadModal} onDidDismiss={() => setShowDownloadModal(false)} className="ja-download-modal">
+        <IonHeader>
+          <IonToolbar style={{ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties}>
+            <IonTitle>Immigration Document</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowDownloadModal(false)}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
+          <p className="mb-4 text-xs text-stone-500">
+            Generate a formatted letter for immigration purposes — includes traveler info, flights, hotels, and daily itinerary.
+          </p>
+
+          <IonButton
+            expand="block"
+            onClick={handleImmigrationDoc}
+            className="ja-nav-download-btn"
+            style={{ "--background": "#0B3530", "--background-hover": "#18534C" } as React.CSSProperties}
+          >
+            <FileText size={14} style={{ marginRight: 8 }} />
+            Immigration Document (PDF)
+          </IonButton>
+          <p className="mt-2 text-[10px] text-stone-500">Formatted for immigration — travelers, flights, hotel, itinerary</p>
+
+          <div className="mt-4 flex gap-2 rounded-lg bg-[#88B04B]/10 p-3">
+            <Info size={16} className="mt-0.5 shrink-0 text-[#0B3530]" />
+            <p className="text-[11px] leading-normal text-[#0b3530]">
+              <strong>Cloud Sync Note:</strong> Any customizations made to the budget charts, map stops, or travel notes are stored in Supabase and stay in sync across open sessions.
             </p>
-
-            <div className="space-y-3">
-              <button
-                onClick={handleImmigrationDoc}
-                className="flex w-full items-center justify-between rounded-lg border border-stone-200 p-3 text-left transition-all hover:border-[#0B3530] hover:bg-stone-50"
-              >
-                <div>
-                  <h4 className="text-xs font-bold font-sans text-stone-800">Immigration Document (PDF)</h4>
-                  <p className="text-[10px] text-stone-500">Formatted for immigration — travelers, flights, hotel, itinerary</p>
-                </div>
-                <FileText size={14} className="text-stone-400" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex gap-2 rounded-lg bg-[#88B04B]/10 p-3">
-              <Info size={16} className="mt-0.5 shrink-0 text-[#0B3530]" />
-              <p className="text-[11px] leading-normal text-[#0b3530] font-sans">
-                <strong>Cloud Sync Note:</strong> Any customizations made to the budget charts, map stops, or travel notes are stored in Supabase and stay in sync across open sessions.
-              </p>
-            </div>
           </div>
-        </div>
-      )}
+        </IonContent>
+      </IonModal>
     </>
   );
 }

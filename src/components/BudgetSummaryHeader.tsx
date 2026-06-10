@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Info } from "lucide-react";
+import {
+  IonCard,
+  IonCardSubtitle,
+  IonCardContent,
+  IonButton,
+  IonIcon,
+} from "@ionic/react";
+import { informationCircleOutline } from "ionicons/icons";
 import type { BudgetCard } from "../data/code1Itinerary";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, UserTripSettings } from "../types";
@@ -177,55 +184,56 @@ export default function BudgetSummaryHeader({
     const isFeatured = Boolean(card?.featured);
 
     return (
-      <div
+      <IonCard
         key={`${dayMeta.label}-${index}`}
-        className={`relative overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-xs ${
-          isFeatured
-            ? "border-[#0B3530] bg-[#0B3530] text-white"
-            : "border-stone-200/60 bg-white"
-        }`}
+        className={`ja-budget-day-card ${isFeatured ? "ja-budget-day-card-featured" : ""}`}
+        style={isFeatured ? ({ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties) : undefined}
       >
         {isFeatured ? <div className="absolute -bottom-4 -right-4 h-16 w-16 rounded-full bg-[#18534C]/25" /> : null}
-        <span
-          className={`mb-1 block text-[13px] font-mono font-bold uppercase tracking-widest ${
-            isFeatured ? "text-[#88B04B]" : "text-[#88B04B]/90"
-          }`}
-        >
-          {dayMeta.label}
-        </span>
-        <div className="space-y-3">
-          <div>
-            <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
-              Target
+        <IonCardContent>
+          <IonCardSubtitle
+            className="ja-budget-day-subtitle text-[13px] font-mono font-bold uppercase tracking-widest"
+            style={{ color: isFeatured ? "#88B04B" : "rgba(136,176,75,0.9)" }}
+          >
+            {dayMeta.label}
+          </IonCardSubtitle>
+          <div className="space-y-3 mt-3">
+            <div>
+              <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
+                Target
+              </div>
+              <h3 className={`mt-1 text-xl font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
+                {targetPrimaryLabel}
+              </h3>
+              {targetSecondaryLabel ? (
+                <div className={`mt-1 text-[13px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-400"}`}>
+                  <p>{targetSecondaryLabel}</p>
+                </div>
+              ) : !card ? (
+                <div className="mt-1 text-[12px] font-mono text-stone-400">
+                  Add a target for this day when ready.
+                </div>
+              ) : null}
             </div>
-            <h3 className={`mt-1 text-xl font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
-              {targetPrimaryLabel}
-            </h3>
-            {targetSecondaryLabel ? (
-              <div className={`mt-1 text-[13px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-400"}`}>
-                <p>{targetSecondaryLabel}</p>
+            <div
+              className={`rounded-xl border px-3 py-2 ${isFeatured ? "border-white/15" : "border-stone-200"}`}
+              style={{ background: isFeatured ? "rgba(255,255,255,0.08)" : "#fafaf9" }}
+            >
+              <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
+                Calculated Active
               </div>
-            ) : !card ? (
-              <div className="mt-1 text-[12px] font-mono text-stone-400">
-                Add a target for this day when ready.
+              <div className={`mt-1 text-lg font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
+                {activePrimaryLabel}
               </div>
-            ) : null}
+              {activeSecondaryLabel ? (
+                <div className={`mt-1 text-[12px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-500"}`}>
+                  {activeSecondaryLabel}
+                </div>
+              ) : null}
+            </div>
           </div>
-          <div className={`rounded-xl border px-3 py-2 ${isFeatured ? "border-white/15 bg-white/8" : "border-stone-200 bg-stone-50"}`}>
-            <div className={`text-[10px] font-mono font-bold uppercase tracking-[0.25em] ${isFeatured ? "text-white/65" : "text-stone-400"}`}>
-              Calculated Active
-            </div>
-            <div className={`mt-1 text-lg font-bold font-serif ${isFeatured ? "text-white" : "text-stone-800"}`}>
-              {activePrimaryLabel}
-            </div>
-            {activeSecondaryLabel ? (
-              <div className={`mt-1 text-[12px] font-mono ${isFeatured ? "text-[#88B04B]" : "text-stone-500"}`}>
-                {activeSecondaryLabel}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
+        </IonCardContent>
+      </IonCard>
     );
   };
 
@@ -256,63 +264,73 @@ export default function BudgetSummaryHeader({
         </div>
       </div>
 
+      {/* Mobile day selector */}
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:hidden">
         {dayCards.map((dayCard) => {
           const isActive = dayCard.value === resolvedSelectedMobileDay;
           return (
-            <button
+            <IonButton
               key={dayCard.value}
-              type="button"
               onClick={() => setResolvedSelectedMobileDay(dayCard.value)}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
-                isActive
-                  ? "border-[#0B3530] bg-[#0B3530] text-white"
-                  : "border-stone-200 bg-white text-stone-600"
-              }`}
+              fill={isActive ? "solid" : "outline"}
+              color={isActive ? "primary" : undefined}
+              size="small"
+              className="ja-budget-day-btn"
             >
               {dayCard.label}
-            </button>
+            </IonButton>
           );
         })}
       </div>
 
+      {/* Mobile: single day card */}
       <div className="mb-5 sm:hidden">
         {mobileSelectedEntry ? renderDayCard(mobileSelectedEntry.dayMeta, mobileSelectedEntry.card, mobileSelectedCardIndex) : null}
       </div>
 
+      {/* Desktop: all day cards in grid */}
       <div className="mb-5 hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-4">
         {dayEntries.map((entry, index) => renderDayCard(entry.dayMeta, entry.card, index))}
       </div>
 
+      {/* Cash outflow + CC spends */}
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="relative overflow-hidden rounded-2xl border border-[#0B3530] bg-[#0B3530] p-4 text-white">
-          <span className="mb-1 block text-[13px] font-mono font-bold uppercase tracking-widest text-[#88B04B]">
-            CASH OUTFLOW
-          </span>
-          <h3 className="text-xl font-bold font-serif text-white">{formatPrimaryAmount(totalCashActual)}</h3>
-          {secondaryDisplayCurrencies.length > 0 ? (
-            <div className="mt-1 text-[13px] font-mono text-[#88B04B]">
-              <p>{formatSecondaryAmountGroup(totalCashActual)}</p>
-            </div>
-          ) : null}
-        </div>
+        <IonCard
+          className="ja-budget-summary-total-card ja-budget-summary-total-card-dark"
+          style={{ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties}
+        >
+          <IonCardContent>
+            <IonCardSubtitle className="ja-budget-day-subtitle text-[13px] font-mono font-bold uppercase tracking-widest" style={{ color: "#88B04B" }}>
+              CASH OUTFLOW
+            </IonCardSubtitle>
+            <h3 className="text-xl font-bold font-serif text-white mt-1">{formatPrimaryAmount(totalCashActual)}</h3>
+            {secondaryDisplayCurrencies.length > 0 ? (
+              <div className="mt-1 text-[13px] font-mono" style={{ color: "#88B04B" }}>
+                <p>{formatSecondaryAmountGroup(totalCashActual)}</p>
+              </div>
+            ) : null}
+          </IonCardContent>
+        </IonCard>
 
-        <div className="relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-4">
-          <span className="mb-1 block text-[13px] font-mono font-bold uppercase tracking-widest text-[#88B04B]/90">
-            CC SPENDS
-          </span>
-          <h3 className="text-xl font-bold font-serif text-stone-800">{formatPrimaryAmount(totalCardActual)}</h3>
-          {secondaryDisplayCurrencies.length > 0 ? (
-            <div className="mt-1 text-[13px] font-mono text-stone-400">
-              <p>{formatSecondaryAmountGroup(totalCardActual)}</p>
-            </div>
-          ) : null}
-        </div>
+        <IonCard className="ja-budget-summary-total-card">
+          <IonCardContent>
+            <IonCardSubtitle className="ja-budget-day-subtitle text-[13px] font-mono font-bold uppercase tracking-widest" style={{ color: "rgba(136,176,75,0.9)" }}>
+              CC SPENDS
+            </IonCardSubtitle>
+            <h3 className="text-xl font-bold font-serif text-stone-800 mt-1">{formatPrimaryAmount(totalCardActual)}</h3>
+            {secondaryDisplayCurrencies.length > 0 ? (
+              <div className="mt-1 text-[13px] font-mono text-stone-400">
+                <p>{formatSecondaryAmountGroup(totalCardActual)}</p>
+              </div>
+            ) : null}
+          </IonCardContent>
+        </IonCard>
       </div>
 
+      {/* Info note */}
       <div className="flex items-start gap-3 rounded-2xl border border-[#D0DFDC] bg-[#F1F5F4] p-3.5">
-        <Info size={16} className="mt-0.5 shrink-0 text-[#0B3530]" />
-        <div className="font-sans text-xs leading-relaxed text-[#0B3530]">
+        <IonIcon icon={informationCircleOutline} className="mt-0.5 shrink-0" style={{ color: "#0B3530", fontSize: 16 }} />
+        <div className="font-sans text-xs leading-relaxed" style={{ color: "#0B3530" }}>
           <strong>Note:</strong> Cash/debit is tracked together, while credit card spends stay separate.
           <div className="mt-1 text-[10px] font-mono uppercase tracking-widest text-stone-500">
             Live totals update from the expense registry.

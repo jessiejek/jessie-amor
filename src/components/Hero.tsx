@@ -1,4 +1,13 @@
 import React from "react";
+import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonCardContent,
+  IonChip,
+  IonText,
+} from "@ionic/react";
 import type { HeroData } from "../data/code1Itinerary";
 import RichText from "./RichText";
 import heroImage from "../assets/images/malaysia_singapore_hero_019e9d4d.png";
@@ -21,33 +30,39 @@ export default function Hero({ hero }: HeroProps) {
         <div className="absolute inset-0 bg-gradient-to-r from-stone-900/65 via-stone-800/35 to-transparent" />
       </div>
 
-      <div className="hero-info-card absolute bottom-4 left-4 max-w-lg rounded-2xl border border-white/50 bg-white/95 p-6 shadow-xl backdrop-blur-md md:bottom-8 md:left-8 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <span className="hero-eyebrow mb-2 block text-[13px] font-mono font-bold uppercase tracking-[0.25em] text-[#88B04B] md:text-sm">
-          {hero.eyebrow}
-        </span>
-        <h2 className="hero-title text-xl font-serif font-bold leading-tight tracking-tight text-[#0B3530] md:text-3xl">
-          {hero.title}
-          {hero.subtitle ? <span className="block text-[#18534C]">{hero.subtitle}</span> : null}
-        </h2>
-        <div className="hero-underline mt-4 h-1 w-16 rounded-full bg-[#88B04B]" />
+      <IonCard className="ja-hero-card absolute bottom-4 left-4 max-w-lg md:bottom-8 md:left-8">
+        <IonCardHeader className="ja-hero-card-header">
+          <IonCardSubtitle className="ja-hero-subtitle text-[13px] font-mono font-bold uppercase tracking-[0.25em] md:text-sm">
+            {hero.eyebrow}
+          </IonCardSubtitle>
+          <IonCardTitle className="ja-hero-title text-xl font-serif font-bold leading-tight tracking-tight md:text-3xl">
+            {hero.title}
+            {hero.subtitle ? <span className="block text-[#18534C]">{hero.subtitle}</span> : null}
+          </IonCardTitle>
+        </IonCardHeader>
+
+        <div className="ml-4 h-1 w-16 rounded-full bg-[#88B04B]" />
+
         {hero.meta.length > 0 ? (
-          <div className="hero-meta mt-4 flex flex-wrap gap-2">
-            {hero.meta.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[13px] font-medium text-stone-600"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
+          <IonCardContent className="ja-hero-card-content">
+            <div className="flex flex-wrap gap-2">
+              {hero.meta.map((item) => (
+                <IonChip key={item} className="ja-hero-chip">
+                  {item}
+                </IonChip>
+              ))}
+            </div>
+          </IonCardContent>
         ) : null}
+
         {hero.note.length > 0 ? (
-          <p className="hero-note mt-4 text-[13px] leading-relaxed text-stone-500 md:text-sm">
-            <RichText segments={hero.note} />
-          </p>
+          <IonCardContent className="ja-hero-card-content">
+            <p className="text-[13px] leading-relaxed text-stone-500 md:text-sm">
+              <RichText segments={hero.note} />
+            </p>
+          </IonCardContent>
         ) : null}
-      </div>
+      </IonCard>
     </div>
   );
 }
