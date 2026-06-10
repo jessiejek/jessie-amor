@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { CreditCard, Compass, Loader2, Printer, RefreshCw, Share2, Ticket, Utensils, LogOut } from "lucide-react";
+import { CalendarDays, CreditCard, Compass, Loader2, Map as MapIcon, Menu, NotebookText, Printer, RefreshCw, Share2, Ticket, Utensils, Wallet, LogOut } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -404,6 +404,7 @@ export default function App() {
   const [pullDistance, setPullDistance] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1738,6 +1739,51 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!window.visualViewport) {
+      const onFocusIn = (e: FocusEvent) => {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+          setKeyboardOpen(true);
+        }
+      };
+      const onFocusOut = () => setKeyboardOpen(false);
+      document.addEventListener("focusin", onFocusIn);
+      document.addEventListener("focusout", onFocusOut);
+      return () => {
+        document.removeEventListener("focusin", onFocusIn);
+        document.removeEventListener("focusout", onFocusOut);
+      };
+    }
+
+    const checkKeyboard = () => {
+      const viewportHeight = window.visualViewport!.height;
+      const windowHeight = window.innerHeight;
+      const isOpen = viewportHeight < windowHeight - 200;
+      setKeyboardOpen(isOpen);
+    };
+
+    window.visualViewport.addEventListener("resize", checkKeyboard);
+    checkKeyboard();
+
+    return () => window.visualViewport.removeEventListener("resize", checkKeyboard);
+  }, []);
+
+  useEffect(() => {
+    if (!keyboardOpen) {
+      requestAnimationFrame(() => {
+        const body = document.body;
+        const scrollY = window.scrollY;
+
+        body.style.minHeight = "calc(100vh + 1px)";
+        void body.offsetHeight;
+        body.style.minHeight = "";
+
+        window.scrollTo(0, scrollY);
+      });
+    }
+  }, [keyboardOpen]);
+
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
 
   useEffect(() => {
@@ -2275,6 +2321,47 @@ export default function App() {
         )}
           </main>
         </div>
+
+        {/* STICKY BOTTOM NAV — TEST */}
+        <footer className={`no-print md:hidden sticky bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${keyboardOpen ? "hidden" : ""}`}>
+          <div className="grid grid-cols-5">
+            <button
+              onClick={() => navigateTo("/")}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/" ? "text-[#7ec96b]" : "text-white/50"}`}
+            >
+              <CalendarDays size={17} />
+              <span>Itinerary</span>
+            </button>
+            <button
+              onClick={() => navigateTo("/budget")}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/budget" ? "text-[#7ec96b]" : "text-white/50"}`}
+            >
+              <Wallet size={17} />
+              <span>Budget</span>
+            </button>
+            <button
+              onClick={() => navigateTo("/map")}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/map" ? "text-[#7ec96b]" : "text-white/50"}`}
+            >
+              <MapIcon size={17} />
+              <span>Map</span>
+            </button>
+            <button
+              onClick={() => navigateTo("/notes")}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/notes" ? "text-[#7ec96b]" : "text-white/50"}`}
+            >
+              <NotebookText size={17} />
+              <span>Notes</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("open-more-drawer"))}
+              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${activeRoute === "/diary" ? "text-[#7ec96b]" : "text-white/50"}`}
+            >
+              <Menu size={17} />
+              <span>More</span>
+            </button>
+          </div>
+        </footer>
 
         <AuthPanel
         open={showAuthModal}

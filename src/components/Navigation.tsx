@@ -8,7 +8,6 @@ import {
   LogIn,
   LogOut,
   Map as MapIcon,
-  Menu,
   BookOpen,
   NotebookText,
   Printer,
@@ -158,6 +157,12 @@ export default function Navigation({
     };
   }, [showMoreDrawer]);
 
+  useEffect(() => {
+    const handler = () => setShowMoreDrawer(true);
+    window.addEventListener("open-more-drawer", handler);
+    return () => window.removeEventListener("open-more-drawer", handler);
+  }, []);
+
   const [showCountdown, setShowCountdown] = useState(true);
 
   useEffect(() => {
@@ -175,56 +180,6 @@ export default function Navigation({
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    if (!window.visualViewport) {
-      const onFocusIn = (e: FocusEvent) => {
-        const tag = (e.target as HTMLElement)?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-          setKeyboardOpen(true);
-        }
-      };
-      const onFocusOut = () => setKeyboardOpen(false);
-      document.addEventListener("focusin", onFocusIn);
-      document.addEventListener("focusout", onFocusOut);
-      return () => {
-        document.removeEventListener("focusin", onFocusIn);
-        document.removeEventListener("focusout", onFocusOut);
-      };
-    }
-
-    let ticking = false;
-    const checkKeyboard = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const viewportHeight = window.visualViewport!.height;
-        const windowHeight = window.innerHeight;
-        const isOpen = viewportHeight < windowHeight - 150;
-        setKeyboardOpen(isOpen);
-        ticking = false;
-      });
-    };
-
-    window.visualViewport.addEventListener("resize", checkKeyboard);
-    checkKeyboard();
-
-    return () => window.visualViewport.removeEventListener("resize", checkKeyboard);
-  }, []);
-
-  useEffect(() => {
-    if (!keyboardOpen) {
-      requestAnimationFrame(() => {
-        window.scrollTo(window.scrollX, window.scrollY);
-        document.body.style.transform = "translateZ(0)";
-        setTimeout(() => {
-          document.body.style.transform = "";
-        }, 50);
-      });
-    }
-  }, [keyboardOpen]);
 
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -581,46 +536,6 @@ export default function Navigation({
           </div>
         </div>
       </header>
-//aaaa
-      <footer className="no-print">
-        <nav
-          className={`fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden transition-transform duration-200 ${
-            keyboardOpen ? "translate-y-full" : "translate-y-0"
-          }`}
-        >
-          <div className="grid grid-cols-5">
-            {bottomNavItems.map((tab) => {
-              const Icon = tab.icon ?? CalendarDays;
-              const isActive = activeTab === tab.path;
-              return (
-                <button
-                  key={tab.label}
-                  onClick={() => handleNavigate(tab.path)}
-                className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${
-                    isActive ? "text-[#7ec96b]" : "text-white/50"
-                  }`}
-                >
-                  <Icon size={17} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => setShowMoreDrawer(true)}
-              className={`flex flex-col items-center gap-[3px] py-[7px] text-[12px] transition-colors ${
-                isMoreActive ? "text-[#7ec96b]" : "text-white/50"
-              }`}
-              aria-expanded={showMoreDrawer}
-              aria-controls="mobile-more-drawer"
-              title="More"
-            >
-              <Menu size={17} />
-              <span>More</span>
-            </button>
-          </div>
-        </nav>
-      </footer>
 
       {showMoreDrawer && (
         <div className="fixed inset-0 z-[1350] md:hidden" aria-hidden="false">
