@@ -354,7 +354,7 @@ export default function Navigation({
   return (
     <>
       <header className="no-print">
-        <div className="md:hidden fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-3 pb-[10px]">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-[10px]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
@@ -420,7 +420,7 @@ export default function Navigation({
         </div>
 
         <div className="hidden bg-[#0B3530] text-stone-100 shadow-md md:block sticky top-0 z-[1100]">
-          <div className="mx-auto max-w-7xl px-6 py-3">
+          <div className="mx-auto max-w-7xl px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3">
             <div className="flex items-center justify-between gap-4 pb-3">
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
