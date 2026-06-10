@@ -1,7 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Route, Plus, Trash2, LocateFixed } from "lucide-react";
+
+import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonCardContent,
+  IonInput,
+  IonTextarea,
+  IonButton,
+  IonIcon,
+  IonSelect,
+  IonSelectOption,
+  IonChip,
+  IonSpinner,
+} from "@ionic/react";
+import {
+  addOutline,
+  locateOutline,
+  trailSignOutline,
+  navigateOutline,
+  stopCircleOutline,
+  trashOutline,
+  mapOutline,
+} from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import {
@@ -18,27 +42,9 @@ import { supabase, supabaseMapDestinationsTable, tripKey } from "../lib/supabase
 import { makeOfflineCacheKey, readCachedDataset, writeCachedDataset } from "../lib/offlineCache";
 import type { SyncStatus, UserTripSettings } from "../types";
 
-type DraftState = {
-  name: string;
-  time: string;
-  notes: string;
-  lat: string;
-  lng: string;
-};
-
-type UserLocationState = {
-  lat: number;
-  lng: number;
-  accuracy: number | null;
-  updatedAt: number;
-};
-
-type NominatimSuggestion = {
-  display_name: string;
-  lat: string;
-  lon: string;
-  place_id: number;
-};
+type DraftState = { name: string; time: string; notes: string; lat: string; lng: string; };
+type UserLocationState = { lat: number; lng: number; accuracy: number | null; updatedAt: number; };
+type NominatimSuggestion = { display_name: string; lat: string; lon: string; place_id: number; };
 
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
 
@@ -59,16 +65,8 @@ const timeOptions = (() => {
 const lookupPlaces = async (query: string, signal?: AbortSignal): Promise<NominatimSuggestion[]> => {
   const trimmed = query.trim();
   if (trimmed.length < 3) return [];
-
   const url = `${NOMINATIM_BASE_URL}?q=${encodeURIComponent(trimmed)}&format=json&limit=5`;
-  const response = await fetch(url, {
-    signal,
-    headers: {
-      "User-Agent": "travel-itinerary-app",
-      "Accept-Language": "en",
-    } as HeadersInit,
-  });
-
+  const response = await fetch(url, { signal, headers: { "User-Agent": "travel-itinerary-app", "Accept-Language": "en" } as HeadersInit });
   if (!response.ok) return [];
   const payload = (await response.json()) as NominatimSuggestion[];
   return Array.isArray(payload) ? payload : [];
@@ -77,49 +75,25 @@ const lookupPlaces = async (query: string, signal?: AbortSignal): Promise<Nomina
 const createMarkerIcon = (order: number, selected: boolean) =>
   L.divIcon({
     className: "",
-    html: `
-      <div class="${selected ? "scale-110 bg-[#0B3530] text-white ring-4 ring-[#88B04B]/30" : "bg-white text-[#0B3530] ring-2 ring-[#0B3530]/15"} flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform">
-        <span class="text-[11px] font-bold font-mono">${order}</span>
-      </div>
-    `,
+    html: `<div class="${selected ? "scale-110 bg-[#0B3530] text-white ring-4 ring-[#88B04B]/30" : "bg-white text-[#0B3530] ring-2 ring-[#0B3530]/15"} flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform"><span class="text-[11px] font-bold font-mono">${order}</span></div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
     popupAnchor: [0, -18],
   });
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const renderPopup = (destination: MapDestination, order: number) => `
-  <div style="min-width: 180px; max-width: 220px;">
-    <div style="font-size: 13px; font-family: monospace; letter-spacing: 0.12em; color: #88B04B; text-transform: uppercase;">Stop ${order}</div>
-    <div style="font-weight: 700; color: #0B3530; margin-top: 4px;">${escapeHtml(destination.name)}</div>
-    <div style="font-size: 14px; color: #6B7280; margin-top: 4px;">${escapeHtml(destination.time)}</div>
-    <div style="font-size: 14px; color: #374151; line-height: 1.45; margin-top: 8px;">${escapeHtml(destination.notes)}</div>
-  </div>
-`;
+  <div style="min-width:180px;max-width:220px;">
+    <div style="font-size:13px;font-family:monospace;letter-spacing:0.12em;color:#88B04B;text-transform:uppercase;">Stop ${order}</div>
+    <div style="font-weight:700;color:#0B3530;margin-top:4px;">${escapeHtml(destination.name)}</div>
+    <div style="font-size:14px;color:#6B7280;margin-top:4px;">${escapeHtml(destination.time)}</div>
+    <div style="font-size:14px;color:#374151;line-height:1.45;margin-top:8px;">${escapeHtml(destination.notes)}</div>
+  </div>`;
 
-interface MapTabProps {
-  session: Session | null;
-  canEdit?: boolean;
-  isOnline?: boolean;
-  userSettings?: UserTripSettings | null;
-  currentUser?: {
-    userId: string;
-    email: string;
-    isAdmin: boolean;
-  } | null;
-}
+interface MapTabProps { session: Session | null; canEdit?: boolean; isOnline?: boolean; userSettings?: UserTripSettings | null; currentUser?: { userId: string; email: string; isAdmin: boolean; } | null; }
 
-type SavedByInfo = {
-  userId: string;
-  email: string;
-};
+type SavedByInfo = { userId: string; email: string; };
 
 const formatSavedBy = (email?: string, userId?: string) => {
   if (email) return email.split("@")[0];
@@ -127,16 +101,10 @@ const formatSavedBy = (email?: string, userId?: string) => {
   return "Unknown";
 };
 
-const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
-  if (value === "syncing") {
-    return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
-  }
-
-  if (value === "synced") {
-    return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
-  }
-
-  return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
+const getSyncDotColor = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+  if (value === "syncing") return "#64748b";
+  if (value === "synced") return "#10b981";
+  return "#f59e0b";
 };
 
 const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
@@ -149,17 +117,10 @@ const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
 
 const applyMapSyncStatus = (data: MapItineraryData, syncStatus: SyncStatus): MapItineraryData => ({
   ...data,
-  days: data.days.map((day) => ({
-    ...day,
-    destinations: day.destinations.map((destination) => ({
-      ...destination,
-      syncStatus: destination.syncStatus ?? syncStatus,
-    })),
-  })),
+  days: data.days.map((day) => ({ ...day, destinations: day.destinations.map((destination) => ({ ...destination, syncStatus: destination.syncStatus ?? syncStatus })) })),
 });
 
-const mapDestinations = (data: MapItineraryData): MapDestination[] =>
-  data.days.flatMap((d) => d.destinations);
+const mapDestinations = (data: MapItineraryData): MapDestination[] => data.days.flatMap((d) => d.destinations);
 
 const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined) => {
   if (!travelDates?.length) return null;
@@ -173,25 +134,12 @@ const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined)
 
 export default function MapTab({ session: authSession, canEdit = false, isOnline = true, userSettings = null, currentUser = null }: MapTabProps) {
   const [session, setSession] = useState<Session | null>(authSession);
-  const [initialMapCache] = useState(() => {
-    const cached = readCachedDataset<MapItineraryData>(mapCacheKey);
-    return cached ?? null;
-  });
-  const [initialMapData] = useState(() =>
-    applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"),
-  );
+  const [initialMapCache] = useState(() => { const cached = readCachedDataset<MapItineraryData>(mapCacheKey); return cached ?? null; });
+  const [initialMapData] = useState(() => applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"));
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
   const [selectedDay, setSelectedDay] = useState<number>(() => initialMapData.days[0]?.day ?? 11);
-  const [selectedDestinationId, setSelectedDestinationId] = useState<string>(
-    () => initialMapData.days[0]?.destinations[0]?.id ?? "",
-  );
-  const [draft, setDraft] = useState<DraftState>({
-    name: "",
-    time: "09:00 AM",
-    notes: "",
-    lat: "",
-    lng: "",
-  });
+  const [selectedDestinationId, setSelectedDestinationId] = useState<string>(() => initialMapData.days[0]?.destinations[0]?.id ?? "");
+  const [draft, setDraft] = useState<DraftState>({ name: "", time: "09:00 AM", notes: "", lat: "", lng: "" });
   const [userLocation, setUserLocation] = useState<UserLocationState | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isTrackingLocation, setIsTrackingLocation] = useState(false);
@@ -217,671 +165,284 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
   const pendingDeleteIdsRef = useRef<Set<string>>(new Set());
   const cachedRowsRef = useRef<MapDestinationRow[]>([]);
   const [mapLoaded, setMapLoaded] = useState<boolean>(!supabase);
-  const currentSavedBy: SavedByInfo | null = session?.user
-    ? {
-        userId: session.user.id,
-        email: session.user.email ?? "",
-      }
-    : null;
+
+  const currentSavedBy: SavedByInfo | null = session?.user ? { userId: session.user.id, email: session.user.email ?? "" } : null;
   const canManageDestination = (destination?: MapDestination | null) => {
     if (!currentUser || !destination) return false;
     const ownerId = destination.createdBy ?? destination.savedByUserId ?? null;
     return currentUser.isAdmin || ownerId === currentUser.userId;
   };
+
   const saveMapSnapshot = (nextData: MapItineraryData, dirty: boolean) => {
     mapDirtyRef.current = dirty;
-    writeCachedDataset(mapCacheKey, {
-      data: nextData,
-      syncedSignature: "",
-      dirty,
-    });
+    writeCachedDataset(mapCacheKey, { data: nextData, syncedSignature: "", dirty });
   };
 
   const getGeolocationErrorMessage = (error: GeolocationPositionError): string => {
     switch (error.code) {
-      case error.PERMISSION_DENIED:
-        return "Location permission was denied. Enable location access in your browser settings to show where you are.";
-      case error.POSITION_UNAVAILABLE:
-        return "Your current location is unavailable right now. Please check GPS/location services.";
-      case error.TIMEOUT:
-        return "Getting your location took too long. Try again in an open area or with GPS enabled.";
-      default:
-        return "Unable to get your current location.";
+      case error.PERMISSION_DENIED: return "Location permission was denied. Enable location access in your browser settings to show where you are.";
+      case error.POSITION_UNAVAILABLE: return "Your current location is unavailable right now. Please check GPS/location services.";
+      case error.TIMEOUT: return "Getting your location took too long. Try again in an open area or with GPS enabled.";
+      default: return "Unable to get your current location.";
     }
   };
 
   const stopLocationTracking = () => {
-    if (locationWatchIdRef.current !== null && navigator.geolocation) {
-      navigator.geolocation.clearWatch(locationWatchIdRef.current);
-      locationWatchIdRef.current = null;
-    }
-    setIsTrackingLocation(false);
-    setIsTrackingPaused(false);
-    locationPausedRef.current = false;
-    locationShouldPanRef.current = false;
+    if (locationWatchIdRef.current !== null && navigator.geolocation) { navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; }
+    setIsTrackingLocation(false); setIsTrackingPaused(false); locationPausedRef.current = false; locationShouldPanRef.current = false;
   };
 
   const shouldAcceptLocationUpdate = (nextLat: number, nextLng: number, nextUpdatedAt: number) => {
     const previous = lastLocationUpdateRef.current;
     if (!previous) return true;
-
     const elapsed = nextUpdatedAt - previous.updatedAt;
     if (elapsed > 30000) return true;
-
-    const distanceInMeters = (() => {
-      const toRad = (value: number) => (value * Math.PI) / 180;
-      const earthRadius = 6371000;
-      const lat1 = toRad(previous.lat);
-      const lat2 = toRad(nextLat);
-      const deltaLat = toRad(nextLat - previous.lat);
-      const deltaLng = toRad(nextLng - previous.lng);
-      const a =
-        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-        Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
-      return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    })();
-
-    return distanceInMeters >= 25;
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const earthRadius = 6371000;
+    const lat1 = toRad(previous.lat); const lat2 = toRad(nextLat);
+    const deltaLat = toRad(nextLat - previous.lat); const deltaLng = toRad(nextLng - previous.lng);
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+    return (2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) >= 25;
   };
 
   const applyLocationUpdate = (position: GeolocationPosition, allowPan = false) => {
-    const nextLocation: UserLocationState = {
-      lat: position.coords.latitude,
-      lng: position.coords.longitude,
-      accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
-      updatedAt: Date.now(),
-    };
-
-    if (!shouldAcceptLocationUpdate(nextLocation.lat, nextLocation.lng, nextLocation.updatedAt)) {
-      return;
-    }
-
-    lastLocationUpdateRef.current = {
-      lat: nextLocation.lat,
-      lng: nextLocation.lng,
-      updatedAt: nextLocation.updatedAt,
-    };
-
-    setUserLocation(nextLocation);
-    setLocationError(null);
-
+    const nextLocation: UserLocationState = { lat: position.coords.latitude, lng: position.coords.longitude, accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null, updatedAt: Date.now() };
+    if (!shouldAcceptLocationUpdate(nextLocation.lat, nextLocation.lng, nextLocation.updatedAt)) return;
+    lastLocationUpdateRef.current = { lat: nextLocation.lat, lng: nextLocation.lng, updatedAt: nextLocation.updatedAt };
+    setUserLocation(nextLocation); setLocationError(null);
     const map = mapRef.current;
-    if (allowPan && map) {
-      map.setView([nextLocation.lat, nextLocation.lng], Math.max(map.getZoom(), 16), { animate: true });
-    }
+    if (allowPan && map) map.setView([nextLocation.lat, nextLocation.lng], Math.max(map.getZoom(), 16), { animate: true });
   };
 
   const startLocationTracking = (panOnFirstUpdate = false) => {
     if (!navigator.geolocation) return;
-
-    if (locationWatchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(locationWatchIdRef.current);
-      locationWatchIdRef.current = null;
-    }
-
-    setIsTrackingPaused(false);
-    locationPausedRef.current = false;
-    locationShouldPanRef.current = panOnFirstUpdate;
-
+    if (locationWatchIdRef.current !== null) { navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; }
+    setIsTrackingPaused(false); locationPausedRef.current = false; locationShouldPanRef.current = panOnFirstUpdate;
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const shouldPan = locationShouldPanRef.current;
-        locationShouldPanRef.current = false;
-        applyLocationUpdate(position, shouldPan);
-      },
-      (error) => {
-        setLocationError(getGeolocationErrorMessage(error));
-        stopLocationTracking();
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 30000,
-      },
+      (position) => { const shouldPan = locationShouldPanRef.current; locationShouldPanRef.current = false; applyLocationUpdate(position, shouldPan); },
+      (error) => { setLocationError(getGeolocationErrorMessage(error)); stopLocationTracking(); },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 },
     );
-
     setIsTrackingLocation(true);
   };
 
   const handleLocateMe = () => {
     const geolocation = navigator.geolocation;
-    if (!geolocation) {
-      setLocationError("Geolocation is not supported by this browser.");
-      return;
-    }
-
+    if (!geolocation) { setLocationError("Geolocation is not supported by this browser."); return; }
     const hostname = window.location.hostname;
-    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-    if (!window.isSecureContext && !isLocalhost) {
-      setLocationError("Location requires HTTPS or localhost.");
-      return;
-    }
-
-    setIsLocating(true);
-    setLocationError(null);
-
+    if (!window.isSecureContext && hostname !== "localhost" && hostname !== "127.0.0.1") { setLocationError("Location requires HTTPS or localhost."); return; }
+    setIsLocating(true); setLocationError(null);
     geolocation.getCurrentPosition(
-      (position) => {
-        applyLocationUpdate(position, true);
-        setIsLocating(false);
-      },
-      (error) => {
-        setLocationError(getGeolocationErrorMessage(error));
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
+      (position) => { applyLocationUpdate(position, true); setIsLocating(false); },
+      (error) => { setLocationError(getGeolocationErrorMessage(error)); setIsLocating(false); },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   };
 
-  const displayDays = useMemo(
-    () =>
-      itineraryData.days.map((day, index) => {
-        const remappedLabel = formatMapDayLabel(day.day, userSettings?.travelDates);
-        const isFlightDay = index === 0;
-        const shiftedDayNumber = Math.max(1, index);
-        return {
-          ...day,
-          label: remappedLabel
-            ? isFlightDay
-              ? `Flight Day - ${remappedLabel}`
-              : `Day ${shiftedDayNumber} - ${remappedLabel}`
-            : day.label,
-          title: remappedLabel
-            ? isFlightDay
-              ? `Flight Day - ${remappedLabel}`
-              : `Day ${shiftedDayNumber} - ${remappedLabel}`
-            : day.title,
-        };
-      }),
+  const displayDays = useMemo(() =>
+    itineraryData.days.map((day, index) => {
+      const remappedLabel = formatMapDayLabel(day.day, userSettings?.travelDates);
+      const isFlightDay = index === 0;
+      const shiftedDayNumber = Math.max(1, index);
+      const label = remappedLabel ? (isFlightDay ? `Flight Day - ${remappedLabel}` : `Day ${shiftedDayNumber} - ${remappedLabel}`) : day.label;
+      return { ...day, label, title: label };
+    }),
     [itineraryData.days, userSettings?.travelDates],
   );
 
-  const activeDay = useMemo(
-    () => displayDays.find((day) => day.day === selectedDay) ?? displayDays[0] ?? null,
-    [displayDays, selectedDay],
-  );
+  const activeDay = useMemo(() => displayDays.find((day) => day.day === selectedDay) ?? displayDays[0] ?? null, [displayDays, selectedDay]);
 
+  // --- Preserved Leaflet / Sync useEffect blocks (unchanged) ---
   useEffect(() => {
-    if (!supabase) {
-      setSession(null);
-      return;
-    }
-
+    if (!supabase) { setSession(null); return; }
     let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-    });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
+    supabase.auth.getSession().then(({ data }) => { if (!mounted) return; setSession(data.session); });
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    return () => { mounted = false; authListener.subscription.unsubscribe(); };
   }, [authSession]);
 
   useEffect(() => {
-    if (!supabase) {
-      setMapLoaded(true);
-      return;
-    }
-
-    if (!isOnline) {
-      setMapLoaded(true);
-      return;
-    }
-
+    if (!supabase) { setMapLoaded(true); return; }
+    if (!isOnline) { setMapLoaded(true); return; }
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
-
     const loadRemoteMap = async () => {
-      const { data, error } = await supabase
-        .from(supabaseMapDestinationsTable)
-        .select("*")
-        .eq("trip_key", tripKey);
-
+      const { data, error } = await supabase.from(supabaseMapDestinationsTable).select("*").eq("trip_key", tripKey);
       if (cancelled) return;
-
-      if (error) {
-        console.warn("Supabase map load failed:", error.message);
-        setMapLoaded(true);
-        return;
-      }
-
-      const rows = (data ?? []) as MapDestinationRow[];
-      cachedRowsRef.current = rows;
+      if (error) { console.warn("Supabase map load failed:", error.message); setMapLoaded(true); return; }
+      const rows = (data ?? []) as MapDestinationRow[]; cachedRowsRef.current = rows;
       if (rows.length > 0 && !mapDirtyRef.current) {
         const destinations = rows.map(rowToDestination);
-        const days = groupDestinationsByDay(destinations, (d) => {
-          const row = rows.find((r) => r.id === d.id);
-          return row?.day ?? 12;
-        });
-        setItineraryData({ ...buildInitialMapItinerary(), days });
-        saveMapSnapshot({ ...buildInitialMapItinerary(), days }, false);
+        const days = groupDestinationsByDay(destinations, (d) => { const row = rows.find((r) => r.id === d.id); return row?.day ?? 12; });
+        setItineraryData({ ...buildInitialMapItinerary(), days }); saveMapSnapshot({ ...buildInitialMapItinerary(), days }, false);
       }
-
       setMapLoaded(true);
     };
-
     const handleRealtimeEvent = (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
       if (mapDirtyRef.current) return;
-
       setItineraryData((prev) => {
         const allDestinations = mapDestinations(prev);
-
         if (payload.eventType === "DELETE") {
           const deletedId = (payload.old?.id ?? payload.new?.id) as string | undefined;
           if (!deletedId) return prev;
           const filtered = allDestinations.filter((d) => d.id !== deletedId);
-          return { ...prev, days: groupDestinationsByDay(filtered, (d) => {
-            const prevDay = prev.days.find((day) => day.destinations.some((dest) => dest.id === d.id));
-            return prevDay?.day ?? 12;
-          })};
+          return { ...prev, days: groupDestinationsByDay(filtered, (d) => { const pd = prev.days.find((day) => day.destinations.some((dest) => dest.id === d.id)); return pd?.day ?? 12; }) };
         }
-
         const newRow = payload.new as MapDestinationRow | undefined;
         if (!newRow) return prev;
-
-        cachedRowsRef.current = cachedRowsRef.current
-          .filter((r) => r.id !== newRow.id)
-          .concat(newRow);
-
+        cachedRowsRef.current = cachedRowsRef.current.filter((r) => r.id !== newRow.id).concat(newRow);
         const updated: MapDestination = { ...rowToDestination(newRow), syncStatus: "synced" };
-
         if (payload.eventType === "INSERT") {
-          const exists = allDestinations.some((d) => d.id === updated.id);
-          if (exists) return prev;
-          const merged = [...allDestinations, updated];
-          return { ...prev, days: groupDestinationsByDay(merged, (d) => {
-            const found = merged.find((m) => m.id === d.id);
-            return newRow.day;
-          })};
+          if (allDestinations.some((d) => d.id === updated.id)) return prev;
+          return { ...prev, days: groupDestinationsByDay([...allDestinations, updated], (d) => newRow.day) };
         }
-
         if (payload.eventType === "UPDATE") {
-          const merged = allDestinations.map((d) => (d.id === updated.id ? updated : d));
-          return { ...prev, days: groupDestinationsByDay(merged, (d) => {
-            const found = merged.find((m) => m.id === d.id);
-            const matchingRow = cachedRowsRef.current.find((r) => r.id === d.id);
-            return matchingRow?.day ?? newRow.day;
-          })};
+          return { ...prev, days: groupDestinationsByDay(allDestinations.map((d) => (d.id === updated.id ? updated : d)), (d) => { const mr = cachedRowsRef.current.find((r) => r.id === d.id); return mr?.day ?? newRow.day; }) };
         }
-
         return prev;
       });
     };
-
     const bootstrap = async () => {
       await loadRemoteMap();
       if (cancelled) return;
-
-      channel = supabase
-        .channel(`trip-map-sync-${tripKey}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: supabaseMapDestinationsTable,
-            filter: `trip_key=eq.${tripKey}`,
-          },
-          handleRealtimeEvent,
-        )
-        .subscribe();
+      channel = supabase.channel(`trip-map-sync-${tripKey}`).on("postgres_changes", { event: "*", schema: "public", table: supabaseMapDestinationsTable, filter: `trip_key=eq.${tripKey}` }, handleRealtimeEvent).subscribe();
     };
-
     void bootstrap();
-
-    return () => {
-      cancelled = true;
-      if (channel) {
-        void supabase.removeChannel(channel);
-      }
-    };
+    return () => { cancelled = true; if (channel) void supabase.removeChannel(channel); };
   }, [isOnline, session]);
 
   useEffect(() => {
     if (!mapLoaded) return;
     if (!supabase || !session || !isOnline) return;
-
     const allDestinations = mapDestinations(itineraryData);
     const pendingDestinations = allDestinations.filter((d) => d.syncStatus === "pending");
     const hasPending = pendingDestinations.length > 0 || pendingDeleteIdsRef.current.size > 0;
-
-    if (!hasPending) {
-      saveMapSnapshot(itineraryData, false);
-      return;
-    }
-
+    if (!hasPending) { saveMapSnapshot(itineraryData, false); return; }
     saveMapSnapshot(itineraryData, true);
-
     const timeout = window.setTimeout(async () => {
       const deletes = Array.from(pendingDeleteIdsRef.current);
-
-      const rowsToUpsert = pendingDestinations.map((dest) => {
-        const day = itineraryData.days.find((d) => d.destinations.some((dd) => dd.id === dest.id));
-        return destinationToRow(dest, tripKey, day?.day ?? 12);
-      });
-
+      const rowsToUpsert = pendingDestinations.map((dest) => { const day = itineraryData.days.find((d) => d.destinations.some((dd) => dd.id === dest.id)); return destinationToRow(dest, tripKey, day?.day ?? 12); });
       const errors: string[] = [];
-
-      for (const row of rowsToUpsert) {
-        const { error } = await supabase.from(supabaseMapDestinationsTable).upsert(row, { onConflict: "id" });
-        if (error) errors.push(error.message);
-      }
-
-      for (const id of deletes) {
-        const { error } = await supabase.from(supabaseMapDestinationsTable).delete().eq("id", id);
-        if (error) errors.push(error.message);
-      }
-
-      if (errors.length > 0) {
-        console.warn("Supabase map sync errors:", errors.join(", "));
-        return;
-      }
-
+      for (const row of rowsToUpsert) { const { error } = await supabase.from(supabaseMapDestinationsTable).upsert(row, { onConflict: "id" }); if (error) errors.push(error.message); }
+      for (const id of deletes) { const { error } = await supabase.from(supabaseMapDestinationsTable).delete().eq("id", id); if (error) errors.push(error.message); }
+      if (errors.length > 0) { console.warn("Supabase map sync errors:", errors.join(", ")); return; }
       pendingDeleteIdsRef.current = new Set();
-
-      setItineraryData((prev) => ({
-        ...prev,
-        days: prev.days.map((day) => ({
-          ...day,
-          destinations: day.destinations.map((d) =>
-            d.syncStatus === "pending" ? { ...d, syncStatus: "synced" as const } : d,
-          ),
-        })),
-      }));
-
+      setItineraryData((prev) => ({ ...prev, days: prev.days.map((day) => ({ ...day, destinations: day.destinations.map((d) => d.syncStatus === "pending" ? { ...d, syncStatus: "synced" as const } : d) })) }));
       saveMapSnapshot(itineraryData, false);
     }, 300);
-
     return () => window.clearTimeout(timeout);
   }, [itineraryData, isOnline, mapLoaded, session]);
 
   useEffect(() => {
     if (!activeDay) return;
-
-    const stillExists = activeDay.destinations.some((destination) => destination.id === selectedDestinationId);
-    if (!stillExists) {
-      setSelectedDestinationId(activeDay.destinations[0]?.id ?? "");
-    }
+    if (!activeDay.destinations.some((destination) => destination.id === selectedDestinationId)) setSelectedDestinationId(activeDay.destinations[0]?.id ?? "");
   }, [activeDay, selectedDestinationId]);
 
   useEffect(() => {
     searchAbortRef.current?.abort();
     const trimmed = draft.name.trim();
-    if (trimmed.length < 3) {
-      setSuggestions([]);
-      setIsSearching(false);
-      setActiveSuggestionIndex(-1);
-      return;
-    }
-
+    if (trimmed.length < 3) { setSuggestions([]); setIsSearching(false); setActiveSuggestionIndex(-1); return; }
     const controller = new AbortController();
     searchAbortRef.current = controller;
     const timeout = window.setTimeout(async () => {
       setIsSearching(true);
-      try {
-        const results = await lookupPlaces(trimmed, controller.signal);
-        if (controller.signal.aborted) return;
-        setSuggestions(results);
-        setActiveSuggestionIndex(results.length ? 0 : -1);
-      } catch {
-        if (controller.signal.aborted) return;
-        setSuggestions([]);
-      } finally {
-        if (!controller.signal.aborted) setIsSearching(false);
-      }
+      try { const results = await lookupPlaces(trimmed, controller.signal); if (controller.signal.aborted) return; setSuggestions(results); setActiveSuggestionIndex(results.length ? 0 : -1); }
+      catch { if (controller.signal.aborted) return; setSuggestions([]); }
+      finally { if (!controller.signal.aborted) setIsSearching(false); }
     }, 300);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
+    return () => { controller.abort(); window.clearTimeout(timeout); };
   }, [draft.name]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-
-    const map = L.map(mapContainerRef.current, {
-      zoomControl: true,
-      scrollWheelZoom: true,
-      preferCanvas: true,
-    }).setView([3.139, 101.6869], 12);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
-
+    const map = L.map(mapContainerRef.current, { zoomControl: true, scrollWheelZoom: true, preferCanvas: true }).setView([3.139, 101.6869], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
     mapRef.current = map;
     markerLayerRef.current = L.layerGroup().addTo(map);
     userLocationLayerRef.current = L.layerGroup().addTo(map);
     setUserLocationLayerReady(true);
-
     const timeout = window.setTimeout(() => map.invalidateSize(), 150);
-
     return () => {
       window.clearTimeout(timeout);
-      if (locationWatchIdRef.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(locationWatchIdRef.current);
-        locationWatchIdRef.current = null;
-      }
-      routeLayerRef.current?.remove();
-      markerLayerRef.current?.remove();
-      userLocationLayerRef.current?.remove();
-      map.remove();
-      mapRef.current = null;
-      markerLayerRef.current = null;
-      userLocationLayerRef.current = null;
-      routeLayerRef.current = null;
-      markerRefs.current = {};
-      setUserLocationLayerReady(false);
-      setIsTrackingLocation(false);
-      setIsTrackingPaused(false);
-      locationPausedRef.current = false;
-      locationShouldPanRef.current = false;
+      if (locationWatchIdRef.current !== null && navigator.geolocation) { navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; }
+      routeLayerRef.current?.remove(); markerLayerRef.current?.remove(); userLocationLayerRef.current?.remove(); map.remove();
+      mapRef.current = null; markerLayerRef.current = null; userLocationLayerRef.current = null; routeLayerRef.current = null;
+      markerRefs.current = {}; setUserLocationLayerReady(false);
+      setIsTrackingLocation(false); setIsTrackingPaused(false); locationPausedRef.current = false; locationShouldPanRef.current = false;
     };
   }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (locationWatchIdRef.current !== null && navigator.geolocation) {
-          locationPausedRef.current = true;
-          setIsTrackingPaused(true);
-          navigator.geolocation.clearWatch(locationWatchIdRef.current);
-          locationWatchIdRef.current = null;
-          setIsTrackingLocation(false);
-          locationShouldPanRef.current = false;
-        }
+        if (locationWatchIdRef.current !== null && navigator.geolocation) { locationPausedRef.current = true; setIsTrackingPaused(true); navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; setIsTrackingLocation(false); locationShouldPanRef.current = false; }
         return;
       }
-
-      if (locationPausedRef.current) {
-        setIsTrackingPaused(true);
-      }
+      if (locationPausedRef.current) setIsTrackingPaused(true);
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   useEffect(() => {
-    const map = mapRef.current;
-    const markerLayer = markerLayerRef.current;
+    const map = mapRef.current; const markerLayer = markerLayerRef.current;
     if (!map || !markerLayer || !activeDay) return;
-
-    markerLayer.clearLayers();
-    routeLayerRef.current?.remove();
-    routeLayerRef.current = null;
-    markerRefs.current = {};
-
+    markerLayer.clearLayers(); routeLayerRef.current?.remove(); routeLayerRef.current = null; markerRefs.current = {};
     const points: L.LatLngExpression[] = [];
-
     activeDay.destinations.forEach((destination, index) => {
       const isSelected = destination.id === selectedDestinationId;
-      const marker = L.marker([destination.lat, destination.lng], {
-        icon: createMarkerIcon(index + 1, isSelected),
-      });
-
-      marker.bindPopup(renderPopup(destination, index + 1), {
-        closeButton: false,
-        offset: L.point(0, -10),
-        className: "map-popup-shell",
-      });
-
-      marker.on("click", () => {
-        setSelectedDestinationId(destination.id);
-      });
-
-      marker.addTo(markerLayer);
-      markerRefs.current[destination.id] = marker;
-      points.push([destination.lat, destination.lng]);
+      const marker = L.marker([destination.lat, destination.lng], { icon: createMarkerIcon(index + 1, isSelected) });
+      marker.bindPopup(renderPopup(destination, index + 1), { closeButton: false, offset: L.point(0, -10), className: "map-popup-shell" });
+      marker.on("click", () => setSelectedDestinationId(destination.id));
+      marker.addTo(markerLayer); markerRefs.current[destination.id] = marker; points.push([destination.lat, destination.lng]);
     });
-
-    if (points.length > 1) {
-      routeLayerRef.current = L.polyline(points, {
-        color: "#0B3530",
-        weight: 4,
-        opacity: 0.85,
-        dashArray: "8 10",
-      }).addTo(map);
-    }
+    if (points.length > 1) { routeLayerRef.current = L.polyline(points, { color: "#0B3530", weight: 4, opacity: 0.85, dashArray: "8 10" }).addTo(map); }
   }, [activeDay, selectedDestinationId]);
 
   useEffect(() => {
     const userLayer = userLocationLayerRef.current;
     if (!userLayer || !userLocationLayerReady) return;
-
     userLayer.clearLayers();
-
     if (!userLocation) return;
-
     const latLng: L.LatLngExpression = [userLocation.lat, userLocation.lng];
-    const icon = L.divIcon({
-      className: "",
-      html: `
-        <div class="relative flex h-8 w-8 items-center justify-center">
-          <span class="absolute inline-flex h-8 w-8 rounded-full bg-[#0B3530]/25 animate-ping"></span>
-          <span class="relative inline-flex h-5 w-5 rounded-full bg-[#0B3530] ring-4 ring-white shadow-lg"></span>
-        </div>
-      `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    });
-
-    L.marker(latLng, { icon })
-      .bindPopup(
-        `<div style="font-weight:700;color:#0B3530;">You are here</div>
-         <div style="font-size:12px;color:#6B7280;margin-top:4px;">Accuracy: ${
-           userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)} m` : "Unknown"
-         }</div>`,
-        { closeButton: false },
-      )
-      .addTo(userLayer);
-
-    if (userLocation.accuracy !== null && Number.isFinite(userLocation.accuracy)) {
-      L.circle(latLng, {
-        radius: userLocation.accuracy,
-        color: "#0B3530",
-        weight: 1,
-        opacity: 0.35,
-        fillColor: "#0B3530",
-        fillOpacity: 0.08,
-      }).addTo(userLayer);
-    }
+    const icon = L.divIcon({ className: "", html: `<div class="relative flex h-8 w-8 items-center justify-center"><span class="absolute inline-flex h-8 w-8 rounded-full bg-[#0B3530]/25 animate-ping"></span><span class="relative inline-flex h-5 w-5 rounded-full bg-[#0B3530] ring-4 ring-white shadow-lg"></span></div>`, iconSize: [32, 32], iconAnchor: [16, 16] });
+    L.marker(latLng, { icon }).bindPopup(`<div style="font-weight:700;color:#0B3530;">You are here</div><div style="font-size:12px;color:#6B7280;margin-top:4px;">Accuracy: ${userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)} m` : "Unknown"}</div>`, { closeButton: false }).addTo(userLayer);
+    if (userLocation.accuracy !== null && Number.isFinite(userLocation.accuracy)) { L.circle(latLng, { radius: userLocation.accuracy, color: "#0B3530", weight: 1, opacity: 0.35, fillColor: "#0B3530", fillOpacity: 0.08 }).addTo(userLayer); }
   }, [userLocation, userLocationLayerReady]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !activeDay) return;
-
     const points = activeDay.destinations.map((destination) => [destination.lat, destination.lng] as L.LatLngTuple);
     if (points.length === 0) return;
-
-    if (points.length === 1) {
-      map.setView(points[0], 14, { animate: true });
-    } else {
-      const bounds = L.latLngBounds(points);
-      map.fitBounds(bounds, { padding: [36, 36] });
-    }
-
+    if (points.length === 1) { map.setView(points[0], 14, { animate: true }); }
+    else { const bounds = L.latLngBounds(points); map.fitBounds(bounds, { padding: [36, 36] }); }
     window.setTimeout(() => map.invalidateSize(), 50);
   }, [activeDay?.day, activeDay?.destinations.map((destination) => `${destination.id}:${destination.lat},${destination.lng}`).join("|")]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    const marker = selectedDestinationId ? markerRefs.current[selectedDestinationId] : null;
+    const map = mapRef.current; const marker = selectedDestinationId ? markerRefs.current[selectedDestinationId] : null;
     if (!map || !marker) return;
-
-    map.panTo(marker.getLatLng(), { animate: true, duration: 0.55 });
-    marker.openPopup();
+    map.panTo(marker.getLatLng(), { animate: true, duration: 0.55 }); marker.openPopup();
   }, [selectedDestinationId, selectedDay]);
 
   const updateDestination = (destinationId: string, patch: Partial<MapDestination>) => {
     if (!canEdit) return;
     const target = activeDay?.destinations.find((destination) => destination.id === destinationId) ?? null;
     if (!canManageDestination(target)) return;
-    setItineraryData((prev) => ({
-      ...prev,
-      updatedAt: new Date().toISOString(),
-      days: prev.days.map((day) => {
-        if (day.day !== selectedDay) return day;
-        return {
-          ...day,
-          destinations: day.destinations.map((destination) =>
-            destination.id === destinationId
-              ? {
-                  ...destination,
-                  ...patch,
-                  createdBy: destination.createdBy ?? destination.savedByUserId,
-                  savedByUserId: destination.savedByUserId ?? destination.createdBy,
-                  savedByEmail: destination.savedByEmail ?? undefined,
-                  syncStatus: "pending",
-                }
-              : destination,
-          ),
-        };
-      }),
-    }));
+    setItineraryData((prev) => ({ ...prev, updatedAt: new Date().toISOString(), days: prev.days.map((day) => day.day !== selectedDay ? day : { ...day, destinations: day.destinations.map((destination) => destination.id === destinationId ? { ...destination, ...patch, createdBy: destination.createdBy ?? destination.savedByUserId, savedByUserId: destination.savedByUserId ?? destination.createdBy, savedByEmail: destination.savedByEmail ?? undefined, syncStatus: "pending" } : destination) }) }));
   };
 
   const selectSuggestion = (suggestion: NominatimSuggestion) => {
-    setDraft((prev) => ({
-      ...prev,
-      name: suggestion.display_name,
-      lat: suggestion.lat,
-      lng: suggestion.lon,
-    }));
-    setSuggestions([]);
-    setActiveSuggestionIndex(-1);
+    setDraft((prev) => ({ ...prev, name: suggestion.display_name, lat: suggestion.lat, lng: suggestion.lon }));
+    setSuggestions([]); setActiveSuggestionIndex(-1);
   };
 
   const geocodeDestination = async (name: string) => {
     const query = name.trim();
     if (!query) return resolveCoordinatesFromName(name);
-
-    try {
-      const results = await lookupPlaces(query);
-      const topResult = results[0];
-      if (topResult) {
-        return { lat: Number(topResult.lat), lng: Number(topResult.lon) };
-      }
-    } catch {
-      // fall back to local coordinate hints below
-    }
-
+    try { const results = await lookupPlaces(query); const topResult = results[0]; if (topResult) return { lat: Number(topResult.lat), lng: Number(topResult.lon) }; }
+    catch { }
     return resolveCoordinatesFromName(name);
   };
 
@@ -889,47 +450,20 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     event.preventDefault();
     if (!canEdit) return;
     if (!activeDay || !draft.name.trim()) return;
-
     const trimmedName = draft.name.trim();
-    const manualLat = Number.parseFloat(draft.lat);
-    const manualLng = Number.parseFloat(draft.lng);
+    const manualLat = Number.parseFloat(draft.lat); const manualLng = Number.parseFloat(draft.lng);
     const hasManualCoords = Number.isFinite(manualLat) && Number.isFinite(manualLng);
     const coordinates = hasManualCoords ? { lat: manualLat, lng: manualLng } : await geocodeDestination(trimmedName);
-
     const newDestination: MapDestination = {
       id: `dest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      name: trimmedName,
-      time: draft.time.trim() || "09:00 AM",
-      notes: draft.notes.trim(),
-      lat: coordinates.lat,
-      lng: coordinates.lng,
-      createdBy: currentUser?.userId,
-      savedByUserId: currentSavedBy?.userId,
-      savedByEmail: currentSavedBy?.email,
-      syncStatus: "pending",
+      name: trimmedName, time: draft.time.trim() || "09:00 AM", notes: draft.notes.trim(),
+      lat: coordinates.lat, lng: coordinates.lng,
+      createdBy: currentUser?.userId, savedByUserId: currentSavedBy?.userId, savedByEmail: currentSavedBy?.email, syncStatus: "pending",
     };
-
-    setItineraryData((prev) => ({
-      ...prev,
-      updatedAt: new Date().toISOString(),
-      days: prev.days.map((day) =>
-        day.day === selectedDay
-          ? { ...day, destinations: [...day.destinations, newDestination] }
-          : day,
-      ),
-    }));
-
+    setItineraryData((prev) => ({ ...prev, updatedAt: new Date().toISOString(), days: prev.days.map((day) => day.day === selectedDay ? { ...day, destinations: [...day.destinations, newDestination] } : day) }));
     setSelectedDestinationId(newDestination.id);
-    setDraft({
-      name: "",
-      time: "09:00 AM",
-      notes: "",
-      lat: "",
-      lng: "",
-    });
-    setSuggestions([]);
-    setIsSearching(false);
-    setActiveSuggestionIndex(-1);
+    setDraft({ name: "", time: "09:00 AM", notes: "", lat: "", lng: "" });
+    setSuggestions([]); setIsSearching(false); setActiveSuggestionIndex(-1);
   };
 
   const deleteDestination = (destinationId: string) => {
@@ -937,19 +471,10 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     const target = activeDay?.destinations.find((destination) => destination.id === destinationId) ?? null;
     if (!canManageDestination(target)) return;
     pendingDeleteIdsRef.current = new Set(pendingDeleteIdsRef.current).add(destinationId);
-    setItineraryData((prev) => ({
-      ...prev,
-      days: prev.days.map((day) =>
-        day.day === selectedDay
-          ? { ...day, destinations: day.destinations.filter((destination) => destination.id !== destinationId) }
-          : day,
-      ),
-    }));
+    setItineraryData((prev) => ({ ...prev, days: prev.days.map((day) => day.day === selectedDay ? { ...day, destinations: day.destinations.filter((destination) => destination.id !== destinationId) } : day) }));
   };
 
-  const focusDestination = (destinationId: string) => {
-    setSelectedDestinationId(destinationId);
-  };
+  const focusDestination = (destinationId: string) => setSelectedDestinationId(destinationId);
 
   if (!activeDay) {
     return (
@@ -969,106 +494,94 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
         </div>
       )}
 
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-xs">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-            <Route size={14} />
-            Leaflet itinerary map
-          </div>
+      {/* Day selector header */}
+      <IonCard className="ja-map-header-card mb-4">
+        <IonCardContent>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em]" style={{ color: "#88B04B" }}>
+              <IonIcon icon={mapOutline} style={{ fontSize: 14 }} />
+              Leaflet itinerary map
+            </div>
             <h3 className="text-lg md:text-xl font-serif font-bold text-[#0B3530]">{activeDay.title}</h3>
-          <p className="text-xs text-stone-500">
-            Tap a destination in the list to pan the map and open its popup. Changes sync when the device is online.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-      {displayDays.map((day) => (
-              <button
+            <p className="text-xs text-stone-500">
+              Tap a destination in the list to pan the map and open its popup. Changes sync when the device is online.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {displayDays.map((day) => (
+              <IonButton
                 key={day.day}
-                type="button"
+                size="small"
+                fill={selectedDay === day.day ? "solid" : "outline"}
                 onClick={() => setSelectedDay(day.day)}
-                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-                  selectedDay === day.day
-                    ? "bg-[#0B3530] text-white"
-                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                }`}
+                className={`ja-map-day-btn ${selectedDay === day.day ? "ja-map-day-btn-active" : ""}`}
               >
                 {day.label}
-              </button>
+              </IonButton>
             ))}
-        </div>
-      </div>
+          </div>
+        </IonCardContent>
+      </IonCard>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        {/* Map panel */}
         <section className="min-h-[460px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
             <div>
               <h4 className="text-sm font-semibold text-[#0B3530]">Map panel</h4>
               <p className="text-[11px] text-stone-400">OpenStreetMap tiles, numbered markers, and route line by day.</p>
             </div>
-            <div className="rounded-full bg-stone-100 px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-stone-500">
+            <IonChip className="ja-map-stats-chip">
               {activeDay.label} | {activeDay.destinations.length} stops
-            </div>
+            </IonChip>
           </div>
           <div className="relative">
             <div ref={mapContainerRef} className="h-[460px] md:h-[560px] w-full" />
 
             <div className="absolute left-3 top-3 z-[500] flex max-w-[calc(100%-1.5rem)] flex-col gap-2">
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  aria-label="Show my current location"
+                <IonButton
+                  size="small"
                   onClick={handleLocateMe}
                   disabled={isLocating}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0B3530] px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-black/10 transition-colors hover:bg-[#18534C] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="ja-map-locate-btn"
                 >
-                  <LocateFixed size={14} />
+                  {isLocating ? <IonSpinner name="crescent" slot="start" /> : <IonIcon icon={locateOutline} slot="start" />}
                   {isLocating ? "Locating..." : "Locate me"}
-                </button>
-
-                <button
-                  type="button"
-                  aria-label="Start live location tracking"
+                </IonButton>
+                <IonButton
+                  size="small"
+                  fill="outline"
                   onClick={() => startLocationTracking(true)}
                   disabled={isTrackingLocation || isLocating}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-lg shadow-black/5 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="ja-map-track-btn"
                 >
-                  <LocateFixed size={14} />
+                  <IonIcon icon={navigateOutline} slot="start" />
                   Track me
-                </button>
-
+                </IonButton>
                 {isTrackingLocation && (
-                  <button
-                    type="button"
-                    aria-label="Stop location tracking"
-                    onClick={stopLocationTracking}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-lg shadow-black/5 transition-colors hover:bg-stone-50"
-                  >
+                  <IonButton size="small" fill="outline" onClick={stopLocationTracking} className="ja-map-track-btn">
+                    <IonIcon icon={stopCircleOutline} slot="start" />
                     Stop
-                  </button>
+                  </IonButton>
                 )}
               </div>
-
               {isTrackingPaused && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur">
                   Tracking paused to save battery. Tap Track me to resume.
                 </div>
               )}
-
               {isTrackingLocation && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/95 px-3 py-2 text-[11px] text-emerald-800 shadow-sm backdrop-blur">
                   Tracking your location
                 </div>
               )}
-
               {userLocation && (
                 <div className="rounded-xl border border-stone-200 bg-white/95 px-3 py-2 text-[11px] text-stone-600 shadow-sm backdrop-blur">
-                  You are here · accuracy{" "}
-                  {userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)}m` : "unknown"} · updated{" "}
+                  You are here · accuracy {userLocation.accuracy !== null ? `${Math.round(userLocation.accuracy)}m` : "unknown"} · updated{" "}
                   {new Date(userLocation.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </div>
               )}
-
               {locationError && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-[11px] text-amber-800 shadow-sm backdrop-blur">
                   {locationError}
@@ -1078,240 +591,199 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
           </div>
         </section>
 
-        <section className="rounded-2xl border border-stone-200 bg-white shadow-sm">
-          <div className="border-b border-stone-100 px-4 py-3">
-            <h4 className="text-sm font-semibold text-[#0B3530]">Destination list</h4>
+        {/* Destination list panel */}
+        <IonCard className="ja-map-panel-card">
+          <IonCardHeader className="ja-map-card-header-compact">
+            <IonCardTitle className="ja-map-card-title">Destination list</IonCardTitle>
             <p className="text-[11px] text-stone-400">Inline edit, add, or remove stops for {activeDay.label}.</p>
-          </div>
+          </IonCardHeader>
 
-          {!canEdit && (
-            <div className="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-              Sign in to add or edit map destinations.
-            </div>
-          )}
-
-          <div className="max-h-[640px] overflow-y-auto p-4 space-y-4">
-            <form onSubmit={addDestination} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#88B04B]">
-                <Plus size={14} />
-                Add destination
+          <IonCardContent className="ja-map-card-body-compact">
+            {!canEdit && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                Sign in to add or edit map destinations.
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="relative space-y-1 sm:col-span-2">
-                  <span className="text-[11px] font-semibold text-stone-600">Name</span>
+            )}
+
+            <div className="max-h-[640px] overflow-y-auto space-y-4">
+              {/* Add destination form */}
+              <form onSubmit={addDestination} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.3em]" style={{ color: "#88B04B" }}>
+                  <IonIcon icon={addOutline} style={{ fontSize: 14 }} />
+                  Add destination
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="relative space-y-1 sm:col-span-2">
+                    <span className="text-[11px] font-semibold text-stone-600">Name</span>
                     <input
                       value={draft.name}
-                      onChange={(event) => {
-                        setDraft((prev) => ({ ...prev, name: event.target.value, lat: "", lng: "" }));
-                      }}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value, lat: "", lng: "" }))}
                       disabled={!canEdit}
                       onKeyDown={(event) => {
-                      if (!suggestions.length) return;
-                      if (event.key === "ArrowDown") {
-                        event.preventDefault();
-                        setActiveSuggestionIndex((current) => (current + 1) % suggestions.length);
-                      }
-                      if (event.key === "ArrowUp") {
-                        event.preventDefault();
-                        setActiveSuggestionIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
-                      }
-                      if (event.key === "Enter" && activeSuggestionIndex >= 0) {
-                        event.preventDefault();
-                        selectSuggestion(suggestions[activeSuggestionIndex]);
-                      }
-                    }}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                    placeholder="Central Market Kuala Lumpur"
-                    autoComplete="off"
-                  />
-                  {(isSearching || suggestions.length > 0) && (
-                    <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
-                      {isSearching && (
-                        <div className="px-3 py-2 text-[11px] text-stone-500">Searching places...</div>
-                      )}
-                      {!isSearching &&
-                        suggestions.map((suggestion, index) => (
+                        if (!suggestions.length) return;
+                        if (event.key === "ArrowDown") { event.preventDefault(); setActiveSuggestionIndex((current) => (current + 1) % suggestions.length); }
+                        if (event.key === "ArrowUp") { event.preventDefault(); setActiveSuggestionIndex((current) => (current - 1 + suggestions.length) % suggestions.length); }
+                        if (event.key === "Enter" && activeSuggestionIndex >= 0) { event.preventDefault(); selectSuggestion(suggestions[activeSuggestionIndex]); }
+                      }}
+                      className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                      placeholder="Central Market Kuala Lumpur"
+                      autoComplete="off"
+                    />
+                    {(isSearching || suggestions.length > 0) && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
+                        {isSearching && <div className="px-3 py-2 text-[11px] text-stone-500">Searching places...</div>}
+                        {!isSearching && suggestions.map((suggestion, index) => (
                           <button
                             key={`${suggestion.place_id}-${suggestion.display_name}`}
                             type="button"
                             onClick={() => selectSuggestion(suggestion)}
-                            className={`block w-full px-3 py-2 text-left text-xs transition-colors ${
-                              index === activeSuggestionIndex ? "bg-[#0B3530] text-white" : "hover:bg-stone-50 text-stone-700"
-                            }`}
+                            className={`block w-full px-3 py-2 text-left text-xs transition-colors ${index === activeSuggestionIndex ? "bg-[#0B3530] text-white" : "hover:bg-stone-50 text-stone-700"}`}
                           >
                             {suggestion.display_name}
                           </button>
                         ))}
-                    </div>
-                  )}
-                </label>
-                <label className="space-y-1 sm:col-span-2">
-                  <span className="text-[11px] font-semibold text-stone-600">Time</span>
-                  <select
-                    value={draft.time}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, time: event.target.value }))}
+                      </div>
+                    )}
+                  </label>
+                  <label className="space-y-1 sm:col-span-2">
+                    <span className="text-[11px] font-semibold text-stone-600">Time</span>
+                    <IonSelect
+                      value={draft.time}
+                      onIonChange={(event) => setDraft((prev) => ({ ...prev, time: event.detail.value }))}
+                      disabled={!canEdit}
+                      interface="action-sheet"
+                      className="ja-map-select"
+                    >
+                      {timeOptions.map((timeOption) => (
+                        <IonSelectOption key={timeOption} value={timeOption}>{timeOption}</IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </label>
+                </div>
+                <label className="space-y-1 block">
+                  <span className="text-[11px] font-semibold text-stone-600">Notes</span>
+                  <IonTextarea
+                    value={draft.notes}
+                    onIonInput={(event) => setDraft((prev) => ({ ...prev, notes: event.detail.value ?? "" }))}
                     disabled={!canEdit}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                  >
-                    {timeOptions.map((timeOption) => (
-                      <option key={timeOption} value={timeOption}>
-                        {timeOption}
-                      </option>
-                    ))}
-                  </select>
+                    className="ja-map-textarea"
+                    placeholder="Short notes for the popup"
+                  />
                 </label>
-              </div>
-              <label className="space-y-1 block">
-                <span className="text-[11px] font-semibold text-stone-600">Notes</span>
-                <textarea
-                  value={draft.notes}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
-                  disabled={!canEdit}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530] min-h-[84px] resize-none"
-                  placeholder="Short notes for the popup"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={!canEdit}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0B3530] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#18534C]"
-              >
-                <Plus size={14} />
-                Add stop
-              </button>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">
-                Coordinates are resolved from the place name automatically.
-              </p>
-            </form>
+                <IonButton type="submit" expand="block" disabled={!canEdit} className="ja-map-add-btn">
+                  <IonIcon icon={addOutline} slot="start" />
+                  Add stop
+                </IonButton>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Coordinates are resolved from the place name automatically.</p>
+              </form>
 
-            {activeDay.destinations.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 p-5 text-center text-xs text-stone-500">
-                No destinations yet for {activeDay.label}. Add the first stop above.
-              </div>
-            ) : activeDay.destinations.map((destination, index) => {
-              const isActive = destination.id === selectedDestinationId;
-              const isEditable = canManageDestination(destination);
-              return (
-                <article
-                  key={destination.id}
-                  className={`rounded-2xl border p-4 transition-all ${
-                    isActive ? "border-[#0B3530] bg-[#0B3530]/5 shadow-xs" : "border-stone-200 bg-white"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => focusDestination(destination.id)}
-                    className="mb-3 flex w-full items-start gap-3 text-left"
+              {/* Destination list */}
+              {activeDay.destinations.length === 0 ? (
+                <IonCard className="ja-map-empty-card">
+                  <IonCardContent>
+                    <div className="text-center py-4 text-xs text-stone-500">
+                      No destinations yet for {activeDay.label}. Add the first stop above.
+                    </div>
+                  </IonCardContent>
+                </IonCard>
+              ) : activeDay.destinations.map((destination, index) => {
+                const isActive = destination.id === selectedDestinationId;
+                const isEditable = canManageDestination(destination);
+                return (
+                  <article
+                    key={destination.id}
+                    className={`rounded-2xl border p-4 transition-all ${isActive ? "border-[#0B3530] bg-[#0B3530]/5 shadow-xs" : "border-stone-200 bg-white"}`}
                   >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0B3530] text-xs font-bold text-white">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#88B04B]">
-                        Stop {index + 1}
+                    <button
+                      type="button"
+                      onClick={() => focusDestination(destination.id)}
+                      className="mb-3 flex w-full items-start gap-3 text-left"
+                    >
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0B3530] text-xs font-bold text-white">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#88B04B]">Stop {index + 1}</div>
+                        <div className="mt-1 text-sm font-semibold text-stone-800">{destination.name}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
+                          <IonChip className="ja-map-list-chip">{destination.time}</IonChip>
+                          <IonChip className="ja-map-list-chip">{destination.lat.toFixed(4)}, {destination.lng.toFixed(4)}</IonChip>
+                          {(destination.savedByEmail || destination.savedByUserId) && (
+                            <IonChip className="ja-map-list-chip">{formatSavedBy(destination.savedByEmail, destination.savedByUserId)}</IonChip>
+                          )}
+                          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: getSyncDotColor(destination.syncStatus) }}
+                            title={getSyncDotLabel(destination.syncStatus)} aria-label={getSyncDotLabel(destination.syncStatus)}
+                          />
+                        </div>
                       </div>
-                      <div className="mt-1 text-sm font-semibold text-stone-800">{destination.name}</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
-                        <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">{destination.time}</span>
-                        <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
-                          {destination.lat.toFixed(4)}, {destination.lng.toFixed(4)}
-                        </span>
-                        {(destination.savedByEmail || destination.savedByUserId) && (
-                          <span className="rounded-full bg-stone-100 px-2 py-0.5 font-mono">
-                            {formatSavedBy(destination.savedByEmail, destination.savedByUserId)}
-                          </span>
-                        )}
-                        <span
-                          className={getSyncDotClass(destination.syncStatus)}
-                          title={getSyncDotLabel(destination.syncStatus)}
-                          aria-label={getSyncDotLabel(destination.syncStatus)}
-                        />
-                      </div>
-                    </div>
-                  </button>
+                    </button>
 
-                  {isEditable ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <label className="space-y-1">
-                          <span className="text-[11px] font-semibold text-stone-600">Name</span>
-                          <input
-                            value={destination.name}
-                            onChange={(event) => updateDestination(destination.id, { name: event.target.value })}
+                    {isEditable ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <label className="space-y-1">
+                            <span className="text-[11px] font-semibold text-stone-600">Name</span>
+                            <IonInput
+                              value={destination.name}
+                              onIonInput={(event) => updateDestination(destination.id, { name: event.detail.value ?? "" })}
+                              onFocus={() => focusDestination(destination.id)}
+                              disabled={!canEdit}
+                              className="ja-map-input-sm"
+                            />
+                          </label>
+                          <label className="space-y-1">
+                            <span className="text-[11px] font-semibold text-stone-600">Time</span>
+                            <IonInput
+                              value={destination.time}
+                              onIonInput={(event) => updateDestination(destination.id, { time: event.detail.value ?? "" })}
+                              onFocus={() => focusDestination(destination.id)}
+                              disabled={!canEdit}
+                              className="ja-map-input-sm"
+                            />
+                          </label>
+                        </div>
+                        <label className="space-y-1 block">
+                          <span className="text-[11px] font-semibold text-stone-600">Notes</span>
+                          <IonTextarea
+                            value={destination.notes}
+                            onIonInput={(event) => updateDestination(destination.id, { notes: event.detail.value ?? "" })}
                             onFocus={() => focusDestination(destination.id)}
                             disabled={!canEdit}
-                            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
+                            className="ja-map-textarea-sm"
                           />
                         </label>
-                        <label className="space-y-1">
-                          <span className="text-[11px] font-semibold text-stone-600">Time</span>
-                          <input
-                            value={destination.time}
-                            onChange={(event) => updateDestination(destination.id, { time: event.target.value })}
-                            onFocus={() => focusDestination(destination.id)}
-                            disabled={!canEdit}
-                            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                          />
-                        </label>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <IonButton size="small" onClick={() => focusDestination(destination.id)} className="ja-map-pan-btn">
+                            <IonIcon icon={locateOutline} slot="start" />
+                            Pan map
+                          </IonButton>
+                          <IonButton size="small" fill="outline" onClick={() => deleteDestination(destination.id)} className="ja-map-delete-btn">
+                            <IonIcon icon={trashOutline} slot="start" />
+                            Delete
+                          </IonButton>
+                        </div>
                       </div>
-
-                      <label className="space-y-1 block">
-                        <span className="text-[11px] font-semibold text-stone-600">Notes</span>
-                        <textarea
-                          value={destination.notes}
-                          onChange={(event) => updateDestination(destination.id, { notes: event.target.value })}
-                          onFocus={() => focusDestination(destination.id)}
-                          disabled={!canEdit}
-                          className="w-full min-h-[96px] resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#0B3530]"
-                        />
-                      </label>
-
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => focusDestination(destination.id)}
-                          className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
-                        >
-                          <LocateFixed size={12} />
-                          Pan map
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => deleteDestination(destination.id)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 transition-colors hover:bg-rose-100"
-                        >
-                          <Trash2 size={12} />
-                          Delete
-                        </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-[12px] leading-relaxed text-stone-600">
+                          {destination.notes}
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <IonButton size="small" onClick={() => focusDestination(destination.id)} className="ja-map-pan-btn">
+                            <IonIcon icon={locateOutline} slot="start" />
+                            Pan map
+                          </IonButton>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-[12px] leading-relaxed text-stone-600">
-                        {destination.notes}
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => focusDestination(destination.id)}
-                          className="inline-flex items-center gap-2 rounded-lg bg-[#0B3530] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#18534C]"
-                        >
-                          <LocateFixed size={12} />
-                          Pan map
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
 
-          <div className="border-t border-stone-100 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.25em] text-stone-400">
-            Local cache with Supabase sync and live cross-tab updates.
-          </div>
-        </section>
+            <div className="border-t border-stone-100 pt-3 mt-4 text-[10px] font-mono uppercase tracking-[0.25em] text-stone-400">
+              Local cache with Supabase sync and live cross-tab updates.
+            </div>
+          </IonCardContent>
+        </IonCard>
       </div>
     </div>
   );

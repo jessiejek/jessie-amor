@@ -1,5 +1,22 @@
 import React, { useMemo, useState } from "react";
-import { Copy, Plus, Trash2, CheckCircle2, Bookmark, Lightbulb, ClipboardList, PenTool } from "lucide-react";
+import {
+  IonCard,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonCardContent,
+  IonInput,
+  IonTextarea,
+  IonButton,
+  IonIcon,
+  IonCheckbox,
+  IonSelect,
+  IonSelectOption,
+  IonSegment,
+  IonSegmentButton,
+  IonChip,
+  IonLabel,
+} from "@ionic/react";
+import { addOutline, trashOutline, bookmarkOutline, clipboardOutline, createOutline } from "ionicons/icons";
 import type { ChecklistItem, TravelNote, SyncStatus } from "../types";
 
 interface NotesTabProps {
@@ -29,8 +46,9 @@ export default function NotesTab({
   const [noteContent, setNoteContent] = useState("");
   const [noteCategory, setNoteCategory] = useState<"Rule" | "Requirement" | "General">("General");
   const [ownerFilter, setOwnerFilter] = useState<"all" | "mine">("mine");
-  
+
   const [newCheckItem, setNewCheckItem] = useState("");
+
   const formatSavedBy = (email?: string, userId?: string) => {
     if (email) return email.split("@")[0];
     if (userId) return userId.slice(0, 8);
@@ -64,16 +82,10 @@ export default function NotesTab({
     return checklist;
   }, [checklist, ownerFilter, currentUser]);
 
-  const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
-    if (value === "syncing") {
-      return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
-    }
-
-    if (value === "synced") {
-      return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
-    }
-
-    return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
+  const getSyncDotColor = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
+    if (value === "syncing") return "#64748b";
+    if (value === "synced") return "#10b981";
+    return "#f59e0b";
   };
 
   const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
@@ -159,246 +171,257 @@ export default function NotesTab({
   const getCatBadgeStyles = (cat: string) => {
     switch (cat) {
       case "Rule":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return { bg: "#fef3c7", text: "#92400e", border: "#fde68a" };
       case "Requirement":
-        return "bg-rose-100 text-rose-800 border-rose-200";
+        return { bg: "#ffe4e6", text: "#9f1239", border: "#fecdd3" };
       default:
-        return "bg-sky-100 text-sky-800 border-sky-200";
+        return { bg: "#e0f2fe", text: "#075985", border: "#bae6fd" };
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 bg-stone-50 animate-in fade-in duration-300">
+      {/* Offline banner */}
       {!isOnline && (
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 shadow-xs">
           Offline mode is active. Checklist and notes changes stay on this device and upload when the connection returns.
         </div>
       )}
 
+      {/* Owner filter */}
       {currentUser && (
         <div className="flex items-center gap-1.5 mb-4 px-1">
           <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400 mr-1">Show</span>
-          <button
-            type="button"
-            onClick={() => setOwnerFilter("all")}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-              ownerFilter === "all"
-                ? "bg-[#0B3530] text-white shadow-sm"
-                : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-            }`}
+          <IonSegment
+            value={ownerFilter}
+            onIonChange={(event) => setOwnerFilter(event.detail.value as "all" | "mine")}
+            className="ja-notes-segment"
           >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={() => setOwnerFilter("mine")}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-              ownerFilter === "mine"
-                ? "bg-[#0B3530] text-white shadow-sm"
-                : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-            }`}
-          >
-            Mine
-          </button>
+            <IonSegmentButton value="all" className="ja-notes-segment-btn">
+              <IonLabel>All</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="mine" className="ja-notes-segment-btn">
+              <IonLabel>Mine</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Checklist Column */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col h-fit">
-          <div className="flex items-center gap-2 border-b border-stone-100 pb-3 mb-4">
-            <ClipboardList className="text-[#0B3530]" size={18} />
-            <h3 className="text-[15px] font-serif font-bold text-[#0B3530]">Trip Checklist</h3>
-          </div>
-
-          {!canEdit && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
-              Sign in to add, edit, or mark checklist items.
+        <IonCard className="ja-notes-checklist-card">
+          <IonCardHeader className="ja-notes-card-header">
+            <div className="flex items-center gap-2">
+              <IonIcon icon={clipboardOutline} style={{ color: "#0B3530", fontSize: 18 }} />
+              <IonCardSubtitle className="ja-notes-section-title">Trip Checklist</IonCardSubtitle>
             </div>
-          )}
+          </IonCardHeader>
 
-          <form onSubmit={handleAddCheckItem} className="flex gap-2 mb-4 font-sans">
-            <input
-              type="text"
-              value={newCheckItem}
-              onChange={(e) => setNewCheckItem(e.target.value)}
-              placeholder="Add new checklist task..."
-              disabled={!canEdit}
-              className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530]"
-              maxLength={80}
-            />
-            <button
-              type="submit"
-              disabled={!canEdit}
-              className="px-3 py-1.5 bg-[#0B3530] text-[#88B04B] hover:text-white hover:bg-[#18534C] text-[14px] font-semibold rounded-lg transition-colors cursor-pointer border-none"
-            >
-              Add
-            </button>
-          </form>
+          <IonCardContent className="ja-notes-card-body">
+            {!canEdit && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+                Sign in to add, edit, or mark checklist items.
+              </div>
+            )}
 
-          {/* Checklist items */}
-          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-            {ownerChecklist.map((item) => (
-              <div
-                key={item.id}
-                className={`relative flex items-start gap-3 p-2.5 rounded-lg border border-stone-50 bg-stone-50/50 transition-all select-none ${
-                  canEdit && canManageEntry(item) ? "hover:bg-stone-50 cursor-pointer" : "cursor-default opacity-80"
-                }`}
+            <form onSubmit={handleAddCheckItem} className="flex gap-2 mb-4">
+              <IonInput
+                value={newCheckItem}
+                onIonInput={(event) => setNewCheckItem(event.detail.value ?? "")}
+                placeholder="Add new checklist task..."
+                disabled={!canEdit}
+                className="ja-notes-input"
+                maxlength={80}
+              />
+              <IonButton
+                type="submit"
+                disabled={!canEdit}
+                className="ja-notes-add-btn"
+                size="small"
               >
-                {canManageEntry(item) ? (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCheck(item.id)}
-                    className={`mt-0.5 shrink-0 rounded-full border p-0.5 transition-all ${
-                      item.completed ? "border-green-600 bg-green-50 text-green-600" : "border-stone-300 text-transparent"
-                    }`}
-                    aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
-                  >
-                    <CheckCircle2 size={12} className="stroke-[3px]" />
-                  </button>
-                ) : (
-                  <div className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-stone-200 bg-stone-100" aria-hidden="true" />
-                )}
+                Add
+              </IonButton>
+            </form>
 
-                <div className="min-w-0 flex-1 pr-8">
-                  <span className={`block text-[14px] font-sans leading-relaxed ${
-                    item.completed ? "line-through text-stone-400" : "text-stone-700"
-                  }`}>
-                    {item.text}
-                  </span>
-                  {(item.savedByEmail || item.savedByUserId) && (
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                      <span className="block text-[11px] font-mono uppercase tracking-wider text-stone-400">
-                        {formatSavedBy(item.savedByEmail, item.savedByUserId)}
-                      </span>
-                      <span
-                        className={getSyncDotClass(item.syncStatus)}
-                        title={getSyncDotLabel(item.syncStatus)}
-                        aria-label={getSyncDotLabel(item.syncStatus)}
-                      />
-                    </div>
+            <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+              {ownerChecklist.map((item) => (
+                <div
+                  key={item.id}
+                  className={`relative flex items-start gap-3 p-2.5 rounded-lg border transition-all ${
+                    canEdit && canManageEntry(item)
+                      ? "border-stone-100 bg-stone-50/50 hover:bg-stone-50"
+                      : "border-stone-100 bg-stone-50/50 cursor-default opacity-80"
+                  }`}
+                >
+                  {canManageEntry(item) ? (
+                    <IonCheckbox
+                      checked={item.completed}
+                      onIonChange={() => handleToggleCheck(item.id)}
+                      className="ja-notes-checkbox"
+                      aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
+                    />
+                  ) : (
+                    <div className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-stone-200 bg-stone-100" aria-hidden="true" />
+                  )}
+
+                  <div className="min-w-0 flex-1 pr-8">
+                    <span className={`block text-[14px] font-sans leading-relaxed ${
+                      item.completed ? "line-through text-stone-400" : "text-stone-700"
+                    }`}>
+                      {item.text}
+                    </span>
+                    {(item.savedByEmail || item.savedByUserId) && (
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <span className="block text-[11px] font-mono uppercase tracking-wider text-stone-400">
+                          {formatSavedBy(item.savedByEmail, item.savedByUserId)}
+                        </span>
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full align-middle"
+                          style={{ backgroundColor: getSyncDotColor(item.syncStatus) }}
+                          title={getSyncDotLabel(item.syncStatus)}
+                          aria-label={getSyncDotLabel(item.syncStatus)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {canManageEntry(item) && (
+                    <IonButton
+                      fill="clear"
+                      size="small"
+                      onClick={() => handleDeleteCheckItem(item.id)}
+                      className="ja-notes-delete-btn"
+                      aria-label="Delete checklist item"
+                      title="Delete checklist item"
+                    >
+                      <IonIcon icon={trashOutline} />
+                    </IonButton>
                   )}
                 </div>
-
-                {canManageEntry(item) && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCheckItem(item.id)}
-                    className="absolute right-2 top-2 rounded p-1 text-stone-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                    aria-label="Delete checklist item"
-                    title="Delete checklist item"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </IonCardContent>
+        </IonCard>
 
         {/* Middle and Right Notes section */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Create Note inline board */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs">
-            <div className="flex items-center gap-2 border-b border-stone-100 pb-3 mb-4">
-              <PenTool className="text-[#0B3530]" size={18} />
-              <h3 className="text-[15px] font-serif font-bold text-[#0B3530]">Add Travel Scratch Note</h3>
-            </div>
-
-            <form onSubmit={handleAddNote} className="space-y-3 font-sans">
-              <div className="grid grid-cols-3 gap-3">
-              <input
-                type="text"
-                value={noteTitle}
-                onChange={(e) => setNoteTitle(e.target.value)}
-                placeholder="Note Title (e.g., Souvenir Ideas)"
-                disabled={!canEdit}
-                className="col-span-2 px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530]"
-                required
-              />
-                
-                <select
-                  value={noteCategory}
-                  onChange={(e) => setNoteCategory(e.target.value as any)}
-                  disabled={!canEdit}
-                  className="px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530] bg-[#FFFFFF]"
-                >
-                  <option value="General">General Info</option>
-                  <option value="Rule">Strict Rule</option>
-                  <option value="Requirement">Requirement</option>
-                </select>
+          {/* Create Note card */}
+          <IonCard className="ja-notes-create-card">
+            <IonCardHeader className="ja-notes-card-header">
+              <div className="flex items-center gap-2">
+                <IonIcon icon={createOutline} style={{ color: "#0B3530", fontSize: 18 }} />
+                <IonCardSubtitle className="ja-notes-section-title">Add Travel Scratch Note</IonCardSubtitle>
               </div>
+            </IonCardHeader>
 
-              <textarea
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                placeholder="Write down sights to seek, shops to visit, or custom budgets ideas..."
-                rows={3}
-                disabled={!canEdit}
-                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-[14px] outline-none focus:border-[#0B3530] resize-none"
-                required
-              />
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={!canEdit}
-                  className="px-4 py-2 bg-[#0B3530] text-white hover:bg-[#18534C] text-[14px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer border-none shadow-xs"
-                >
-                  <Plus size={14} /> Add Scratch Note
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* List of custom notes cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ownerNotes.map((note) => (
-              <div
-                key={note.id}
-                className="bg-white rounded-xl border border-stone-200 p-4 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between h-48 relative overflow-hidden group"
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <span className={`px-2 py-0.5 rounded text-[14px] uppercase tracking-wider font-mono font-bold border ${getCatBadgeStyles(note.category)}`}>
-                      {note.category}
-                    </span>
-                    {canManageEntry(note) && (
-                      <button
-                        onClick={() => handleDeleteNote(note.id)}
-                        className="p-1 rounded text-stone-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 absolute top-3 right-3"
-                        title="Delete Note"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                  <h4 className="text-[14px] font-bold text-stone-800 font-sans mt-1 line-clamp-1">{note.title}</h4>
-                  <p className="text-[13px] text-stone-500 font-sans leading-relaxed mt-2 line-clamp-4">
-                    {note.content}
-                  </p>
-                </div>
-
-                <div className="border-t border-stone-100 pt-2 mt-2 flex flex-col gap-1 font-mono text-[11px] text-stone-400">
-                  <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
-                  {(note.savedByEmail || note.savedByUserId) && (
-                    <span className="text-[11px] uppercase tracking-wider">{formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
-                  )}
-                  <span
-                    className={getSyncDotClass(note.syncStatus)}
-                    title={getSyncDotLabel(note.syncStatus)}
-                    aria-label={getSyncDotLabel(note.syncStatus)}
+            <IonCardContent className="ja-notes-card-body">
+              <form onSubmit={handleAddNote} className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <IonInput
+                    value={noteTitle}
+                    onIonInput={(event) => setNoteTitle(event.detail.value ?? "")}
+                    placeholder="Note Title (e.g., Souvenir Ideas)"
+                    disabled={!canEdit}
+                    className="ja-notes-input col-span-2"
+                    required
                   />
-                  <Bookmark size={10} className="text-[#88B04B]" />
+
+                  <IonSelect
+                    value={noteCategory}
+                    onIonChange={(event) => setNoteCategory(event.detail.value as "Rule" | "Requirement" | "General")}
+                    disabled={!canEdit}
+                    interface="action-sheet"
+                    className="ja-notes-select"
+                  >
+                    <IonSelectOption value="General">General Info</IonSelectOption>
+                    <IonSelectOption value="Rule">Strict Rule</IonSelectOption>
+                    <IonSelectOption value="Requirement">Requirement</IonSelectOption>
+                  </IonSelect>
                 </div>
-              </div>
-            ))}
+
+                <IonTextarea
+                  value={noteContent}
+                  onIonInput={(event) => setNoteContent(event.detail.value ?? "")}
+                  placeholder="Write down sights to seek, shops to visit, or custom budgets ideas..."
+                  rows={3}
+                  disabled={!canEdit}
+                  className="ja-notes-textarea"
+                  required
+                />
+
+                <div className="flex justify-end">
+                  <IonButton
+                    type="submit"
+                    disabled={!canEdit}
+                    className="ja-notes-add-btn"
+                  >
+                    <IonIcon icon={addOutline} slot="start" />
+                    Add Scratch Note
+                  </IonButton>
+                </div>
+              </form>
+            </IonCardContent>
+          </IonCard>
+
+          {/* Notes grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {ownerNotes.map((note) => {
+              const catStyles = getCatBadgeStyles(note.category);
+              return (
+                <IonCard
+                  key={note.id}
+                  className="ja-notes-note-card"
+                >
+                  <IonCardContent className="ion-no-padding" style={{ padding: 0 }}>
+                    <div className="flex flex-col justify-between h-48 relative overflow-hidden p-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <IonChip
+                            className="ja-notes-cat-chip"
+                            style={{ background: catStyles.bg, color: catStyles.text, border: `1px solid ${catStyles.border}` }}
+                          >
+                            {note.category}
+                          </IonChip>
+                          {canManageEntry(note) && (
+                            <IonButton
+                              fill="clear"
+                              size="small"
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="ja-notes-delete-btn absolute top-3 right-3"
+                              title="Delete Note"
+                            >
+                              <IonIcon icon={trashOutline} />
+                            </IonButton>
+                          )}
+                        </div>
+                        <h4 className="text-[14px] font-bold text-stone-800 font-sans mt-1 line-clamp-1">{note.title}</h4>
+                        <p className="text-[13px] text-stone-500 font-sans leading-relaxed mt-2 line-clamp-4">
+                          {note.content}
+                        </p>
+                      </div>
+
+                      <div className="border-t border-stone-100 pt-2 mt-2 flex flex-col gap-1 font-mono text-[11px] text-stone-400">
+                        <span>CREATED: {new Date(note.createdAt).toLocaleDateString()}</span>
+                        {(note.savedByEmail || note.savedByUserId) && (
+                          <span className="text-[11px] uppercase tracking-wider">{formatSavedBy(note.savedByEmail, note.savedByUserId)}</span>
+                        )}
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full align-middle"
+                          style={{ backgroundColor: getSyncDotColor(note.syncStatus) }}
+                          title={getSyncDotLabel(note.syncStatus)}
+                          aria-label={getSyncDotLabel(note.syncStatus)}
+                        />
+                        <IonIcon icon={bookmarkOutline} style={{ color: "#88B04B", fontSize: 10 }} />
+                      </div>
+                    </div>
+                  </IonCardContent>
+                </IonCard>
+              );
+            })}
           </div>
-
         </div>
-
       </div>
     </div>
   );
