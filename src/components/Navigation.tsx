@@ -581,7 +581,7 @@ export default function Navigation({
           </div>
         </div>
       </header>
-
+//aaaa
       <footer className="no-print">
         <nav
           className={`fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden transition-transform duration-200 ${
