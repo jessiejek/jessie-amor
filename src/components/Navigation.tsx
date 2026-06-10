@@ -179,21 +179,52 @@ export default function Navigation({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
-    const onFocusIn = (e: FocusEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-        setKeyboardOpen(true);
-      }
-    };
-    const onFocusOut = () => setKeyboardOpen(false);
+    if (!window.visualViewport) {
+      const onFocusIn = (e: FocusEvent) => {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+          setKeyboardOpen(true);
+        }
+      };
+      const onFocusOut = () => setKeyboardOpen(false);
+      document.addEventListener("focusin", onFocusIn);
+      document.addEventListener("focusout", onFocusOut);
+      return () => {
+        document.removeEventListener("focusin", onFocusIn);
+        document.removeEventListener("focusout", onFocusOut);
+      };
+    }
 
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    return () => {
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
+    let ticking = false;
+    const checkKeyboard = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const viewportHeight = window.visualViewport!.height;
+        const windowHeight = window.innerHeight;
+        const isOpen = viewportHeight < windowHeight - 150;
+        setKeyboardOpen(isOpen);
+        ticking = false;
+      });
     };
+
+    window.visualViewport.addEventListener("resize", checkKeyboard);
+    checkKeyboard();
+
+    return () => window.visualViewport.removeEventListener("resize", checkKeyboard);
   }, []);
+
+  useEffect(() => {
+    if (!keyboardOpen) {
+      requestAnimationFrame(() => {
+        window.scrollTo(window.scrollX, window.scrollY);
+        document.body.style.transform = "translateZ(0)";
+        setTimeout(() => {
+          document.body.style.transform = "";
+        }, 50);
+      });
+    }
+  }, [keyboardOpen]);
 
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(window.location.href);
