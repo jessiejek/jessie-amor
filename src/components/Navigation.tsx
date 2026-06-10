@@ -182,9 +182,16 @@ export default function Navigation({
     const vv = window.visualViewport;
     if (!vv) return;
 
+    let ticking = false;
+
     const update = () => {
-      const offset = window.innerHeight - vv.height - vv.offsetTop;
-      setKeyboardOffset(Math.max(0, Math.round(offset)));
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const offset = window.innerHeight - vv.height - vv.offsetTop;
+        setKeyboardOffset(Math.max(0, Math.round(offset)));
+        ticking = false;
+      });
     };
 
     vv.addEventListener("resize", update);
@@ -549,10 +556,12 @@ export default function Navigation({
             </div>
           </div>
         </div>
+      </header>
 
+      <footer className="no-print">
         <nav
           className="fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden"
-          style={{ transform: `translateY(${-keyboardOffset}px)` }}
+          style={{ bottom: `${keyboardOffset}px` }}
         >
           <div className="grid grid-cols-5">
             {bottomNavItems.map((tab) => {
@@ -586,7 +595,7 @@ export default function Navigation({
             </button>
           </div>
         </nav>
-      </header>
+      </footer>
 
       {showMoreDrawer && (
         <div className="fixed inset-0 z-[1350] md:hidden" aria-hidden="false">
