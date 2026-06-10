@@ -72,6 +72,7 @@ interface NavigationProps {
     description: string;
   };
   expenses?: Expense[];
+  screenSize: "small" | "large";
 }
 
 type NavTab = {
@@ -99,6 +100,7 @@ export default function Navigation({
   onSignOut,
   metadata,
   expenses = [],
+  screenSize,
 }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -365,7 +367,7 @@ export default function Navigation({
   return (
     <>
       <header className="no-print">
-        <div className="md:hidden fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-[10px]">
+        <div className={`fixed top-0 left-0 right-0 z-[1100] bg-[#1a3328] text-stone-100 px-[14px] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-[10px] ${screenSize === "small" ? "" : "hidden"}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] uppercase tracking-[0.1em] text-white/40 font-mono leading-none">
@@ -430,7 +432,7 @@ export default function Navigation({
           </div>
         </div>
 
-        <div className="hidden bg-[#0B3530] text-stone-100 shadow-md md:block sticky top-0 z-[1100]">
+        <div className={`bg-[#0B3530] text-stone-100 shadow-md sticky top-0 z-[1100] ${screenSize === "large" ? "" : "hidden"}`}>
           <div className="mx-auto max-w-7xl px-6 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3">
             <div className="flex items-center justify-between gap-4 pb-3">
               <div className="min-w-0">
@@ -544,7 +546,7 @@ export default function Navigation({
       </header>
 
       {showMoreDrawer && (
-        <div className="fixed inset-0 z-[1350] md:hidden" aria-hidden="false">
+        <div className={`fixed inset-0 z-[1350] ${screenSize === "small" ? "" : "hidden"}`} aria-hidden="false">
           <button
             type="button"
             aria-label="Close more menu"

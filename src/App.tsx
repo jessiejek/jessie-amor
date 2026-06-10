@@ -405,6 +405,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [showNav, setShowNav] = useState(true);
+  const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
   const [expensesLoaded, setExpensesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -1762,6 +1763,12 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
 
   useEffect(() => {
@@ -2093,6 +2100,7 @@ export default function App() {
           onOpenSettings={handleOpenSettings}
           onSignOut={handleSignOut}
           expenses={expenses}
+          screenSize={screenSize}
         />
 
         <div className="flex-1 min-h-0 pt-[calc(112px+env(safe-area-inset-top,0px))] md:pt-[calc(128px+env(safe-area-inset-top,0px))]">
@@ -2301,7 +2309,7 @@ export default function App() {
         </div>
 
         {/* BOTTOM NAV */}
-        <footer className={`no-print md:hidden fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${showNav ? "translate-y-0" : "translate-y-full"}`}>
+        <footer className={`no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ${screenSize === "small" ? "" : "hidden"} ${showNav ? "translate-y-0" : "translate-y-full"}`}>
           <div className="grid grid-cols-5 gap-2 px-3 pt-2">
             <button
               onClick={() => navigateTo("/")}
