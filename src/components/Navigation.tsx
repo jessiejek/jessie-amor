@@ -195,17 +195,11 @@ export default function Navigation({
       };
     }
 
-    let ticking = false;
     const checkKeyboard = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const viewportHeight = window.visualViewport!.height;
-        const windowHeight = window.innerHeight;
-        const isOpen = viewportHeight < windowHeight - 150;
-        setKeyboardOpen(isOpen);
-        ticking = false;
-      });
+      const viewportHeight = window.visualViewport!.height;
+      const windowHeight = window.innerHeight;
+      const isOpen = viewportHeight < windowHeight - 200;
+      setKeyboardOpen(isOpen);
     };
 
     window.visualViewport.addEventListener("resize", checkKeyboard);
@@ -217,11 +211,14 @@ export default function Navigation({
   useEffect(() => {
     if (!keyboardOpen) {
       requestAnimationFrame(() => {
-        window.scrollTo(window.scrollX, window.scrollY);
-        document.body.style.transform = "translateZ(0)";
-        setTimeout(() => {
-          document.body.style.transform = "";
-        }, 50);
+        const body = document.body;
+        const scrollY = window.scrollY;
+
+        body.style.minHeight = "calc(100vh + 1px)";
+        void body.offsetHeight;
+        body.style.minHeight = "";
+
+        window.scrollTo(0, scrollY);
       });
     }
   }, [keyboardOpen]);
@@ -585,7 +582,7 @@ export default function Navigation({
       <footer className="no-print">
         <nav
           className={`fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] px-1 pt-2 pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] md:hidden transition-transform duration-200 ${
-            keyboardOpen ? "translate-y-full" : "translate-y-0"
+            keyboardOpen ? "hidden" : "block"
           }`}
         >
           <div className="grid grid-cols-5">
