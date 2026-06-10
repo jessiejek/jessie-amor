@@ -2074,11 +2074,11 @@ export default function App() {
         <div className="flex-1 min-h-0 pt-[112px] md:pt-0">
           <main
             className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0"
-            style={{
-              transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.28}px, 0)` : "translate3d(0, 0, 0)",
+            style={pullDistance > 0 ? {
+              transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`,
               transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-              willChange: pullDistance > 0 ? "transform" : "auto",
-            }}
+              willChange: "transform",
+            } : undefined}
           >
           {activeRoute === "/account" && mobileAccountCard}
         {activeRoute === "/" && (
