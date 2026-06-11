@@ -2110,7 +2110,9 @@ function AppShell() {
         scrollEvents={true}
         className="ja-ion-content"
         onIonScroll={(event) => {
-          setShowScrollTop(event.detail.scrollTop > 400);
+          const top = event.detail.scrollTop;
+          setShowScrollTop(top > 400);
+          document.documentElement.classList.toggle("nav-scrolled", top > 60);
         }}
       >
         <div
