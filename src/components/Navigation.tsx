@@ -166,16 +166,16 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
         </div>
       </header>
 
-      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={screenSize === "small"}>
+      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={screenSize === "small"} style={{ "--width": "min(320px, 85vw)", "--max-width": "85vw", "--min-width": "260px", "--height": "100dvh", "--border-radius": "0", "--box-shadow": "8px 0 32px rgba(0,0,0,0.3)", "--backdrop-opacity": "0.5" } as React.CSSProperties}>
         <IonHeader><IonToolbar style={{ "--background": "#1a3a35", "--color": "#ffffff" } as React.CSSProperties}>
           <IonTitle className="ja-nav-more-title">More</IonTitle>
           <IonButtons slot="end"><IonButton onClick={() => setShowMoreDrawer(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>
         </IonToolbar></IonHeader>
-        <IonContent style={{ "--background": "#1a3a35" } as React.CSSProperties}>
+        <IonContent style={{ "--background": "var(--ja-green-800)" } as React.CSSProperties}>
           <IonList className="ja-nav-list">
             {navItems.map((item) => { const Icon = item.icon ?? CalendarDays; const isA = activeTab === item.path; return (
               <IonItem key={item.label} button onClick={() => handleNavigate(item.path)} className={`ja-nav-item${isA ? " ja-nav-item-active" : ""}`}>
-                <span slot="start" className="ja-nav-item-icon" style={{ background: isA ? "rgba(126,201,107,0.2)" : "rgba(255,255,255,0.1)", color: isA ? "#7ec96b" : "rgba(255,255,255,0.75)" }}><Icon size={15} /></span>
+                <span slot="start" className={`ja-nav-item-icon${isA ? " ja-nav-item-icon-active" : ""}`}><Icon size={16} /></span>
                 <IonLabel className="ja-nav-item-label">{item.label}</IonLabel>
               </IonItem>
             ); })}
@@ -183,27 +183,27 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
           <div className="ja-nav-more-footer">
             {session && onOpenSettings ? (
               <IonItem button onClick={() => { setShowMoreDrawer(false); onOpenSettings(); }} className="ja-nav-item">
-                <span slot="start" className="ja-nav-item-icon" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}><Settings size={15} /></span>
+                <span slot="start" className="ja-nav-item-icon"><Settings size={16} /></span>
                 <IonLabel className="ja-nav-item-label">Settings</IonLabel>
               </IonItem>
             ) : null}
             {!session ? (
               <IonItem button onClick={() => { setShowMoreDrawer(false); onOpenAuth(); }} className="ja-nav-item">
-                <span slot="start" className="ja-nav-item-icon" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}><User size={15} /></span>
+                <span slot="start" className="ja-nav-item-icon"><User size={16} /></span>
                 <IonLabel className="ja-nav-item-label">Login</IonLabel>
               </IonItem>
             ) : (
               <div className="ja-nav-user-card">
                 <div className="ja-nav-user-avatar">{userAvatar ? <img src={userAvatar} alt={userDisplayName} className="ja-nav-user-img" referrerPolicy="no-referrer" /> : <span>{userInitial}</span>}</div>
                 <div className="ja-nav-user-info"><div className="ja-nav-user-name">{userDisplayName}</div><div className="ja-nav-user-email">{userEmail}</div></div>
-                <IonButton fill="clear" onClick={() => { setShowMoreDrawer(false); onSignOut(); }} title="Log out" style={{ "--color": "rgba(255,255,255,0.5)" } as React.CSSProperties}><LogOut size={16} /></IonButton>
+                <IonButton fill="clear" onClick={() => { setShowMoreDrawer(false); onSignOut(); }} title="Log out" className="ja-nav-signout-btn"><LogOut size={16} /></IonButton>
               </div>
             )}
           </div>
         </IonContent>
       </IonModal>
 
-      <IonModal isOpen={showShareModal} onDidDismiss={() => setShowShareModal(false)} className="ja-share-modal">
+      <IonModal isOpen={showShareModal} onDidDismiss={() => setShowShareModal(false)} className="ja-share-modal" style={{ "--border-radius": "18px", "--backdrop-opacity": "0.45" } as React.CSSProperties}>
         <IonHeader><IonToolbar style={{ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties}>
           <IonTitle>Share Travel Itinerary</IonTitle>
           <IonButtons slot="end"><IonButton onClick={() => setShowShareModal(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>
@@ -217,19 +217,19 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
 
       <IonToast isOpen={showCopiedToast} message="Link copied to clipboard!" duration={2000} position="bottom" color="success" onDidDismiss={() => setShowCopiedToast(false)} />
 
-      <IonModal isOpen={showDownloadModal} onDidDismiss={() => setShowDownloadModal(false)} className="ja-download-modal">
+      <IonModal isOpen={showDownloadModal} onDidDismiss={() => setShowDownloadModal(false)} className="ja-download-modal" style={{ "--width": "min(420px, calc(100vw - 32px))", "--max-width": "420px", "--max-height": "calc(100dvh - 64px)", "--border-radius": "18px", "--backdrop-opacity": "0.55" } as React.CSSProperties}>
         <IonHeader><IonToolbar style={{ "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties}>
           <IonTitle>Immigration Document</IonTitle>
           <IonButtons slot="end"><IonButton onClick={() => setShowDownloadModal(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>
         </IonToolbar></IonHeader>
-        <IonContent className="ja-nav-download-body" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
+        <div className="ja-nav-download-body" style={{ background: "#fafaf9", overflowY: "auto", flex: 1 }}>
           <p className="ja-nav-download-desc">Generate a formatted letter for immigration purposes — includes traveler info, flights, hotels, and daily itinerary.</p>
           <IonButton expand="block" onClick={handleImmigrationDoc} className="ja-nav-download-btn" style={{ "--background": "#0B3530", "--background-hover": "#18534C" } as React.CSSProperties}>
             <FileText size={14} style={{ marginRight: 8 }} />Immigration Document (PDF)
           </IonButton>
           <p className="ja-nav-download-footnote">Formatted for immigration — travelers, flights, hotel, itinerary</p>
           <div className="ja-nav-download-info"><Info size={16} className="ja-nav-download-info-icon" /><p className="ja-nav-download-info-text"><strong>Cloud Sync Note:</strong> Any customizations made to the budget charts, map stops, or travel notes are stored in Supabase and stay in sync across open sessions.</p></div>
-        </IonContent>
+        </div>
       </IonModal>
     </>
   );

@@ -9,7 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonContent,
   IonCard,
   IonCardContent,
   IonList,
@@ -139,7 +138,7 @@ export default function SettingsModal({
         </div>
       </IonHeader>
 
-      <IonContent style={{ "--background": "#f5f5f4" } as React.CSSProperties}>
+      <div className="ja-settings-scroll-body" style={{ background: "#f5f5f4" }}>
         <div className="ja-settings-content">
           <IonCard className="ja-settings-card">
             <IonCardContent>
@@ -227,7 +226,7 @@ export default function SettingsModal({
             </IonButton>
           </div>
         </div>
-      </IonContent>
+      </div>
     </IonModal>
   );
 }

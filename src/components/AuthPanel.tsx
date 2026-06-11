@@ -62,7 +62,7 @@ export default function AuthPanel({
   isConfigured = true,
 }: AuthPanelProps) {
   return (
-    <IonModal isOpen={open} onDidDismiss={onClose} className="ja-auth-modal">
+    <IonModal isOpen={open} onDidDismiss={onClose} className="ja-auth-modal" style={{ "--width": "min(420px, calc(100vw - 32px))", "--max-width": "420px", "--height": "auto", "--border-radius": "18px", "--box-shadow": "0 24px 60px rgba(0,0,0,0.35)" } as React.CSSProperties}>
       <IonHeader>
         <IonToolbar style={brandToolbar}>
           <div className="ja-auth-toolbar-inner">
