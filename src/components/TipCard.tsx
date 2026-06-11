@@ -12,10 +12,10 @@ export default function TipCard({ tip }: TipCardProps) {
   return (
     <IonCard className="ja-tip-card">
       <IonCardContent>
-        <div className="mb-3 text-xl" aria-hidden="true">
+        <div className="ja-tip-card-icon" aria-hidden="true">
           {tip.icon}
         </div>
-        <div className="text-sm leading-relaxed text-stone-600">
+        <div className="ja-tip-card-text">
           <RichText segments={tip.description} />
         </div>
       </IonCardContent>

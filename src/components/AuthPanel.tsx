@@ -8,7 +8,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonContent,
   IonCard,
   IonCardContent,
   IonList,
@@ -66,24 +65,24 @@ export default function AuthPanel({
     <IonModal isOpen={open} onDidDismiss={onClose} className="ja-auth-modal">
       <IonHeader>
         <IonToolbar style={brandToolbar}>
-          <IonTitle>{title}</IonTitle>
+          <div className="ja-auth-toolbar-inner">
+            <div className="ja-auth-eyebrow">SECURE SYNC</div>
+            <IonTitle className="ja-auth-title">{title}</IonTitle>
+          </div>
           <IonButtons slot="end">
             <IonButton onClick={onClose} aria-label="Close login modal">
               <IonIcon icon={closeOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
-        <div
-          className="px-4 pb-4 pt-1"
-          style={{ background: "#0B3530", color: "rgba(255,255,255,0.8)" }}
-        >
-          <p className="text-[14px] leading-relaxed">{description}</p>
+        <div className="ja-auth-desc-wrap" style={{ background: "#0B3530", color: "rgba(255,255,255,0.8)" }}>
+          <p className="ja-auth-desc-text">{description}</p>
         </div>
       </IonHeader>
 
-      <IonContent className="ion-padding" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
+      <div className="ja-auth-content">
         {loading && (
-          <div className="flex justify-center py-8">
+          <div className="ja-auth-loader">
             <IonSpinner name="crescent" />
           </div>
         )}
@@ -94,7 +93,7 @@ export default function AuthPanel({
               <IonCard className="ja-auth-error-card" style={{ margin: "0 0 16px" }}>
                 <IonCardContent>
                   <IonText color="danger">
-                    <p className="font-semibold text-[14px]">{errorMessage}</p>
+                    <p className="ja-auth-error-text">{errorMessage}</p>
                   </IonText>
                 </IonCardContent>
               </IonCard>
@@ -102,7 +101,7 @@ export default function AuthPanel({
 
             <IonCard style={{ margin: "0 0 16px" }}>
               <IonCardContent>
-                <p className="text-[14px] leading-relaxed text-stone-600">
+                <p className="ja-auth-sync-card-text">
                   Sign in to sync your budget and trip checklist across devices. We keep the trip data private to this itinerary.
                 </p>
               </IonCardContent>
@@ -117,8 +116,8 @@ export default function AuthPanel({
                 } as React.CSSProperties}
               >
                 <IonCardContent>
-                  <p className="text-[14px] font-semibold text-amber-900">Login is not configured on this deployment yet.</p>
-                  <p className="mt-1 text-[14px] text-amber-800">
+                  <p className="ja-auth-config-title">Login is not configured on this deployment yet.</p>
+                  <p className="ja-auth-config-desc">
                     The app needs Supabase environment variables in Vercel before Google/Facebook sign-in can work.
                   </p>
                 </IonCardContent>
@@ -135,18 +134,12 @@ export default function AuthPanel({
                   className="ja-auth-provider-item"
                   detail={false}
                 >
-                  <div
-                    slot="start"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ background: "#0B3530", color: "#88B04B" }}
-                  >
+                  <div className="ja-auth-provider-badge" style={{ background: "#0B3530", color: "#88B04B" }}>
                     {provider.badge}
                   </div>
                   <IonLabel>
-                    <div className="text-[15px] font-semibold text-stone-800">{provider.label}</div>
-                    <p className="text-[11px] font-mono uppercase tracking-wider text-stone-400">
-                      {provider.note}
-                    </p>
+                    <div className="ja-auth-provider-label">{provider.label}</div>
+                    <p className="ja-auth-provider-note">{provider.note}</p>
                   </IonLabel>
                 </IonItem>
               ))}
@@ -154,17 +147,17 @@ export default function AuthPanel({
 
             <IonCard style={{ margin: "0 0 16px" }}>
               <IonCardContent>
-                <div className="mb-3">
-                  <p className="text-[11px] font-mono uppercase tracking-widest text-stone-400">Account</p>
+                <div className="ja-auth-account-section">
+                  <p className="ja-auth-account-label">Account</p>
                   {session ? (
                     <>
-                      <p className="mt-1 text-[15px] font-semibold text-stone-800">{session.user.email ?? "Signed in"}</p>
-                      <p className="text-[14px] text-stone-500">Budget + checklist sync is active.</p>
+                      <p className="ja-auth-account-email">{session.user.email ?? "Signed in"}</p>
+                      <p className="ja-auth-account-status">Budget + checklist sync is active.</p>
                     </>
                   ) : (
                     <>
-                      <p className="mt-1 text-[15px] font-semibold text-stone-800">Not signed in</p>
-                      <p className="text-[14px] text-stone-500">Choose Google, GitHub, or Facebook to enable shared cloud sync.</p>
+                      <p className="ja-auth-signin-title">Not signed in</p>
+                      <p className="ja-auth-signin-desc">Choose Google, GitHub, or Facebook to enable shared cloud sync.</p>
                     </>
                   )}
                 </div>
@@ -184,7 +177,7 @@ export default function AuthPanel({
             </IonCard>
           </>
         )}
-      </IonContent>
+      </div>
     </IonModal>
   );
 }

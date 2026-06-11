@@ -2032,56 +2032,28 @@ function AppShell() {
   };
 
   const mobileAccountCard = session ? (
-    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
-          <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#7ec96b]/40 bg-[#7ec96b]/20 text-[14px] font-semibold text-[#7ec96b]">
-                JA
-              </div>
-              <div className="min-w-0">
-            <div className="text-[14px] font-medium text-[#1a3328]">Jessie Jayr</div>
-            <div className="truncate text-[14px] text-[#888]">{session.user.email ?? "Signed in"}</div>
-              </div>
-            </div>
-
-            <div className="mt-3 border-t border-[#eee] pt-2">
-              <button
-                type="button"
-                onClick={handleShareTrip}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
-              >
-                <Share2 size={14} />
-                Share trip
-              </button>
-              <button
-                type="button"
-                onClick={handleMobilePrint}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
-              >
-                <Printer size={14} />
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#d94f4f]"
-              >
-                <LogOut size={14} />
-                Log out
-              </button>
+    <section className="ja-app-mobile-card">
+      <div className="ja-app-mobile-card-inner">
+        <div className="ja-app-mobile-user-row">
+          <div className="ja-app-mobile-avatar">JA</div>
+          <div className="ja-app-mobile-user-info">
+            <div className="ja-app-mobile-user-name">Jessie Jayr</div>
+            <div className="ja-app-mobile-user-email">{session.user.email ?? "Signed in"}</div>
+          </div>
+        </div>
+        <div className="ja-app-mobile-actions">
+          <button type="button" onClick={handleShareTrip} className="ja-app-mobile-action"><Share2 size={14} />Share trip</button>
+          <button type="button" onClick={handleMobilePrint} className="ja-app-mobile-action"><Printer size={14} />Print</button>
+          <button type="button" onClick={handleSignOut} className="ja-app-mobile-action ja-app-mobile-action-danger"><LogOut size={14} />Log out</button>
         </div>
       </div>
     </section>
   ) : (
-    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
-      <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
-        <div className="text-[13px] font-medium text-[#1a3328]">Not signed in</div>
-        <div className="mt-1 text-[13px] text-[#888]">Use the Login button above to sync your trip data.</div>
-        <button
-          type="button"
-          onClick={() => setShowAuthModal(true)}
-          className="mt-3 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C]"
-        >
+    <section className="ja-app-mobile-card">
+      <div className="ja-app-mobile-card-inner">
+        <div className="ja-app-mobile-not-signed">Not signed in</div>
+        <div className="ja-app-mobile-hint">Use the Login button above to sync your trip data.</div>
+        <button type="button" onClick={() => setShowAuthModal(true)} className="ja-app-mobile-login-btn">
           Log in
         </button>
       </div>
@@ -2089,46 +2061,39 @@ function AppShell() {
   );
 
   const renderSiteFooter = () => (
-    <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="ja-app-footer">
+      <div className="ja-app-footer-grid">
         <div>
-          <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">
-            Curating unforgettable Asian experiences.
-          </h3>
-          <p className="text-[14px] text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
-            {itinerary.footer}
-          </p>
+          <h3 className="ja-app-footer-title">Curating unforgettable Asian experiences.</h3>
+          <p className="ja-app-footer-text">{itinerary.footer}</p>
         </div>
-
-        <div className="md:col-span-2 grid grid-cols-2 gap-6">
+        <div className="ja-app-footer-nav-col">
           <div>
-            <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
-            <ul className="space-y-2 text-[14px] font-sans">
-              <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
-              <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
-              <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
-              <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
-              <li><button onClick={() => navigateTo("/diary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Diary</button></li>
+            <h4 className="ja-app-footer-heading">Navigation</h4>
+            <ul className="ja-app-footer-links">
+              <li><button onClick={() => navigateTo("/")} className="ja-app-footer-link">Daily Itinerary</button></li>
+              <li><button onClick={() => navigateTo("/budget")} className="ja-app-footer-link">Budget Breakdown</button></li>
+              <li><button onClick={() => navigateTo("/map")} className="ja-app-footer-link">Travel Map</button></li>
+              <li><button onClick={() => navigateTo("/notes")} className="ja-app-footer-link">Custom Notes & Rules</button></li>
+              <li><button onClick={() => navigateTo("/diary")} className="ja-app-footer-link">Travel Diary</button></li>
             </ul>
           </div>
-
           <div>
-            <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
-            <ul className="space-y-2 text-[14px] font-sans">
-              <li><span className="text-stone-400">Transport Guide</span></li>
-              <li><span className="text-stone-400">Dining Notes</span></li>
-              <li><span className="text-stone-400">Safety Tips</span></li>
+            <h4 className="ja-app-footer-heading">Resources</h4>
+            <ul className="ja-app-footer-links">
+              <li><span className="ja-app-footer-muted">Transport Guide</span></li>
+              <li><span className="ja-app-footer-muted">Dining Notes</span></li>
+              <li><span className="ja-app-footer-muted">Safety Tips</span></li>
             </ul>
           </div>
         </div>
       </div>
-
-      <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-stone-500">
+      <div className="ja-app-footer-bottom">
         <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
-        <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
-          <span className="hover:text-stone-400">Privacy</span>
-          <span className="hover:text-stone-400">Support</span>
-          <span className="hover:text-stone-400">Terms</span>
+        <div className="ja-app-footer-legal">
+          <span className="ja-app-footer-legal-link">Privacy</span>
+          <span className="ja-app-footer-legal-link">Support</span>
+          <span className="ja-app-footer-legal-link">Terms</span>
         </div>
       </div>
     </footer>
@@ -2155,44 +2120,15 @@ function AppShell() {
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         >
-          <div
-            className={`pointer-events-none fixed left-1/2 top-0 z-[1600] -translate-x-1/2 transition-all duration-200 md:hidden ${
-              pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})`,
-            }}
-          >
-            <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0A84FF]/10 text-[#0A84FF]">
-                {isRefreshing ? (
-                  <Loader2 size={13} className="animate-spin" strokeWidth={2.2} />
-                ) : (
-                  <RefreshCw
-                    size={13}
-                    strokeWidth={2.2}
-                    className="transition-transform duration-150"
-                    style={{
-                      transform: `rotate(${pullProgress * 180}deg)`,
-                    }}
-                  />
-                )}
-              </div>
-              <span className="text-[11px] font-medium tracking-[0.01em] text-stone-700">
-                {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}
-              </span>
+          <div className={`ja-app-pull-indicator${pullDistance > 0 || isRefreshing ? " ja-app-pull-visible" : ""}`} style={{ transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})` }}>
+            <div className="ja-app-pull-card">
+              <div className="ja-app-pull-icon-wrap">{isRefreshing ? <Loader2 size={13} className="ja-app-spin" strokeWidth={2.2} /> : <RefreshCw size={13} strokeWidth={2.2} className="ja-app-rotate" style={{ transform: `rotate(${pullProgress * 180}deg)` }} />}</div>
+              <span className="ja-app-pull-text">{isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}</span>
             </div>
           </div>
 
           <div className="ja-content-offset">
-            <main
-              className="flex-1 pb-4 md:pb-0"
-              style={pullDistance > 0 ? {
-                transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`,
-                transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-                willChange: "transform",
-              } : undefined}
-            >
+            <main className="ja-app-main" style={pullDistance > 0 ? { transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`, transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)", willChange: "transform" } : undefined}>
               {children}
             </main>
             {options?.showFooter === false ? null : renderSiteFooter()}
@@ -2224,7 +2160,7 @@ function AppShell() {
           </Route>
           <Route exact path="/">
             {renderPage(
-              <div className="animate-in fade-in duration-300">
+              <div className="ja-app-fade-in">
                 <div className="home-hero-section">
                   <Hero hero={itinerary.hero} />
                   <Legend items={itinerary.legend} />
@@ -2247,86 +2183,35 @@ function AppShell() {
                 />
                 <AlertBox alert={itinerary.alert} />
 
-                <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
-                      <p className="mt-1 text-[14px] font-sans text-stone-500">
-                        Code 1's itinerary reminders, folded into Code 2's visual system.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <section className="ja-app-section">
+                  <div className="ja-app-section-header"><div><h3 className="ja-app-section-title">Trip Tips</h3><p className="ja-app-section-desc">Code 1's itinerary reminders, folded into Code 2's visual system.</p></div></div>
+                  <div className="ja-app-tips-grid">
                     {normalizedTips.map((tip, index) => (
                       <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
                     ))}
                   </div>
                 </section>
 
-                <section className="bg-stone-100/50 border-t border-b border-stone-200/50 py-12 px-4 md:px-8 no-print">
-                  <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-10">
-                      <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">
-                        Pro-Traveler Insights
-                      </h3>
-                      <p className="text-[14px] text-stone-500 font-sans mt-1">
-                        Smart hacks and safety strategies recommended by our logistics team
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                          <CreditCard size={20} />
-                        </div>
-                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Touch 'n Go Card</h4>
-                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                          The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.
-                        </p>
-                      </div>
-
-                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                          <Ticket size={20} />
-                        </div>
-                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Advance Booking</h4>
-                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                          Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.
-                        </p>
-                      </div>
-
-                      <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                        <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                          <Utensils size={20} />
-                        </div>
-                        <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Street Food Strategy</h4>
-                        <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                          At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.
-                        </p>
-                      </div>
+                <section className="ja-app-insights">
+                  <div className="ja-app-insights-inner">
+                    <div className="ja-app-insights-header"><h3 className="ja-app-section-title">Pro-Traveler Insights</h3><p className="ja-app-section-desc">Smart hacks and safety strategies recommended by our logistics team</p></div>
+                    <div className="ja-app-insights-grid">
+                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><CreditCard size={20} /></div><h4 className="ja-app-insight-title">Touch 'n Go Card</h4><p className="ja-app-section-desc">The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.</p></div>
+                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Ticket size={20} /></div><h4 className="ja-app-insight-title">Advance Booking</h4><p className="ja-app-section-desc">Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.</p></div>
+                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Utensils size={20} /></div><h4 className="ja-app-insight-title">Street Food Strategy</h4><p className="ja-app-section-desc">At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.</p></div>
                     </div>
                   </div>
                 </section>
 
-                <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 no-print">
-                  <div
-                    onClick={() => navigateTo("/map")}
-                    className="relative cursor-pointer overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
-                  >
-                    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
-
-                    <div className="absolute top-[20%] left-[30%] w-3 h-3 rounded-full bg-stone-300"></div>
-                    <div className="absolute top-[50%] left-[70%] w-3 h-3 rounded-full bg-[#88B04B]/60"></div>
-                    <div className="absolute top-[30%] left-[60%] w-3 h-3 rounded-full bg-[#0B3530]/40"></div>
-                    <div className="absolute top-[70%] left-[25%] w-3 h-3 rounded-full bg-stone-400"></div>
-
-                    <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
-                      <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
-                      <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
-                      <p className="text-[13px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
-                        INTERACTIVE MAP NOW ACTIVE
-                      </p>
-                      <p className="text-[13px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
+                <section className="ja-app-section">
+                  <div onClick={() => navigateTo("/map")} className="ja-app-map-card">
+                    <div className="ja-app-map-dots" />
+                    <div className="ja-app-map-dot ja-app-map-dot-1" /><div className="ja-app-map-dot ja-app-map-dot-2" /><div className="ja-app-map-dot ja-app-map-dot-3" /><div className="ja-app-map-dot ja-app-map-dot-4" />
+                    <div className="ja-app-map-card-inner">
+                      <Compass className="ja-app-compass" size={24} />
+                      <h4 className="ja-app-map-card-title">Explore Kuala Lumpur</h4>
+                      <p className="ja-app-map-card-badge">INTERACTIVE MAP NOW ACTIVE</p>
+                      <p className="ja-app-map-card-desc">Click to browse custom plotted transit markers</p>
                     </div>
                   </div>
                 </section>
@@ -2386,49 +2271,24 @@ function AppShell() {
           </Route>
           <Route exact path="/settings">
             {renderPage(
-              <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
-                  <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
-                  <div className="space-y-4">
-                    <label className="block">
-                      <span className="text-sm font-semibold text-stone-600">Budget Cap</span>
-                      <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-sm font-mono text-stone-500">PHP</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="500"
-                          value={budgetCapPhp || ""}
-                          placeholder="No cap"
-                          onChange={(e) => {
-                            const php = Math.max(0, Number(e.target.value) || 0);
-                            setBudgetCapPhp(php);
-                          }}
-                          className="w-36 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
-                        />
-                        <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
+              <div className="ja-app-settings-wrap">
+                <div className="ja-app-settings-card">
+                  <h2 className="ja-app-settings-title">Settings</h2>
+                  <div className="ja-app-settings-body">
+                    <label className="ja-app-settings-block">
+                      <span className="ja-app-settings-field-label">Budget Cap</span>
+                      <span className="ja-app-settings-hint">0 = no cap</span>
+                      <div className="ja-app-settings-cap-row">
+                        <span className="ja-app-settings-currency">PHP</span>
+                        <input type="number" min="0" step="500" value={budgetCapPhp || ""} placeholder="No cap"
+                          onChange={(e) => { const php = Math.max(0, Number(e.target.value) || 0); setBudgetCapPhp(php); }}
+                          className="ja-app-settings-input" />
+                        <span className="ja-app-settings-auto">Auto-saved</span>
                       </div>
-                      {budgetCapPhp > 0 && (
-                        <p className="mt-1 text-[11px] text-stone-400">
-                          = {phpToRm(budgetCapPhp)}
-                          {exchangeRates.source === "live" ? (
-                            <span className="text-emerald-600">live rate</span>
-                          ) : exchangeRates.source === "cached" ? (
-                            <span className="text-sky-600">cached rate</span>
-                          ) : (
-                            <span className="text-amber-600">static rate</span>
-                          )}
-                        </p>
-                      )}
+                      {budgetCapPhp > 0 && <p className="ja-app-settings-conversion">= {phpToRm(budgetCapPhp)}<span className={`ja-app-rate ${exchangeRates.source === "live" ? "ja-app-rate-live" : exchangeRates.source === "cached" ? "ja-app-rate-cached" : "ja-app-rate-static"}`}>{exchangeRates.source === "live" ? "live rate" : exchangeRates.source === "cached" ? "cached rate" : "static rate"}</span></p>}
                     </label>
-                    {!session && (
-                      <p className="text-[11px] text-amber-600">Sign in to sync cap across devices. Currently saved to this device only.</p>
-                    )}
-                    <p className="text-[11px] text-stone-400">
-                      When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-                      {budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}
-                    </p>
+                    {!session && <p className="ja-app-settings-warning">Sign in to sync cap across devices. Currently saved to this device only.</p>}
+                    <p className="ja-app-settings-helper">When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.{budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}</p>
                   </div>
                 </div>
               </div>
@@ -2518,9 +2378,7 @@ function AppShell() {
           }
         }}
         aria-label="Scroll to top"
-        className={`fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[1300] flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-white shadow-lg transition-all duration-300 hover:bg-[#18534C] ${
-          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
-        }`}
+        className={`ja-app-scroll-btn${showScrollTop ? " ja-app-scroll-visible" : ""}`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 15l-6-6-6 6"/>
