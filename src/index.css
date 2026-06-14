@@ -1168,9 +1168,14 @@ textarea::placeholder {
   --border-radius: 0;
   --box-shadow: 8px 0 32px rgba(0,0,0,0.3);
   --backdrop-opacity: 0.5;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .ja-more-modal::part(content) {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(320px, 85vw);
   margin-left: 0;
   margin-right: auto;
   height: 100dvh;
@@ -2126,15 +2131,42 @@ textarea::placeholder {
   --border-radius: 999px;
   --padding-start: 14px;
   --padding-end: 14px;
+  --background: #ffffff;
+  --background-hover: #f8fbf8;
+  --background-focused: #ffffff;
+  --background-activated: #f8fbf8;
   font-size: 12px;
   font-weight: 600;
   height: 32px;
   margin: 0;
   --border-color: #e7e5e4;
   --color: #57534e;
+  --ripple-color: rgba(136, 176, 75, 0.18);
 }
 
 .ja-map-day-btn-active {
+  --background: #0B3530;
+  --background-hover: #0B3530;
+  --background-focused: #0B3530;
+  --background-activated: #0B3530;
+  --border-color: #0B3530;
+  --color: #ffffff;
+  --ripple-color: rgba(126, 201, 107, 0.22);
+}
+
+.ja-map-day-btn::part(native) {
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.ja-map-day-btn.ion-focused,
+.ja-map-day-btn.ion-activated {
+  --background: #ffffff;
+  --color: #57534e;
+}
+
+.ja-map-day-btn-active.ion-focused,
+.ja-map-day-btn-active.ion-activated {
   --background: #0B3530;
   --color: #ffffff;
 }
@@ -6190,16 +6222,14 @@ html {
 }
 
 .ja-itinerary-mobile-days,
-.ja-budget-summary-mobile-days,
-.ja-map-day-row {
+.ja-budget-summary-mobile-days {
   position: relative;
   mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
 }
 
 .ja-itinerary-mobile-days,
-.ja-budget-summary-mobile-days,
-.ja-map-day-row {
+.ja-budget-summary-mobile-days {
   padding-left: 2px;
   padding-right: 18px;
 }

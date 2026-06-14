@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X } from "lucide-react";
-import { IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
+import { createAnimation, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import { itinerary } from "../data/code1Itinerary";
@@ -17,6 +17,27 @@ type CountdownState = { days: number; hours: number; minutes: number; seconds: n
 const getCountdownState = (): CountdownState => { const d = Math.max(0, TRIP_COUNTDOWN_TARGET.getTime() - Date.now()); const ts = Math.floor(d / 1000); return { days: Math.floor(ts / 86400), hours: Math.floor((ts % 86400) / 3600), minutes: Math.floor((ts % 3600) / 60), seconds: ts % 60 }; };
 const isHolidayDisplayDate = (date: Date) => date.getFullYear() === HOLIDAY_DISPLAY_DATE.year && date.getMonth() === HOLIDAY_DISPLAY_DATE.month && date.getDate() === HOLIDAY_DISPLAY_DATE.day;
 const getNextLocalMidnightDelay = () => { const n = new Date(); return Math.max(1000, new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 0, 0).getTime() - n.getTime()); };
+const getMoreDrawerElements = (baseEl: HTMLElement) => {
+  const root = baseEl.shadowRoot;
+  return {
+    backdrop: root?.querySelector("ion-backdrop") ?? baseEl,
+    wrapper: root?.querySelector(".modal-wrapper") ?? baseEl,
+  };
+};
+const moreDrawerEnterAnimation = (baseEl: HTMLElement) => {
+  const { backdrop, wrapper } = getMoreDrawerElements(baseEl);
+  const backdropAnimation = createAnimation().addElement(backdrop).fromTo("opacity", "0.01", "var(--backdrop-opacity)");
+  const wrapperAnimation = createAnimation().addElement(wrapper).fromTo("transform", "translateX(-100%)", "translateX(0)");
+
+  return createAnimation().addElement(baseEl).easing("cubic-bezier(0.22, 1, 0.36, 1)").duration(260).addAnimation([backdropAnimation, wrapperAnimation]);
+};
+const moreDrawerLeaveAnimation = (baseEl: HTMLElement) => {
+  const { backdrop, wrapper } = getMoreDrawerElements(baseEl);
+  const backdropAnimation = createAnimation().addElement(backdrop).fromTo("opacity", "var(--backdrop-opacity)", "0.01");
+  const wrapperAnimation = createAnimation().addElement(wrapper).fromTo("transform", "translateX(0)", "translateX(-100%)");
+
+  return createAnimation().addElement(baseEl).easing("cubic-bezier(0.4, 0, 0.2, 1)").duration(190).addAnimation([backdropAnimation, wrapperAnimation]);
+};
 
 interface NavigationProps {
   activeTab: string; setActiveTab: (tab: string) => void; session: Session | null; isOnline: boolean;
@@ -26,7 +47,7 @@ interface NavigationProps {
 type NavTab = { label: string; path: string; icon?: React.ComponentType<{ size?: number; className?: string }>; showInBottom?: boolean; };
 const navItems: NavTab[] = [
   { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true }, { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
-  { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: true }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: false },
+  { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: false },
 ];
 
 export default function Navigation({ activeTab, setActiveTab, session, isOnline, onOpenAuth, onOpenSettings, onSignOut, metadata, expenses = [], screenSize }: NavigationProps) {
@@ -218,7 +239,7 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
         </div>
       </header>
 
-      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={screenSize === "small"} style={{ "--width": "min(320px, 85vw)", "--max-width": "85vw", "--min-width": "260px", "--height": "100dvh", "--border-radius": "0", "--box-shadow": "8px 0 32px rgba(0,0,0,0.3)", "--backdrop-opacity": "0.5" } as React.CSSProperties}>
+      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={false} enterAnimation={moreDrawerEnterAnimation} leaveAnimation={moreDrawerLeaveAnimation} style={{ "--width": "min(320px, 85vw)", "--max-width": "85vw", "--min-width": "260px", "--height": "100dvh", "--border-radius": "0", "--box-shadow": "8px 0 32px rgba(0,0,0,0.3)", "--backdrop-opacity": "0.5" } as React.CSSProperties}>
         <IonHeader><IonToolbar style={{ "--background": "#1a3a35", "--color": "#ffffff" } as React.CSSProperties}>
           <IonTitle className="ja-nav-more-title">More</IonTitle>
           <IonButtons slot="end"><IonButton onClick={() => setShowMoreDrawer(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>

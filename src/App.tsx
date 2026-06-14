@@ -35,7 +35,7 @@ import {
   calendarOutline,
   walletOutline,
   mapOutline,
-  documentTextOutline,
+  bookOutline,
   menuOutline,
 } from "ionicons/icons";
 import { installKeyboardClass } from "./utils/keyboardClass";
@@ -469,6 +469,7 @@ function AppShell() {
   const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems));
   const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems));
   const diarySignatureRef = useRef<string>(initialDiaryCache?.syncedSignature || diarySignature(initialDiaryItems));
+  const contentRefs = useRef<Record<string, HTMLIonContentElement | null>>({});
   const expenseDirtyRef = useRef<boolean>(initialExpenseCache?.dirty ?? false);
   const checklistDirtyRef = useRef<boolean>(initialChecklistCache?.dirty ?? false);
   const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
@@ -1940,17 +1941,51 @@ function AppShell() {
     setShowSettingsModal(true);
   };
 
+  const getIonContentForRoute = (routeKey = activeRoute) => {
+    const routeContent = contentRefs.current[routeKey];
+    if (routeContent) return routeContent;
+
+    return document.querySelector("ion-content.ja-ion-content") as HTMLIonContentElement | null;
+  };
+
+  const scrollContentToTop = (duration = 300, routeKey = activeRoute) => {
+    const content = getIonContentForRoute(routeKey);
+    const behavior: ScrollBehavior = duration > 0 ? "smooth" : "auto";
+
+    setShowScrollTop(false);
+    document.documentElement.classList.remove("nav-scrolled");
+
+    if (!content) {
+      window.scrollTo({ top: 0, behavior });
+      return;
+    }
+
+    if (content.scrollToPoint) {
+      void content.scrollToPoint(0, 0, duration);
+    } else if (content.scrollToTop) {
+      void content.scrollToTop(duration);
+    }
+
+    window.setTimeout(() => {
+      void content.getScrollElement?.().then((scrollElement) => {
+        if (scrollElement.scrollTop > 2) {
+          scrollElement.scrollTo({ top: 0, behavior });
+        }
+      });
+    }, duration + 60);
+  };
+
   const navigateTo = (path: string) => {
     const normalizedPath = routeFromPath(path);
-    if (normalizedPath === activeRoute) return;
+    if (normalizedPath === activeRoute) {
+      scrollContentToTop(250, normalizedPath);
+      return;
+    }
 
     history.push(path);
 
     requestAnimationFrame(() => {
-      const content = document.querySelector("ion-content") as HTMLIonContentElement | null;
-      if (content?.scrollToTop) {
-        void content.scrollToTop(250);
-      }
+      requestAnimationFrame(() => scrollContentToTop(250, normalizedPath));
     });
   };
 
@@ -2104,15 +2139,22 @@ function AppShell() {
 
   const renderPage = (
     children: React.ReactNode,
-    options?: { className?: string; showFooter?: boolean }
-  ) => (
+    options?: { className?: string; routeKey?: string; showFooter?: boolean }
+  ) => {
+    const routeKey = options?.routeKey ?? activeRoute;
+
+    return (
     <IonPage>
       <IonContent
+        ref={(content) => {
+          contentRefs.current[routeKey] = content;
+        }}
         fullscreen
         scrollY={true}
         scrollEvents={true}
         className="ja-ion-content"
         onIonScroll={(event) => {
+          if (routeKey !== activeRoute) return;
           const top = event.detail.scrollTop;
           setShowScrollTop(top > 400);
           document.documentElement.classList.toggle("nav-scrolled", top > 60);
@@ -2147,7 +2189,8 @@ function AppShell() {
         </div>
       </IonContent>
     </IonPage>
-  );
+    );
+  };
 
   return (
     <>
@@ -2167,7 +2210,7 @@ function AppShell() {
       <IonTabs>
         <IonRouterOutlet>
           <Route exact path="/account">
-            {renderPage(mobileAccountCard, { showFooter: false })}
+            {renderPage(mobileAccountCard, { routeKey: "/account", showFooter: false })}
           </Route>
           <Route exact path="/">
             {renderPage(
@@ -2226,7 +2269,8 @@ function AppShell() {
                     </div>
                   </div>
                 </section>
-              </div>
+              </div>,
+              { routeKey: "/" }
             )}
           </Route>
           <Route exact path="/budget">
@@ -2241,7 +2285,8 @@ function AppShell() {
                 exchangeRates={exchangeRates}
                 budgetCapPhp={budgetCapPhp}
                 userSettings={userSettings}
-              />
+              />,
+              { routeKey: "/budget" }
             )}
           </Route>
           <Route exact path="/map">
@@ -2253,7 +2298,7 @@ function AppShell() {
                 userSettings={userSettings}
                 currentUser={currentUser}
               />,
-              { className: "ja-map-page-frame", showFooter: false }
+              { className: "ja-map-page-frame", routeKey: "/map", showFooter: false }
             )}
           </Route>
           <Route exact path="/notes">
@@ -2266,7 +2311,8 @@ function AppShell() {
                 isOnline={isOnline}
                 canEdit={Boolean(session)}
                 currentUser={currentUser}
-              />
+              />,
+              { routeKey: "/notes" }
             )}
           </Route>
           <Route exact path="/diary">
@@ -2277,7 +2323,8 @@ function AppShell() {
                 isOnline={isOnline}
                 canEdit={Boolean(session)}
                 currentUser={currentUser}
-              />
+              />,
+              { routeKey: "/diary" }
             )}
           </Route>
           <Route exact path="/settings">
@@ -2302,28 +2349,29 @@ function AppShell() {
                     <p className="ja-app-settings-helper">When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.{budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}</p>
                   </div>
                 </div>
-              </div>
+              </div>,
+              { routeKey: "/settings" }
             )}
           </Route>
           <Redirect to="/" />
         </IonRouterOutlet>
 
         <IonTabBar slot="bottom" className="ja-ion-tab-bar no-print">
-          <IonTabButton tab="itinerary" href="/">
+          <IonTabButton tab="itinerary" href="/" onClick={(event) => { event.preventDefault(); navigateTo("/"); }}>
             <IonIcon icon={calendarOutline} />
             <IonLabel>Itinerary</IonLabel>
           </IonTabButton>
-          <IonTabButton tab="budget" href="/budget">
+          <IonTabButton tab="budget" href="/budget" onClick={(event) => { event.preventDefault(); navigateTo("/budget"); }}>
             <IonIcon icon={walletOutline} />
             <IonLabel>Budget</IonLabel>
           </IonTabButton>
-          <IonTabButton tab="map" href="/map">
+          <IonTabButton tab="map" href="/map" onClick={(event) => { event.preventDefault(); navigateTo("/map"); }}>
             <IonIcon icon={mapOutline} />
             <IonLabel>Map</IonLabel>
           </IonTabButton>
-          <IonTabButton tab="notes" href="/notes">
-            <IonIcon icon={documentTextOutline} />
-            <IonLabel>Notes</IonLabel>
+          <IonTabButton tab="diary" href="/diary" onClick={(event) => { event.preventDefault(); navigateTo("/diary"); }}>
+            <IonIcon icon={bookOutline} />
+            <IonLabel>Diary</IonLabel>
           </IonTabButton>
           <IonTabButton
             tab="more"
@@ -2382,12 +2430,7 @@ function AppShell() {
 
       <button
         type="button"
-        onClick={() => {
-          const content = document.querySelector("ion-content") as HTMLIonContentElement | null;
-          if (content?.scrollToTop) {
-            void content.scrollToTop(300);
-          }
-        }}
+        onClick={() => scrollContentToTop(300)}
         aria-label="Scroll to top"
         className={`ja-app-scroll-btn${showScrollTop ? " ja-app-scroll-visible" : ""}`}
       >
