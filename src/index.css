@@ -1183,6 +1183,12 @@ textarea::placeholder {
   background: var(--ja-green-800);
 }
 
+.ja-more-modal ion-content,
+.ja-more-modal ion-content::part(background) {
+  --background: var(--ja-green-800) !important;
+  background: var(--ja-green-800) !important;
+}
+
 .ja-more-modal ion-header ion-toolbar {
   --border-width: 0;
   --padding-top: 8px;
@@ -1190,7 +1196,8 @@ textarea::placeholder {
 }
 
 .ja-nav-list {
-  background: transparent;
+  --background: var(--ja-green-800);
+  background: var(--ja-green-800) !important;
   margin: 0;
   padding: 8px 12px;
 }
@@ -1211,6 +1218,11 @@ textarea::placeholder {
   font-weight: 500;
   letter-spacing: 0.01em;
   transition: all 0.15s ease;
+}
+
+.ja-nav-item::part(native) {
+  background: var(--background);
+  color: var(--color);
 }
 
 .ja-nav-item:active {
@@ -6512,6 +6524,26 @@ ion-content.ja-ion-content,
   color: #ffffff !important;
 }
 
+.ja-nav-mobile .ja-nav-mobile-bar {
+  padding: 7px 14px 6px !important;
+}
+
+.ja-nav-mobile .ja-nav-mobile-title-row {
+  margin-top: 4px !important;
+}
+
+.ja-nav-mobile .ja-nav-icon-btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.ja-nav-mobile .ja-nav-mobile-actions {
+  margin-top: 0 !important;
+}
+
 .ja-nav-dot-online {
   background: #10d49b !important;
 }
@@ -6730,5 +6762,29 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
   ion-col.ja-page-col .ja-app-insights {
     padding-left: 0 !important;
     padding-right: 0 !important;
+  }
+}
+
+/* PWA safe-area repair: keep the full fixed header below the iOS status bar. */
+@media (max-width: 767px) {
+  .ja-nav-mobile .ja-nav-mobile-bar {
+    padding-top: calc(7px + env(safe-area-inset-top, 0px)) !important;
+    padding-left: calc(14px + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(14px + env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .ja-content-offset {
+    padding-top: calc(var(--ja-nav-height-mobile) + var(--ja-nav-content-gap)) !important;
+  }
+
+  .nav-scrolled .ja-content-offset {
+    padding-top: calc(var(--ja-nav-collapsed-height-mobile) + var(--ja-nav-content-gap)) !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .ja-content-offset,
+  .nav-scrolled .ja-content-offset {
+    padding-top: calc(var(--ja-nav-height-desktop) + var(--ja-nav-content-gap)) !important;
   }
 }
