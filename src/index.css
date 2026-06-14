@@ -1136,13 +1136,18 @@ textarea::placeholder {
 
 /* Navigation */
 .ja-nav-icon-btn {
-  --padding-start: 6px;
-  --padding-end: 6px;
-  --color: rgba(255,255,255,0.7);
+  --padding-start: 0;
+  --padding-end: 0;
+  --color: rgba(255,255,255,0.82);
   --color-hover: #ffffff;
-  height: 32px;
-  width: 32px;
+  --background: rgba(255,255,255,0.03);
+  --background-hover: rgba(255,255,255,0.08);
+  height: 34px;
+  width: 34px;
   margin: 0;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
 }
 
 .ja-nav-desktop-btn {
@@ -1676,6 +1681,20 @@ textarea::placeholder {
 
 .ja-budget-summary-card ion-card-content {
   padding: 20px;
+}
+
+@media (min-width: 768px) {
+  .ja-budget-summary-card ion-card-content {
+    padding: 22px 24px;
+  }
+
+  .ja-budget-summary-icon {
+    width: 54px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .ja-budget-form-card {
@@ -3899,7 +3918,16 @@ textarea::placeholder {
 }
 
 .ja-budget-summary-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
   margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .ja-budget-summary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .ja-budget-summary-row-inner {
@@ -4906,9 +4934,9 @@ textarea::placeholder {
 .ja-nav-mobile-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 14px 10px; background: var(--ja-green-900); color: #f5f5f4; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
 .ja-nav-mobile-left { min-width: 0; }
 .ja-nav-mobile-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ja-gold); font-family: var(--font-mono); line-height: 1; font-weight: 700; }
-.ja-nav-mobile-title-row { margin-top: 4px; }
-.ja-nav-mobile-title { min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.3; color: #ffffff; letter-spacing: -0.01em; }
-.ja-nav-mobile-title-inner { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.ja-nav-mobile-title-row { margin-top: 6px; }
+.ja-nav-mobile-title { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.22; color: #ffffff; letter-spacing: -0.015em; }
+.ja-nav-mobile-title-inner { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .ja-nav-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .ja-nav-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
 .ja-nav-dot-online { background: var(--ja-success); }
@@ -4917,32 +4945,25 @@ textarea::placeholder {
 
 .ja-nav-countdown { margin-top: 10px; display: flex; width: 100%; align-items: center; border-radius: 999px; padding: 4px 16px; }
 .ja-nav-countdown-holiday { justify-content: center; border: 1px solid rgba(252,211,77,0.3); background: linear-gradient(to right, rgba(253,230,138,0.15), rgba(190,242,100,0.1), rgba(110,231,183,0.15)); text-align: center; padding: 9px 16px; }
-.ja-nav-countdown-days { justify-content: space-between; border: 1px solid rgba(126,201,107,0.35); background: rgba(0,0,0,0.22); padding: 7px 16px; }
+.ja-nav-countdown-days { justify-content: space-between; border: 1px solid rgba(126,201,107,0.32); background: rgba(6,42,36,0.9); padding: 7px 12px 7px 8px; min-height: 48px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
 .ja-nav-holiday-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.28em; color: rgba(253,230,138,0.8); }
 .ja-nav-holiday-title { margin-top: 2px; font-size: 16px; font-weight: 800; letter-spacing: -0.03em; color: #ffffff; }
-.ja-nav-countdown-left { display: flex; align-items: center; gap: 8px; white-space: nowrap; line-height: 1; }
-.ja-nav-countdown-num { font-size: 24px; font-weight: 800; line-height: 1; color: var(--ja-gold-light); display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
-.ja-nav-countdown-unit { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.45); font-weight: 600; }
-.ja-nav-countdown-divider { margin: 0 8px; width: 1px; height: 24px; background: rgba(255,255,255,0.15); }
-.ja-nav-countdown-clock { font-size: 13px; letter-spacing: 0.05em; color: rgba(255,255,255,0.5); font-weight: 600; }
+.ja-nav-countdown-left { display: flex; align-items: center; gap: 8px; white-space: nowrap; line-height: 1; align-self: center; margin-left: 0; }
+.ja-nav-countdown-num { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 999px; font-size: 24px; font-weight: 800; line-height: 1; color: var(--ja-gold-light); background: rgba(136,176,75,0.12); box-shadow: inset 0 0 0 1px rgba(136,176,75,0.22); vertical-align: middle; flex-shrink: 0; }
+.ja-nav-countdown-num-value { display: block; font-variant-numeric: tabular-nums; letter-spacing: -0.045em; transform: translateX(0.5px); }
+.ja-nav-countdown-unit { font-size: 12px; text-transform: uppercase; letter-spacing: 0.11em; color: rgba(255,255,255,0.52); font-weight: 600; }
+.ja-nav-countdown-divider { margin: 0 8px; width: 1px; height: 24px; background: rgba(255,255,255,0.14); align-self: center; }
+.ja-nav-countdown-clock { font-size: 13px; letter-spacing: 0.03em; color: rgba(255,255,255,0.62); font-weight: 600; align-self: center; margin-right: 0; }
 
 .ja-nav-desktop-bar { position: sticky; top: 0; z-index: 1100; box-shadow: 0 4px 12px rgba(0,0,0,0.12); background: var(--ja-green-900); color: #f5f5f4; }
-.ja-nav-desktop-inner { max-width: 1280px; margin: 0 auto; padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 24px 0; }
-.ja-nav-desktop-top-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; }
+.ja-nav-desktop-inner { max-width: 1280px; margin: 0 auto; padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 24px 0; }
+.ja-nav-desktop-top-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 8px; }
 .ja-nav-desktop-left { min-width: 0; }
 .ja-nav-desktop-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ja-gold); font-family: var(--font-mono); line-height: 1; font-weight: 700; }
-.ja-nav-desktop-title { margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; line-height: 1.25; color: #ffffff; letter-spacing: -0.01em; }
+.ja-nav-desktop-title { margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; line-height: 1.25; color: #ffffff; letter-spacing: -0.01em; }
 .ja-nav-desktop-title-inner { display: flex; min-width: 0; align-items: center; gap: 8px; }
-.ja-nav-desktop-actions { display: flex; align-items: center; gap: 8px; }
+.ja-nav-desktop-actions { display: flex; align-items: center; gap: 4px; }
 .ja-nav-desktop-divider { border-top: 1px solid rgba(255,255,255,0.06); }
-.ja-nav-desktop-tabs { display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 10px 0; overflow-x: auto; }
-.ja-nav-desktop-tab-row { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.ja-nav-desktop-tab {
-  border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 500; transition: all 0.2s ease;
-  border: none; background: transparent; cursor: pointer; color: rgba(255,255,255,0.55); letter-spacing: 0.02em;
-}
-.ja-nav-desktop-tab:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
-.ja-nav-desktop-tab-active { background: rgba(255,255,255,0.15); color: #ffffff; font-weight: 600; }
 
 .ja-nav-desktop-countdown { display: flex; align-items: center; border-radius: 20px; padding: 5px 14px; margin-bottom: 10px; }
 
@@ -5380,10 +5401,13 @@ textarea::placeholder {
 
 .nav-scrolled .ja-nav-countdown {
   max-height: 0 !important;
+  min-height: 0 !important;   /* overrides .ja-nav-countdown-days min-height: 48px */
   opacity: 0;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-width: 0 !important;
 }
 
 /* 21 ── Title: single line, compact font to fit on one row ── */
@@ -5580,7 +5604,7 @@ textarea::placeholder {
 /* Bar: compact padding, relative for icon anchor */
 .ja-nav-mobile .ja-nav-mobile-bar {
   position: relative !important;
-  padding: 10px 14px 6px !important;
+  padding: 10px 14px 8px !important;
 }
 
 /* Title h1: kill browser default block margins */
@@ -5589,20 +5613,20 @@ textarea::placeholder {
   font-size: 13.5px !important;
 }
 
-/* Icons: absolute top-right so they never stretch the bar height */
+/* Keep the actions inside the header row instead of floating over the countdown */
 .ja-nav-mobile .ja-nav-mobile-actions {
-  position: absolute !important;
-  top: 6px !important;
-  right: 6px !important;
+  position: static !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 0 !important;
+  gap: 8px !important;
+  align-self: flex-start !important;
+  margin-top: 2px !important;
 }
 
-/* Left col: pad right so text never slides under the icons */
+/* Let the title use the full row width again now that the actions are in-flow */
 .ja-nav-mobile .ja-nav-mobile-left {
-  padding-right: 76px !important;
+  padding-right: 0 !important;
 }
 
 /* Countdown: tight gap above, inset from edges */
@@ -5614,13 +5638,30 @@ textarea::placeholder {
 }
 
 /* Content offset — tuned to new compact card height (~96px card + 8px gap) */
+.ja-nav-desktop-divider {
+  display: none !important;
+}
+
+.ja-nav-desktop-tabs {
+  display: none !important;
+}
+
+.ja-nav-desktop-inner {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.ja-nav-desktop-countdown {
+  margin-bottom: 8px !important;
+}
+
 .ja-content-offset {
-  padding-top: calc(112px + env(safe-area-inset-top, 0px)) !important;
+  padding-top: calc(104px + env(safe-area-inset-top, 0px)) !important;
 }
 
 @media (min-width: 768px) {
   .ja-content-offset {
-    padding-top: calc(128px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: calc(104px + env(safe-area-inset-top, 0px)) !important;
   }
 }
 
@@ -5628,4 +5669,1036 @@ textarea::placeholder {
   width: 40px;
   height: 40px;
   margin-bottom: 12px;
+}
+
+/* ============================================================
+   RESPONSIVE OVERHAUL PASS — All 15 fixes + bonus polish
+   Cascade overrides only. No class names changed.
+   ============================================================ */
+
+/* FIX 1 — CSS custom properties for dynamic nav height
+   JS in Navigation.tsx updates --ja-nav-height-mobile at runtime
+   via document.documentElement.style.setProperty               */
+:root {
+  --ja-nav-height-mobile: 104px;
+  --ja-nav-height-desktop: 104px;
+}
+
+.ja-content-offset {
+  padding-top: calc(var(--ja-nav-height-mobile) + env(safe-area-inset-top, 0px)) !important;
+}
+
+@media (min-width: 768px) {
+  .ja-content-offset {
+    padding-top: calc(var(--ja-nav-height-desktop) + env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+/* FIX 15 — Horizontal safe-area insets (Dynamic Island / notch) */
+.ja-nav-mobile .ja-nav-mobile-bar {
+  padding-left: calc(14px + env(safe-area-inset-left, 0px)) !important;
+  padding-right: calc(14px + env(safe-area-inset-right, 0px)) !important;
+}
+
+.ja-nav-desktop-inner {
+  padding-left: calc(16px + env(safe-area-inset-left, 0px)) !important;
+  padding-right: calc(16px + env(safe-area-inset-right, 0px)) !important;
+}
+
+.ja-app-section {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 768px) {
+  .ja-app-section {
+    padding-left: max(32px, env(safe-area-inset-left, 0px));
+    padding-right: max(32px, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* FIX 2 — Desktop horizontal tab navigation
+   Updates nav height token to account for tab row.
+   Reveals the ja-nav-desktop-tabs nav (hidden in premium layer).  */
+@media (min-width: 768px) {
+  :root {
+    --ja-nav-height-desktop: 148px;
+  }
+
+  .ja-nav-desktop-tabs {
+    display: flex !important;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 0 0;
+  }
+
+  .ja-ion-tab-bar {
+    display: none !important;
+  }
+
+  .ja-content-offset {
+    padding-bottom: 0 !important;
+  }
+}
+
+.ja-nav-desktop-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: rgba(255, 255, 255, 0.65);
+  background: transparent;
+  border: none;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--ja-radius-sm) var(--ja-radius-sm) 0 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.ja-nav-desktop-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ja-nav-desktop-tab-active {
+  color: var(--ja-gold);
+  background: rgba(136, 176, 75, 0.12);
+  border-bottom: 2px solid var(--ja-gold);
+}
+
+/* FIX 3 — Countdown strip overflow guard on small mobile */
+.ja-nav-countdown {
+  overflow: hidden;
+}
+
+.ja-nav-countdown-num-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ja-nav-countdown-clock {
+  min-width: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 374px) {
+  .ja-nav-countdown-left { gap: 4px; }
+  .ja-nav-countdown-num-value { font-size: 1.5rem; }
+  .ja-nav-countdown-clock { font-size: 0.8rem; }
+}
+
+/* FIX 4 — Hero image min-height guard + info card clamp */
+@media (max-width: 639px) {
+  .ja-hero-info-card {
+    max-width: calc(100% - 32px);
+    left: 16px;
+    right: 16px;
+  }
+}
+
+@media (min-width: 640px) {
+  .ja-hero-image-wrap {
+    min-height: 300px;
+  }
+
+  .ja-hero-info-card {
+    max-width: 480px;
+    left: 24px;
+  }
+}
+
+/* FIX 5 — BudgetTab explicit two-column grid at 900px breakpoint
+   Overrides the 1280px-only grid in ja-budget-main.             */
+@media (min-width: 900px) {
+  .budget-page > .budget-main {
+    display: grid !important;
+    grid-template-columns: minmax(0, 420px) 1fr !important;
+    align-items: start !important;
+    gap: 32px !important;
+  }
+}
+
+/* FIX 6 — Itinerary desktop grid adaptive gap + text overflow */
+.ja-itinerary-desktop-articles {
+  gap: clamp(16px, 2vw, 32px);
+}
+
+.ja-itinerary-timeline-note,
+.ja-itinerary-item-notes,
+.ja-itinerary-desc {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+@media (min-width: 1280px) {
+  .ja-itinerary-desktop-articles {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* FIX 7 — Budget day selector scrollbar hidden (Android Chrome) */
+.ja-budget-summary-mobile-days {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.ja-budget-summary-mobile-days::-webkit-scrollbar {
+  display: none;
+}
+
+.ja-budget-summary-mobile-card {
+  scroll-snap-align: start;
+}
+
+/* FIX 8 — Map tab full-height fill chain */
+.ja-map-page-frame {
+  display: flex;
+  flex-direction: column;
+}
+
+.ja-map-page-frame .ja-content-offset {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.ja-map-page-frame .ja-app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.ja-map-root,
+.ja-map-tab,
+.ja-map-container {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.ja-map-container {
+  height: 100% !important;
+}
+
+.ja-map-root .leaflet-container,
+.ja-map-tab .leaflet-container,
+.ja-map-page-frame .ja-map-container .leaflet-container {
+  height: 100% !important;
+  min-height: 400px;
+}
+
+/* FIX 9 — Scroll-to-top button: clamp right offset on desktop */
+@media (min-width: 768px) {
+  .ja-app-scroll-btn {
+    bottom: 32px;
+    right: clamp(20px, 3vw, 48px);
+  }
+}
+
+/* FIX 10 — Diary entries responsive grid on desktop
+   Uses the real class .ja-diary-entry-grid from DiaryTab.tsx.
+   Defer to 1024px so internal card image+content layout has room. */
+@media (min-width: 1024px) {
+  .ja-diary-entry-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+@media (min-width: 1440px) {
+  .ja-diary-entry-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* FIX 11 — Notes text area max-width for readable line length */
+.ja-notes-page {
+  max-width: 800px;
+}
+
+.ja-notes-textarea {
+  max-width: 100%;
+  line-height: 1.7;
+}
+
+/* FIX 12 — Footer grid: collapse to 1-col between 768–1023px
+   Changes the 768px breakpoint for 2-col to 1024px.            */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ja-app-footer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ja-app-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ja-app-footer-nav-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* FIX 13 — More drawer scroll on landscape mobile */
+.ja-more-modal ion-content {
+  --overflow: auto;
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .ja-more-modal {
+    --height: 100dvh;
+    --max-height: 100dvh;
+  }
+}
+
+/* FIX 14 — Touch target minimum sizes (44px × 44px) */
+.ja-app-mobile-action {
+  min-height: 44px;
+  padding: 10px 4px;
+}
+
+.ja-ion-tab-bar ion-tab-button {
+  min-height: 54px;
+}
+
+.ja-nav-icon-btn {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* BONUS — Scroll-snap for itinerary day selector */
+.ja-itinerary-mobile-days {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ja-itinerary-mobile-days::-webkit-scrollbar { display: none; }
+
+.ja-itinerary-mobile-day-btn { scroll-snap-align: start; }
+
+/* BONUS — Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .ja-app-compass,
+  .ja-app-spin,
+  .ja-app-rotate {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* BONUS — Keyboard focus ring */
+:focus-visible {
+  outline: 2px solid var(--ja-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* BONUS — Card hover micro-interactions (desktop pointer only) */
+@media (hover: hover) {
+  .ja-app-insight-card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+}
+
+/* BONUS — Fluid type scale for very small viewports */
+@media (max-width: 375px) {
+  .ja-app-section-title { font-size: 1.1rem; }
+  .ja-hero-title { font-size: 1.25rem !important; }
+  .budget-registry-title { font-size: 22px !important; }
+}
+
+/* BONUS — Prevent iOS landscape font size inflation */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ---- Scroll-collapse fixes ---- */
+
+/* FIX 1 — Animate content offset transition both ways */
+.ja-content-offset {
+  transition: padding-top 0.32s ease;
+}
+
+/* When nav is scrolled (countdown collapsed), shrink the offset to match
+   the bare mobile bar height (~56px). Adjust ±4px if gap remains. */
+.nav-scrolled .ja-content-offset {
+  padding-top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+  transition: padding-top 0.32s ease;
+}
+
+/* FIX 2 — Countdown row vertical alignment */
+.ja-nav-countdown-days {
+  align-items: center !important;
+}
+
+.ja-nav-countdown-left {
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.ja-nav-countdown-num {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.ja-nav-countdown-unit {
+  align-self: center;
+  line-height: 1;
+}
+
+.ja-nav-countdown-divider {
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.ja-nav-countdown-clock {
+  align-self: center;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   RESPONSIVE AUDIT FIXES - June 2026
+   Final cascade layer for measured mobile/tablet/desktop issues.
+   ============================================================ */
+
+:root {
+  --ja-nav-content-gap: 12px;
+  --ja-nav-collapsed-height-mobile: 64px;
+}
+
+.ja-content-offset {
+  padding-top: calc(var(--ja-nav-height-mobile) + var(--ja-nav-content-gap) + env(safe-area-inset-top, 0px)) !important;
+}
+
+@media (min-width: 768px) {
+  .ja-content-offset {
+    padding-top: calc(var(--ja-nav-height-desktop) + var(--ja-nav-content-gap) + env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .nav-scrolled .ja-content-offset {
+    padding-top: calc(var(--ja-nav-collapsed-height-mobile) + var(--ja-nav-content-gap) + env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-scrolled .ja-content-offset {
+    padding-top: calc(var(--ja-nav-height-desktop) + var(--ja-nav-content-gap) + env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+.ja-nav-mobile .ja-nav-countdown {
+  width: auto !important;
+  max-width: calc(100% - 20px);
+  box-sizing: border-box;
+}
+
+.ja-nav-countdown-days {
+  min-width: 0;
+}
+
+.ja-nav-countdown-unit {
+  white-space: nowrap;
+}
+
+@media (max-width: 374px) {
+  .ja-nav-mobile .ja-nav-countdown {
+    margin-left: 8px !important;
+    margin-right: 8px !important;
+    max-width: calc(100% - 16px);
+    padding-left: 8px !important;
+    padding-right: 10px !important;
+  }
+
+  .ja-nav-countdown-divider {
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --ja-nav-content-gap: 10px;
+  }
+
+  .ja-nav-desktop-inner {
+    padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .ja-nav-desktop-top-row {
+    padding-bottom: 6px;
+  }
+
+  .ja-nav-desktop-tabs {
+    padding-top: 6px !important;
+  }
+
+  .ja-nav-desktop-countdown {
+    margin-bottom: 8px !important;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}
+
+.ja-map-day-btn,
+.ja-itinerary-item-card ion-button,
+.ja-nav-copy-btn,
+.ja-nav-download-btn {
+  min-height: 44px;
+}
+
+.ja-map-day-btn {
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+.ja-app-footer-link {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+}
+
+@media (pointer: coarse) {
+  .ja-app-footer-link {
+    min-height: 44px;
+  }
+}
+
+.ja-itinerary-mobile-days,
+.ja-budget-summary-mobile-days,
+.ja-map-day-row {
+  position: relative;
+  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+}
+
+.ja-itinerary-mobile-days,
+.ja-budget-summary-mobile-days,
+.ja-map-day-row {
+  padding-left: 2px;
+  padding-right: 18px;
+}
+
+/* Desktop header should introduce the page, then leave the viewport while content scrolls. */
+@media (min-width: 768px) {
+  .ja-nav-desktop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100;
+    transition: opacity 0.22s ease, transform 0.28s ease;
+  }
+
+  .ja-nav-desktop-bar {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  .nav-scrolled .ja-nav-desktop {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-100%);
+  }
+
+  .nav-scrolled .ja-content-offset {
+    padding-top: var(--ja-nav-content-gap) !important;
+  }
+
+  .ja-nav-desktop-actions {
+    gap: 10px !important;
+  }
+
+  .ja-nav-desktop-btn {
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --color: #ffffff;
+    --color-hover: #ffffff;
+    --background: rgba(255, 255, 255, 0.02);
+    --background-hover: rgba(255, 255, 255, 0.08);
+    min-height: 44px;
+    height: 44px;
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .ja-nav-desktop-btn::part(native) {
+    gap: 10px;
+  }
+
+  .ja-nav-desktop .ja-nav-icon-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 8px;
+  }
+}
+
+/* Mobile budget screen: match the compact two-card reference layout. */
+@media (max-width: 767px) {
+  .ja-budget-page {
+    padding: 0 12px 84px !important;
+  }
+
+  .ja-budget-summary-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    margin: 6px 0 8px !important;
+  }
+
+  .ja-budget-summary-card {
+    margin: 0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .ja-budget-summary-card ion-card-content {
+    padding: 10px 12px 11px !important;
+  }
+
+  .ja-budget-summary-row-inner {
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .ja-budget-summary-row-inner > div:first-child {
+    min-width: 0;
+  }
+
+  .ja-budget-summary-label {
+    font-size: 13px !important;
+    letter-spacing: 0.14em !important;
+    line-height: 1.1 !important;
+  }
+
+  .ja-budget-summary-value {
+    margin-top: 3px !important;
+    gap: 3px !important;
+    font-size: 18px !important;
+    line-height: 1.05 !important;
+  }
+
+  .ja-budget-summary-cap {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 13px !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .ja-budget-summary-alt {
+    margin-top: 4px !important;
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+    white-space: normal;
+  }
+
+  .ja-budget-summary-icon {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 28px;
+  }
+
+  .ja-budget-summary-icon ion-icon {
+    font-size: 17px !important;
+  }
+
+  .ja-budget-progress-wrap {
+    height: 5px !important;
+    margin-top: 8px !important;
+    max-width: 164px;
+  }
+
+  .ja-budget-main {
+    gap: 8px !important;
+  }
+
+  .ja-budget-sidebar {
+    gap: 8px !important;
+  }
+
+  .ja-budget-form-card,
+  .ja-budget-category-card,
+  .ja-budget-registry-card {
+    margin: 0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .ja-budget-card-header {
+    padding: 18px 12px 10px !important;
+  }
+
+  .ja-budget-card-body {
+    padding: 0 12px 14px !important;
+  }
+
+  .ja-budget-card-title {
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+  }
+
+  .ja-budget-exchange-hint {
+    margin-top: 14px !important;
+    padding-bottom: 14px !important;
+    border-bottom: 1px solid rgba(231, 229, 228, 0.7);
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  .ja-budget-form {
+    gap: 12px !important;
+  }
+
+  .ja-budget-field-label {
+    margin-bottom: 6px !important;
+    font-size: 14px !important;
+  }
+
+  .ja-budget-input,
+  .ja-budget-select {
+    min-height: 38px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+    font-size: 15px !important;
+  }
+
+  .ja-budget-input {
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+
+  .ja-budget-select {
+    --padding-start: 10px;
+    --padding-end: 8px;
+  }
+
+  .ja-budget-form-row-3 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .ja-budget-field-span-2 {
+    grid-column: auto !important;
+  }
+
+  .ja-budget-form-row-2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .ja-budget-voice-wrap {
+    margin-top: 2px;
+  }
+}
+
+/* Live site visual match: deeper emerald chrome, lime accents, softer cards. */
+:root {
+  --ja-green-950: #041D1A;
+  --ja-green-900: #0B3530;
+  --ja-green-800: #0b3b34;
+  --ja-green-700: #122820;
+  --ja-green-600: #18534C;
+  --ja-green-500: #58716b;
+  --ja-green-400: #7a8785;
+  --ja-gold: #88B04B;
+  --ja-gold-light: #7ec96b;
+  --ja-cream: #fafaf9;
+  --ja-cream-2: #F7F9FA;
+  --ja-card-alt: #F8FBF8;
+  --ja-text: #0b1f1c;
+  --ja-text-secondary: #58716b;
+  --ja-muted: #7a8785;
+}
+
+html,
+body {
+  background: #122820;
+}
+
+ion-content.ja-ion-content,
+.ja-page-frame,
+#root {
+  --background: #fafaf9;
+  background: #fafaf9;
+}
+
+.ja-nav-mobile,
+.ja-nav-mobile-bar,
+.ja-nav-desktop-bar {
+  background: #0B3530 !important;
+  box-shadow: none !important;
+}
+
+.ja-nav-mobile,
+.ja-nav-desktop-bar {
+  border-bottom: 1px solid rgba(126, 201, 107, 0.18) !important;
+}
+
+.ja-nav-mobile-eyebrow,
+.ja-nav-desktop-eyebrow {
+  color: rgba(126, 201, 107, 0.78) !important;
+  letter-spacing: 0.22em !important;
+}
+
+.ja-nav-mobile-title,
+.ja-nav-desktop-title {
+  color: #ffffff !important;
+}
+
+.ja-nav-dot-online {
+  background: #10d49b !important;
+}
+
+.ja-nav-icon-btn,
+.ja-nav-desktop-btn {
+  --background: rgba(255, 255, 255, 0.02);
+  --background-hover: rgba(255, 255, 255, 0.1);
+  --color: #ffffff;
+  --color-hover: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.ja-nav-countdown-days {
+  background: rgba(136, 176, 75, 0.14) !important;
+  border-color: rgba(126, 201, 107, 0.4) !important;
+  box-shadow: none !important;
+}
+
+.ja-nav-countdown-num {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #7ec96b !important;
+}
+
+.ja-nav-countdown-num-value {
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.ja-nav-countdown-unit,
+.ja-nav-countdown-clock {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+.ja-ion-tab-bar {
+  --background: #122820 !important;
+  border-top: 1px solid rgba(126, 201, 107, 0.12) !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.04), 0 -8px 24px rgba(0,0,0,0.26) !important;
+}
+
+.ja-ion-tab-bar ion-tab-button {
+  --background: transparent !important;
+  --background-focused: transparent !important;
+  --background-hover: transparent !important;
+  --color: rgba(255,255,255,0.58) !important;
+  --color-selected: #ffffff !important;
+}
+
+.ja-ion-tab-bar ion-tab-button.tab-selected {
+  --background: transparent !important;
+}
+
+.ja-ion-tab-bar ion-tab-button::before {
+  display: none !important;
+}
+
+.ja-ion-tab-bar ion-icon {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.08);
+  box-sizing: border-box;
+}
+
+.ja-ion-tab-bar ion-tab-button.tab-selected ion-icon {
+  background: rgba(255,255,255,0.16);
+  color: #ffffff;
+}
+
+.ja-budget-summary-card,
+.ja-budget-form-card,
+.ja-budget-category-card,
+.ja-budget-registry-card,
+.ja-notes-checklist-card,
+.ja-notes-create-card,
+.ja-diary-card,
+.ja-itinerary-item-card {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.08) !important;
+}
+
+.ja-budget-card-title,
+.ja-app-section-title,
+.ja-itinerary-title,
+.ja-itinerary-day-title {
+  color: #0b3530 !important;
+}
+
+.ja-budget-summary-label,
+.ja-budget-card-title {
+  letter-spacing: 0.18em;
+}
+
+.ja-budget-summary-value,
+.ja-budget-summary-value-blue {
+  color: #0b3530 !important;
+}
+
+.ja-budget-summary-label-blue {
+  color: #1f67ff !important;
+}
+
+.ja-budget-summary-icon {
+  background: rgba(11, 53, 48, 0.05) !important;
+  color: #555 !important;
+}
+
+.ja-budget-summary-icon-blue {
+  background: rgba(31, 103, 255, 0.1) !important;
+  color: #1f67ff !important;
+}
+
+.ja-budget-exchange-dot-live {
+  background: #10d49b !important;
+}
+
+/* Uniform Ionic page grid. Keep global chrome full-bleed, page content fixed. */
+ion-grid.ja-page-grid {
+  --ion-grid-width-xs: 100%;
+  --ion-grid-width-sm: 540px;
+  --ion-grid-width-md: 720px;
+  --ion-grid-width-lg: 1140px;
+  --ion-grid-width-xl: 1696px;
+  --ion-grid-padding-xs: 12px;
+  --ion-grid-padding-sm: 16px;
+  --ion-grid-padding-md: 24px;
+  --ion-grid-padding-lg: 32px;
+  --ion-grid-padding-xl: 32px;
+  width: 100%;
+  max-width: min(100%, calc(1696px + 64px)) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+ion-row.ja-page-row {
+  width: 100%;
+}
+
+ion-col.ja-page-col {
+  --ion-grid-column-padding: 0;
+  min-width: 0;
+}
+
+ion-col.ja-page-col > .ja-app-fade-in,
+ion-col.ja-page-col > .budget-page,
+ion-col.ja-page-col > .ja-map-page,
+ion-col.ja-page-col > .ja-notes-page,
+ion-col.ja-page-col > .ja-diary-page,
+ion-col.ja-page-col > .ja-app-settings-wrap {
+  width: 100%;
+}
+
+.ja-app-main > ion-grid.ja-page-grid {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ja-map-page-frame ion-grid.ja-page-grid,
+.ja-map-page-frame ion-row.ja-page-row,
+.ja-map-page-frame ion-col.ja-page-col {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.ja-map-page-frame ion-col.ja-page-col > .ja-map-page {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  ion-grid.ja-page-grid {
+    --ion-grid-padding-xs: 0;
+  }
+
+  ion-col.ja-page-col > .budget-page,
+  ion-col.ja-page-col > .ja-notes-page,
+  ion-col.ja-page-col > .ja-diary-page,
+  ion-col.ja-page-col > .ja-app-settings-wrap {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* The page grid is the width contract. Top-level pages must not add their own caps. */
+@media (min-width: 768px) {
+  ion-col.ja-page-col > .ja-app-fade-in,
+  ion-col.ja-page-col > .budget-page,
+  ion-col.ja-page-col > .ja-map-page,
+  ion-col.ja-page-col > .ja-notes-page,
+  ion-col.ja-page-col > .ja-diary-page,
+  ion-col.ja-page-col > .ja-app-settings-wrap {
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box;
+  }
+
+  ion-col.ja-page-col .ja-hero,
+  ion-col.ja-page-col .ja-itinerary-view,
+  ion-col.ja-page-col .ja-app-section,
+  ion-col.ja-page-col .ja-app-insights-inner {
+    max-width: none !important;
+  }
+
+  ion-col.ja-page-col .ja-app-section,
+  ion-col.ja-page-col .ja-app-insights {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }

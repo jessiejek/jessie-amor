@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 import {
   IonApp,
+  IonCol,
   IonContent,
+  IonGrid,
   IonIcon,
   IonLabel,
   IonPage,
+  IonRow,
   IonRouterOutlet,
   IonTabBar,
   IonTabButton,
@@ -2131,7 +2134,13 @@ function AppShell() {
 
           <div className="ja-content-offset">
             <main className="ja-app-main" style={pullDistance > 0 ? { transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`, transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)", willChange: "transform" } : undefined}>
-              {children}
+              <IonGrid fixed className="ja-page-grid">
+                <IonRow className="ja-page-row">
+                  <IonCol size="12" className="ja-page-col">
+                    {children}
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
             </main>
             {options?.showFooter === false ? null : renderSiteFooter()}
           </div>

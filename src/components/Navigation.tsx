@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalendarDays, Copy, Check, Download, Info, LogIn, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X } from "lucide-react";
+import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X } from "lucide-react";
 import { IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
@@ -77,9 +77,41 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
   const shouldShowHolidayBanner = isHolidayDisplayDate(currentDate);
   const shouldShowCountdown = !shouldShowHolidayBanner && currentDate.getTime() < TRIP_COUNTDOWN_TARGET.getTime();
-  const desktopNavItems = navItems;
   const bottomNavItems = navItems.filter((tab) => tab.showInBottom);
   const bottomNavPaths = bottomNavItems.map((tab) => tab.path);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const setNavHeights = () => {
+      const mobileHeader = document.querySelector(".ja-nav-mobile:not(.ja-nav-hidden)") as HTMLElement | null;
+      const desktopHeader = document.querySelector(".ja-nav-desktop:not(.ja-nav-hidden) .ja-nav-desktop-bar") as HTMLElement | null;
+
+      if (mobileHeader?.offsetHeight) {
+        root.style.setProperty("--ja-nav-height-mobile", `${mobileHeader.offsetHeight}px`);
+      }
+
+      if (desktopHeader?.offsetHeight) {
+        root.style.setProperty("--ja-nav-height-desktop", `${desktopHeader.offsetHeight}px`);
+      }
+    };
+
+    setNavHeights();
+    window.addEventListener("resize", setNavHeights);
+
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(setNavHeights) : null;
+    const observedNodes = [
+      document.querySelector(".ja-nav-mobile"),
+      document.querySelector(".ja-nav-desktop .ja-nav-desktop-bar"),
+    ].filter((node): node is Element => Boolean(node));
+
+    observedNodes.forEach((node) => observer?.observe(node));
+
+    return () => {
+      window.removeEventListener("resize", setNavHeights);
+      observer?.disconnect();
+    };
+  }, [screenSize, shouldShowCountdown, shouldShowHolidayBanner]);
+
   const userMetadata = session?.user.user_metadata as { avatar_url?: string; picture?: string; full_name?: string; name?: string } | undefined;
   const userDisplayName = userMetadata?.full_name ?? userMetadata?.name ?? session?.user.email?.split("@")[0] ?? "Signed in";
   const userEmail = session?.user.email ?? "";
@@ -114,8 +146,8 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
             <div className="ja-nav-holiday-title">Enjoy your holiday</div>
           </div>
         ) : shouldShowCountdown ? (
-          <div className="ja-nav-countdown ja-nav-countdown-days">
-            <div className="ja-nav-countdown-left"><span className="ja-nav-countdown-num">{countdown.days}</span><span className="ja-nav-countdown-unit">DAYS LEFT</span></div>
+            <div className="ja-nav-countdown ja-nav-countdown-days">
+            <div className="ja-nav-countdown-left"><span className="ja-nav-countdown-num"><span className="ja-nav-countdown-num-value">{countdown.days}</span></span><span className="ja-nav-countdown-unit">DAYS LEFT</span></div>
             <div className="ja-nav-countdown-divider" />
             <div className="ja-nav-countdown-clock">{countdownTime}</div>
           </div>
@@ -136,20 +168,40 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
                 </h1>
               </div>
               <div className="ja-nav-desktop-actions">
-                {session && onOpenSettings ? <IonButton fill="clear" onClick={onOpenSettings} className="ja-nav-desktop-btn" title="Settings"><IonIcon icon={settingsOutline} slot="start" />Settings</IonButton> : null}
-                <IonButton fill="clear" onClick={session ? onSignOut : onOpenAuth} className="ja-nav-desktop-btn" title={session ? "Log out" : "Login"}>{session ? <LogOut size={14} /> : <LogIn size={14} />}{session ? "Log out" : "Login"}</IonButton>
+                {session && onOpenSettings ? (
+                  <IonButton fill="clear" onClick={onOpenSettings} className="ja-nav-desktop-btn" title="Settings">
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </IonButton>
+                ) : null}
+                <IonButton fill="clear" onClick={session ? onSignOut : onOpenAuth} className="ja-nav-desktop-btn" title={session ? "Log out" : "Log in"}>
+                  {session ? <LogOut size={16} /> : <User size={16} />}
+                  <span>{session ? "Log out" : "Log in"}</span>
+                </IonButton>
                 <IonButton fill="clear" onClick={() => setShowShareModal(true)} className="ja-nav-icon-btn" title="Share Trip"><IonIcon icon={shareSocialOutline} /></IonButton>
                 <IonButton fill="clear" onClick={() => setShowDownloadModal(true)} className="ja-nav-icon-btn" title="Download Data"><IonIcon icon={downloadOutline} /></IonButton>
                 <IonButton fill="clear" onClick={handlePrint} className="ja-nav-icon-btn" title="Print Itinerary"><Printer size={16} /></IonButton>
               </div>
             </div>
             <div className="ja-nav-desktop-divider" />
-            <div className="ja-nav-desktop-tabs">
-              <nav className="ja-nav-desktop-tab-row">{desktopNavItems.map((tab) => (
-                <button key={tab.label} onClick={() => setActiveTab(tab.path)}
-                  className={`ja-nav-desktop-tab${activeTab === tab.path ? " ja-nav-desktop-tab-active" : ""}`}>{tab.label}</button>
-              ))}</nav>
-            </div>
+            <nav className="ja-nav-desktop-tabs" aria-label="Main navigation">
+              {navItems.map((item) => {
+                const Icon = item.icon ?? CalendarDays;
+                const isActive = activeTab === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => setActiveTab(item.path)}
+                    className={`ja-nav-desktop-tab${isActive ? ' ja-nav-desktop-tab-active' : ''}`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <Icon size={14} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
             {shouldShowHolidayBanner ? (
               <div className="ja-nav-desktop-countdown ja-nav-countdown-holiday">
                 <div className="ja-nav-holiday-label">Holiday mode</div>
@@ -157,7 +209,7 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
               </div>
             ) : shouldShowCountdown ? (
               <div className="ja-nav-desktop-countdown ja-nav-countdown-days">
-                <div className="ja-nav-countdown-left"><span className="ja-nav-countdown-num">{countdown.days}</span><span className="ja-nav-countdown-unit">DAYS LEFT</span></div>
+                <div className="ja-nav-countdown-left"><span className="ja-nav-countdown-num"><span className="ja-nav-countdown-num-value">{countdown.days}</span></span><span className="ja-nav-countdown-unit">DAYS LEFT</span></div>
                 <div className="ja-nav-countdown-divider" />
                 <div className="ja-nav-countdown-clock">{countdownTime}</div>
               </div>
