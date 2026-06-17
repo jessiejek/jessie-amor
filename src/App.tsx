@@ -2010,36 +2010,45 @@ function AppShell() {
     };
   }, []);
 
-  const [pullRatio, setPullRatio] = useState(0);
   const isPullingRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const setNavOffset = (px: number, animate: boolean) => {
     const root = document.documentElement;
-    const offset = Math.round(pullRatio * 64);
-    root.style.setProperty("--ja-pull-offset", `${offset}px`);
-    root.style.setProperty("--ja-pull-easing", isPullingRef.current ? "none" : "transform 0.45s cubic-bezier(0.16,1,0.3,1)");
-  }, [pullRatio]);
+    root.style.setProperty("--ja-pull-offset", `${px}px`);
+    root.style.setProperty("--ja-pull-easing", animate ? "transform 0.45s cubic-bezier(0.16,1,0.3,1)" : "none");
+  };
 
   const handleIonStart = () => {
     isPullingRef.current = true;
-  };
-
-  const handleIonPull = (event: CustomEvent) => {
-    setPullRatio((event.detail as { ratio: number }).ratio ?? 0);
+    const tick = () => {
+      if (!isPullingRef.current) return;
+      const scrollEl = document.querySelector("ion-content.ja-ion-content")
+        ?.shadowRoot?.querySelector(".inner-scroll") as HTMLElement | null;
+      const raw = scrollEl?.style?.transform ?? "";
+      const match = raw.match(/translateY\(([0-9.]+)px\)/);
+      const offset = match ? Math.min(72, parseFloat(match[1]) * 0.7) : 0;
+      setNavOffset(offset, false);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
   };
 
   const handleIonRefresh = (event: CustomEvent) => {
     isPullingRef.current = false;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setNavOffset(0, true);
     window.setTimeout(() => {
       window.location.reload();
       (event.detail as { complete: () => void }).complete();
-    }, 300);
+    }, 400);
   };
 
   const handlePullCancel = () => {
     if (!isPullingRef.current) return;
     isPullingRef.current = false;
-    setPullRatio(0);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setNavOffset(0, true);
   };
 
 
@@ -2139,7 +2148,7 @@ function AppShell() {
           onTouchEnd={handlePullCancel}
           onTouchCancel={handlePullCancel}
         >
-          <IonRefresher slot="fixed" onIonStart={handleIonStart} onIonPull={handleIonPull} onIonRefresh={handleIonRefresh}>
+          <IonRefresher slot="fixed" onIonStart={handleIonStart} onIonRefresh={handleIonRefresh}>
             <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
           </IonRefresher>
 
