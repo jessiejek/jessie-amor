@@ -2010,11 +2010,36 @@ function AppShell() {
     };
   }, []);
 
+  const [pullRatio, setPullRatio] = useState(0);
+  const isPullingRef = useRef(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const offset = Math.round(pullRatio * 64);
+    root.style.setProperty("--ja-pull-offset", `${offset}px`);
+    root.style.setProperty("--ja-pull-easing", isPullingRef.current ? "none" : "transform 0.45s cubic-bezier(0.16,1,0.3,1)");
+  }, [pullRatio]);
+
+  const handleIonStart = () => {
+    isPullingRef.current = true;
+  };
+
+  const handleIonPull = (event: CustomEvent) => {
+    setPullRatio((event.detail as { ratio: number }).ratio ?? 0);
+  };
+
   const handleIonRefresh = (event: CustomEvent) => {
+    isPullingRef.current = false;
     window.setTimeout(() => {
       window.location.reload();
       (event.detail as { complete: () => void }).complete();
     }, 300);
+  };
+
+  const handlePullCancel = () => {
+    if (!isPullingRef.current) return;
+    isPullingRef.current = false;
+    setPullRatio(0);
   };
 
 
@@ -2109,8 +2134,12 @@ function AppShell() {
           document.documentElement.classList.toggle("nav-scrolled", top > 60);
         }}
       >
-        <div className={`ja-page-frame ${options?.className ?? ""}`}>
-          <IonRefresher slot="fixed" onIonRefresh={handleIonRefresh}>
+        <div
+          className={`ja-page-frame ${options?.className ?? ""}`}
+          onTouchEnd={handlePullCancel}
+          onTouchCancel={handlePullCancel}
+        >
+          <IonRefresher slot="fixed" onIonStart={handleIonStart} onIonPull={handleIonPull} onIonRefresh={handleIonRefresh}>
             <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
           </IonRefresher>
 

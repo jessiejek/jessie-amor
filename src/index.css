@@ -5473,6 +5473,15 @@ textarea::placeholder {
   background: linear-gradient(160deg, #0e3d37 0%, #0B3530 55%, #072e29 100%);
   box-shadow: 0 2px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04);
   border-bottom: 1px solid rgba(136,176,75,0.14);
+  transform: translateY(var(--ja-pull-offset, 0px));
+  transition: var(--ja-pull-easing, none);
+  will-change: transform;
+}
+
+.ja-ion-tab-bar {
+  transform: translateY(calc(var(--ja-pull-offset, 0px) * -0.4));
+  transition: var(--ja-pull-easing, none);
+  will-change: transform;
 }
 
 /* Bar is now static inside the fixed header — remove its own fixed/shadow */
