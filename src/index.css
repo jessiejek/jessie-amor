@@ -119,7 +119,7 @@ ion-content.ja-ion-content {
 .ja-ion-tab-bar {
   --background: var(--ja-green-700);
   --border: 1px solid rgba(255, 255, 255, 0.08);
-  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   contain: layout paint;
   box-shadow: 0 -2px 12px rgba(0,0,0,0.12);
@@ -6019,7 +6019,7 @@ textarea::placeholder {
 }
 
 .ja-ion-tab-bar ion-tab-button {
-  min-height: 54px;
+  min-height: 48px;
 }
 
 .ja-nav-icon-btn {
@@ -6606,9 +6606,9 @@ ion-content.ja-ion-content,
 }
 
 .ja-ion-tab-bar ion-icon {
-  width: 32px;
-  height: 32px;
-  padding: 7px;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
   border-radius: 9px;
   background: rgba(255,255,255,0.08);
   box-sizing: border-box;
