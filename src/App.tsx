@@ -2010,71 +2010,21 @@ function AppShell() {
     };
   }, []);
 
-  const touchStartYRef = useRef(0);
-  const isPullingRef = useRef(false);
-
-  const setNavOffset = (px: number, animate: boolean) => {
+  const handleIonPull = (event: CustomEvent) => {
+    const ratio: number = (event.detail as { ratio: number }).ratio ?? 0;
+    const offset = Math.round(Math.min(1, ratio) * 60);
     const root = document.documentElement;
-    root.style.setProperty("--ja-pull-offset", `${Math.round(px)}px`);
-    root.style.setProperty("--ja-pull-easing", animate ? "transform 0.45s cubic-bezier(0.16,1,0.3,1)" : "none");
+    root.style.setProperty("--ja-pull-offset", `${offset}px`);
+    root.style.setProperty("--ja-pull-easing", "none");
   };
 
-  useEffect(() => {
-    const getScrollTop = () => {
-      const content = document.querySelector("ion-content.ja-ion-content") as HTMLElement & { scrollTop?: number } | null;
-      if (!content) return 0;
-      // Ionic exposes scrollTop via the element property
-      return (content as unknown as { scrollTop: number }).scrollTop ?? 0;
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0].clientY;
-      isPullingRef.current = false;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      const deltaY = e.touches[0].clientY - touchStartYRef.current;
-      // Only animate header when pulling down from top of scroll
-      if (deltaY > 0 && getScrollTop() <= 0) {
-        isPullingRef.current = true;
-        const offset = Math.min(64, deltaY * 0.45);
-        setNavOffset(offset, false);
-      }
-    };
-
-    const onTouchEnd = () => {
-      if (isPullingRef.current) {
-        isPullingRef.current = false;
-        setNavOffset(0, true);
-      }
-    };
-
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchmove", onTouchMove, { passive: true });
-    document.addEventListener("touchend", onTouchEnd, { passive: true });
-    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
-    return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
-      document.removeEventListener("touchcancel", onTouchEnd);
-    };
-  }, []);
-
   const handleIonRefresh = (event: CustomEvent) => {
-    isPullingRef.current = false;
-    setNavOffset(0, true);
+    document.documentElement.style.setProperty("--ja-pull-offset", "0px");
+    document.documentElement.style.setProperty("--ja-pull-easing", "transform 0.4s cubic-bezier(0.16,1,0.3,1)");
     window.setTimeout(() => {
       window.location.reload();
       (event.detail as { complete: () => void }).complete();
     }, 400);
-  };
-
-  const handlePullCancel = () => {
-    if (!isPullingRef.current) return;
-    isPullingRef.current = false;
-    setNavOffset(0, true);
   };
 
 
@@ -2170,7 +2120,7 @@ function AppShell() {
         }}
       >
         <div className={`ja-page-frame ${options?.className ?? ""}`}>
-          <IonRefresher slot="fixed" onIonRefresh={handleIonRefresh}>
+          <IonRefresher slot="fixed" mode="md" onIonPull={handleIonPull} onIonRefresh={handleIonRefresh}>
             <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
           </IonRefresher>
 
