@@ -1874,7 +1874,8 @@ textarea::placeholder {
   font-size: 12px;
   font-weight: 600;
   --ion-chip-background: #f8faf9;
-  border: 1px solid #d8e1db;
+  background: #f8faf9;
+  border: 1.5px solid #d8e1db;
   color: #374151;
   border-radius: 999px;
   margin: 0;
@@ -1883,9 +1884,10 @@ textarea::placeholder {
 }
 
 .ja-budget-date-chip-active {
-  --ion-chip-background: #0B3530;
+  --ion-chip-background: #0B3530 !important;
+  background: #0B3530 !important;
   border-color: #0B3530;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .ja-budget-registry-select {
