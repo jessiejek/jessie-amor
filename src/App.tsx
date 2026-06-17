@@ -3,12 +3,10 @@ import {
   CalendarDays,
   CreditCard,
   Compass,
-  Loader2,
   Map as MapIcon,
   Menu,
   NotebookText,
   Printer,
-  RefreshCw,
   Share2,
   Ticket,
   Utensils,
@@ -24,6 +22,8 @@ import {
   IonIcon,
   IonLabel,
   IonPage,
+  IonRefresher,
+  IonRefresherContent,
   IonRow,
   IonRouterOutlet,
   IonTabBar,
@@ -403,8 +403,6 @@ const normalizeTipIcon = (icon: string) => {
 };
 
 function AppShell() {
-  const PULL_REFRESH_TRIGGER = 84;
-  const PULL_REFRESH_MAX = 108;
   const itinerary = selectedItinerary;
   const [userSettings, setUserSettings] = useState<UserTripSettings | null>(null);
   const [settingsLoaded, setSettingsLoaded] = useState<boolean>(!hasSupabaseConfig);
@@ -440,8 +438,6 @@ function AppShell() {
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedHomeDay, setSelectedHomeDay] = useState<number>(selectedItinerary.days[0]?.day ?? 0);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
-  const [pullDistance, setPullDistance] = useState<number>(0);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
@@ -450,8 +446,6 @@ function AppShell() {
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [diaryLoaded, setDiaryLoaded] = useState<boolean>(!hasSupabaseConfig);
-  const pullStartYRef = useRef<number | null>(null);
-  const isPullingRef = useRef<boolean>(false);
   const isOnline = useOnlineStatus();
   const [initialExpenseCache] = useState(() => readCachedDataset<Expense[]>(expenseCacheKey));
   const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
@@ -582,9 +576,6 @@ function AppShell() {
     });
   };
 
-  const pullProgress = Math.min(1, pullDistance / PULL_REFRESH_TRIGGER);
-  const pullCanRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
-  const pullUiScale = 0.96 + pullProgress * 0.04;
 
   useEffect(() => {
     if (!supabase) {
@@ -2019,56 +2010,13 @@ function AppShell() {
     };
   }, []);
 
-  const canUsePullRefresh = () =>
-    typeof window !== "undefined"
-    && window.innerWidth < 768
-    && window.scrollY <= 0
-    && !showAuthModal
-    && !isRefreshing;
-
-  const resetPullRefresh = () => {
-    pullStartYRef.current = null;
-    isPullingRef.current = false;
-    setPullDistance(0);
+  const handleIonRefresh = (event: CustomEvent) => {
+    window.setTimeout(() => {
+      window.location.reload();
+      (event.detail as { complete: () => void }).complete();
+    }, 300);
   };
 
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1 || !canUsePullRefresh()) return;
-    pullStartYRef.current = event.touches[0].clientY;
-    isPullingRef.current = true;
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!isPullingRef.current || pullStartYRef.current == null) return;
-
-    const rawDistance = event.touches[0].clientY - pullStartYRef.current;
-    if (rawDistance <= 0) {
-      setPullDistance(0);
-      return;
-    }
-
-    const nextDistance = Math.min(PULL_REFRESH_MAX, rawDistance * 0.55);
-    if (nextDistance > 12) {
-      event.preventDefault();
-    }
-    setPullDistance(nextDistance);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isPullingRef.current) return;
-
-    const shouldRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
-    if (shouldRefresh) {
-      setIsRefreshing(true);
-      setPullDistance(PULL_REFRESH_TRIGGER);
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 180);
-      return;
-    }
-
-    resetPullRefresh();
-  };
 
   const mobileAccountCard = session ? (
     <section className="ja-app-mobile-card">
@@ -2161,22 +2109,13 @@ function AppShell() {
           document.documentElement.classList.toggle("nav-scrolled", top > 60);
         }}
       >
-        <div
-          className={`ja-page-frame ${options?.className ?? ""}`}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        >
-          <div className={`ja-app-pull-indicator${pullDistance > 0 || isRefreshing ? " ja-app-pull-visible" : ""}`} style={{ transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})` }}>
-            <div className="ja-app-pull-card">
-              <div className="ja-app-pull-icon-wrap">{isRefreshing ? <Loader2 size={13} className="ja-app-spin" strokeWidth={2.2} /> : <RefreshCw size={13} strokeWidth={2.2} className="ja-app-rotate" style={{ transform: `rotate(${pullProgress * 180}deg)` }} />}</div>
-              <span className="ja-app-pull-text">{isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}</span>
-            </div>
-          </div>
+        <div className={`ja-page-frame ${options?.className ?? ""}`}>
+          <IonRefresher slot="fixed" onIonRefresh={handleIonRefresh}>
+            <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
+          </IonRefresher>
 
           <div className="ja-content-offset">
-            <main className="ja-app-main" style={pullDistance > 0 ? { transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`, transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)", willChange: "transform" } : undefined}>
+            <main className="ja-app-main">
               <IonGrid fixed className="ja-page-grid">
                 <IonRow className="ja-page-row">
                   <IonCol size="12" className="ja-page-col">
