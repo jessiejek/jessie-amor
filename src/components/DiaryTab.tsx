@@ -222,12 +222,11 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
               <h2 className="ja-diary-hero-main-title">Save the Malaysia and Singapore memories we want to remember.</h2>
               <p className="ja-diary-hero-desc">Capture meals, landmarks, hotel stays, transport wins, and little trip moments with photos, ratings, and tags that sync with the rest of the itinerary when you are online.</p>
             </div>
+            {!canEdit && <div className="ja-diary-banner ja-diary-banner-amber" style={{ marginTop: "12px", marginBottom: 0 }}>Sign in to add memories and sync photos.</div>}
             <IonButton onClick={focusForm} disabled={!canEdit} className="ja-diary-hero-btn"><IonIcon icon={addOutline} slot="start" />Add memory</IonButton>
           </div>
         </IonCardContent>
       </IonCard>
-
-      {!canEdit && <div className="ja-diary-banner ja-diary-banner-amber">Sign in to add memories and sync photos.</div>}
       {!isOnline && <div className="ja-diary-banner ja-diary-banner-amber">Offline mode is active. Text changes stay on this device and photos upload when the connection returns.</div>}
       {pendingPhotoCount > 0 && <div className="ja-diary-banner ja-diary-banner-sky">{pendingPhotoCount} photo{pendingPhotoCount === 1 ? "" : "s"} still need an online sync before they can be fully shared from Supabase Storage.</div>}
 

@@ -4326,10 +4326,17 @@ textarea::placeholder {
 
 .ja-budget-date-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 8px;
   margin-bottom: 16px;
+  padding-bottom: 4px;
 }
+.ja-budget-date-row::-webkit-scrollbar { display: none; }
+.ja-budget-date-chip { scroll-snap-align: start; flex-shrink: 0; }
 
 .ja-budget-tx-amount-row {
   display: flex;
@@ -4822,7 +4829,9 @@ textarea::placeholder {
 
 .ja-map-header-desc { font-size: 0.75rem; color: #737373; }
 
-.ja-map-day-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ja-map-day-row { display: flex; flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 8px; margin-top: 12px; padding-bottom: 4px; }
+.ja-map-day-row::-webkit-scrollbar { display: none; }
+.ja-map-day-btn { scroll-snap-align: start; flex-shrink: 0; }
 
 .ja-map-layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
 @media (min-width: 1280px) { .ja-map-layout { grid-template-columns: 1.45fr 0.95fr; } }
@@ -5025,6 +5034,7 @@ textarea::placeholder {
 .ja-nav-more-title { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
 .ja-nav-item-label { font-size: 15px; font-weight: 500; }
 .ja-nav-more-footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 12px; margin-top: 8px; }
+.ja-nav-more-version { text-align: center; font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.12em; color: rgba(255,255,255,0.22); padding: 16px 0 24px; }
 .ja-nav-signout-btn { --color: rgba(255,255,255,0.4) !important; --color-hover: #ffffff !important; }
 .ja-nav-signout-btn:hover { --color: #ffffff !important; }
 .ja-nav-user-card { display: flex; align-items: center; gap: 14px; border-radius: var(--ja-radius-md); padding: 14px 16px; background: rgba(255,255,255,0.06); margin: 4px 12px; }
@@ -6421,10 +6431,11 @@ html {
   }
 
   .ja-budget-card-title {
-    font-size: 18px !important;
-    line-height: 1.1 !important;
-    letter-spacing: 0.16em !important;
-    text-transform: uppercase !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
   }
 
   .ja-budget-exchange-hint {

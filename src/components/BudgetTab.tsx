@@ -286,12 +286,12 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
               <form onSubmit={addExpense} className="ja-budget-form">
                 <div className="ja-budget-field">
                   <label className="ja-budget-field-label">Item Title</label>
-                  <IonInput value={desc} onIonInput={(e) => setDesc(e.detail.value ?? "")} placeholder="e.g. Kaya Toast, Metro Pass" disabled={!canEdit} className="ja-budget-input" required />
+                  <IonInput value={desc} onIonInput={(e) => setDesc(e.detail.value ?? "")} placeholder="e.g. Kaya Toast, Metro Pass" disabled={!canEdit} className="ja-budget-input" enterkeyhint="next" required />
                 </div>
                 <div className="ja-budget-form-row-3">
                   <div className="ja-budget-field-span-2">
                     <label className="ja-budget-field-label">Price</label>
-                    <IonInput type="number" step="0.01" value={amountText} onIonInput={(e) => setAmountText(e.detail.value ?? "")} placeholder="0.00" disabled={!canEdit} className="ja-budget-input" required />
+                    <IonInput type="number" inputMode="decimal" step="0.01" value={amountText} onIonInput={(e) => setAmountText(e.detail.value ?? "")} placeholder="0.00" disabled={!canEdit} className="ja-budget-input" enterkeyhint="done" required />
                   </div>
                   <div className="ja-budget-field">
                     <label className="ja-budget-field-label">Currency</label>
