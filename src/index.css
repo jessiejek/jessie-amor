@@ -119,8 +119,8 @@ ion-content.ja-ion-content {
 .ja-ion-tab-bar {
   --background: var(--ja-green-700);
   --border: 1px solid rgba(255, 255, 255, 0.08);
-  height: 64px;
-  padding-bottom: 0;
+  height: 70px;
+  padding-bottom: 4px;
   contain: layout paint;
   box-shadow: 0 -2px 12px rgba(0,0,0,0.12);
 }
