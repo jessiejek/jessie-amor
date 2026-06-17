@@ -2110,8 +2110,17 @@ function AppShell() {
         }}
       >
         <div className={`ja-page-frame ${options?.className ?? ""}`}>
-          <IonRefresher slot="fixed" onIonRefresh={handleIonRefresh}>
-            <IonRefresherContent refreshingSpinner="crescent" pullingIcon="arrow-down-circle-outline" />
+          <IonRefresher
+            slot="fixed"
+            pullMin={130}
+            pullMax={220}
+            onIonRefresh={handleIonRefresh}
+          >
+            <IonRefresherContent
+              pullingText="Pull down to refresh"
+              refreshingSpinner="crescent"
+              refreshingText="Refreshing…"
+            />
           </IonRefresher>
 
           <div className="ja-content-offset">
