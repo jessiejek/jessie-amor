@@ -110,6 +110,36 @@ ion-content.ja-ion-content {
   background: #fafaf9;
   color: rgb(41 37 36);
   -webkit-overflow-scrolling: touch;
+  transform: translateY(var(--ja-pull-offset, 0px));
+  transition: var(--ja-pull-easing, none);
+}
+
+/* Pull-to-refresh spinner — behind nav bar (z 1099 < nav 1100), revealed as screen slides down */
+.ja-pull-spinner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1099;
+  background: #0B3530;
+  pointer-events: none;
+}
+.ja-pull-spinner-ring {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-top-color: #88B04B;
+  border-radius: 50%;
+}
+.ja-pull-spinner--spin .ja-pull-spinner-ring {
+  animation: ja-spin 0.7s linear infinite;
+}
+@keyframes ja-spin {
+  to { transform: rotate(360deg); }
 }
 
 .ja-content-offset {

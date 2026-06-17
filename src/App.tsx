@@ -22,8 +22,6 @@ import {
   IonIcon,
   IonLabel,
   IonPage,
-  IonRefresher,
-  IonRefresherContent,
   IonRow,
   IonRouterOutlet,
   IonTabBar,
@@ -2010,22 +2008,63 @@ function AppShell() {
     };
   }, []);
 
-  const handleIonPull = (event: CustomEvent) => {
-    const ratio: number = (event.detail as { ratio: number }).ratio ?? 0;
-    const offset = Math.round(Math.min(1, ratio) * 60);
+  const pullStartYRef = useRef(0);
+  const pullOffsetRef = useRef(0);
+  const isPullingRef = useRef(false);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const PULL_THRESHOLD = 70;
+
+  const setPullOffset = (px: number, animate: boolean) => {
     const root = document.documentElement;
-    root.style.setProperty("--ja-pull-offset", `${offset}px`);
-    root.style.setProperty("--ja-pull-easing", "none");
+    root.style.setProperty("--ja-pull-offset", `${Math.round(px)}px`);
+    root.style.setProperty("--ja-pull-easing", animate ? "transform 0.4s cubic-bezier(0.16,1,0.3,1)" : "none");
   };
 
-  const handleIonRefresh = (event: CustomEvent) => {
-    document.documentElement.style.setProperty("--ja-pull-offset", "0px");
-    document.documentElement.style.setProperty("--ja-pull-easing", "transform 0.4s cubic-bezier(0.16,1,0.3,1)");
-    window.setTimeout(() => {
-      window.location.reload();
-      (event.detail as { complete: () => void }).complete();
-    }, 400);
-  };
+  useEffect(() => {
+    const getScrollTop = (): number => {
+      const el = document.querySelector("ion-content.ja-ion-content") as any;
+      return el?.scrollTop ?? 0;
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      pullStartYRef.current = e.touches[0].clientY;
+      isPullingRef.current = false;
+      pullOffsetRef.current = 0;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const delta = e.touches[0].clientY - pullStartYRef.current;
+      if (delta > 6 && getScrollTop() <= 0) {
+        isPullingRef.current = true;
+        const offset = Math.min(PULL_THRESHOLD, delta * 0.55);
+        pullOffsetRef.current = offset;
+        setPullOffset(offset, false);
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (!isPullingRef.current) return;
+      isPullingRef.current = false;
+      if (pullOffsetRef.current >= PULL_THRESHOLD) {
+        setPullRefreshing(true);
+        setTimeout(() => window.location.reload(), 900);
+      } else {
+        setPullOffset(0, true);
+        pullOffsetRef.current = 0;
+      }
+    };
+
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, []);
 
 
   const mobileAccountCard = session ? (
@@ -2120,9 +2159,6 @@ function AppShell() {
         }}
       >
         <div className={`ja-page-frame ${options?.className ?? ""}`}>
-          <IonRefresher slot="fixed" mode="md" onIonPull={handleIonPull} onIonRefresh={handleIonRefresh}>
-            <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
-          </IonRefresher>
 
           <div className="ja-content-offset">
             <main className="ja-app-main">
@@ -2144,6 +2180,11 @@ function AppShell() {
 
   return (
     <>
+      {/* Pull-to-refresh spinner — sits behind nav bar, revealed as everything slides down */}
+      <div className={`ja-pull-spinner${pullRefreshing ? " ja-pull-spinner--spin" : ""}`}>
+        <div className="ja-pull-spinner-ring" />
+      </div>
+
       <Navigation
         activeTab={activeRoute}
         setActiveTab={navigateTo}
