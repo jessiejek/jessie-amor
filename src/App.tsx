@@ -2010,33 +2010,60 @@ function AppShell() {
     };
   }, []);
 
+  const touchStartYRef = useRef(0);
   const isPullingRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
 
   const setNavOffset = (px: number, animate: boolean) => {
     const root = document.documentElement;
-    root.style.setProperty("--ja-pull-offset", `${px}px`);
+    root.style.setProperty("--ja-pull-offset", `${Math.round(px)}px`);
     root.style.setProperty("--ja-pull-easing", animate ? "transform 0.45s cubic-bezier(0.16,1,0.3,1)" : "none");
   };
 
-  const handleIonStart = () => {
-    isPullingRef.current = true;
-    const tick = () => {
-      if (!isPullingRef.current) return;
-      const scrollEl = document.querySelector("ion-content.ja-ion-content")
-        ?.shadowRoot?.querySelector(".inner-scroll") as HTMLElement | null;
-      const raw = scrollEl?.style?.transform ?? "";
-      const match = raw.match(/translateY\(([0-9.]+)px\)/);
-      const offset = match ? Math.min(72, parseFloat(match[1]) * 0.7) : 0;
-      setNavOffset(offset, false);
-      rafRef.current = requestAnimationFrame(tick);
+  useEffect(() => {
+    const getScrollTop = () => {
+      const content = document.querySelector("ion-content.ja-ion-content") as HTMLElement & { scrollTop?: number } | null;
+      if (!content) return 0;
+      // Ionic exposes scrollTop via the element property
+      return (content as unknown as { scrollTop: number }).scrollTop ?? 0;
     };
-    rafRef.current = requestAnimationFrame(tick);
-  };
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartYRef.current = e.touches[0].clientY;
+      isPullingRef.current = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const deltaY = e.touches[0].clientY - touchStartYRef.current;
+      // Only animate header when pulling down from top of scroll
+      if (deltaY > 0 && getScrollTop() <= 0) {
+        isPullingRef.current = true;
+        const offset = Math.min(64, deltaY * 0.45);
+        setNavOffset(offset, false);
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (isPullingRef.current) {
+        isPullingRef.current = false;
+        setNavOffset(0, true);
+      }
+    };
+
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, []);
 
   const handleIonRefresh = (event: CustomEvent) => {
     isPullingRef.current = false;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setNavOffset(0, true);
     window.setTimeout(() => {
       window.location.reload();
@@ -2047,7 +2074,6 @@ function AppShell() {
   const handlePullCancel = () => {
     if (!isPullingRef.current) return;
     isPullingRef.current = false;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setNavOffset(0, true);
   };
 
@@ -2143,12 +2169,8 @@ function AppShell() {
           document.documentElement.classList.toggle("nav-scrolled", top > 60);
         }}
       >
-        <div
-          className={`ja-page-frame ${options?.className ?? ""}`}
-          onTouchEnd={handlePullCancel}
-          onTouchCancel={handlePullCancel}
-        >
-          <IonRefresher slot="fixed" onIonStart={handleIonStart} onIonRefresh={handleIonRefresh}>
+        <div className={`ja-page-frame ${options?.className ?? ""}`}>
+          <IonRefresher slot="fixed" onIonRefresh={handleIonRefresh}>
             <IonRefresherContent pullingText="Pull to refresh" refreshingSpinner="crescent" />
           </IonRefresher>
 
