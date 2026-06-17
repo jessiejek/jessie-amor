@@ -696,7 +696,7 @@ const currentItinerary = {
   hero: {
     eyebrow: 'Travel Itinerary',
     title: "J&A Malaysia · Singapore Trip 2026",
-    subtitle: 'Trip Itinerary',
+    subtitle: 'July 11–14 · Malaysia & Singapore',
     meta: [],
     note: [],
   } satisfies HeroData,
