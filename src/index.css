@@ -70,6 +70,13 @@
   --ja-space-xl: 24px;
   --ja-space-2xl: 32px;
   --ja-space-3xl: 48px;
+  /* Ionic primary color — dark forest green */
+  --ion-color-primary: #0B3530;
+  --ion-color-primary-rgb: 11, 53, 48;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #18534C;
+  --ion-color-primary-tint: #1a3a35;
 }
 
 html,
@@ -117,7 +124,7 @@ ion-content.ja-ion-content {
 }
 
 .ja-ion-tab-bar {
-  --background: var(--ja-green-700);
+  --background: var(--ja-green-900);
   --border: 1px solid rgba(255, 255, 255, 0.08);
   height: 70px;
   padding-bottom: 4px;
@@ -1798,8 +1805,8 @@ textarea::placeholder {
 }
 
 .ja-budget-submit-btn {
-  --background: var(--ja-green-600);
-  --background-hover: var(--ja-green-500);
+  --background: var(--ja-green-900);
+  --background-hover: var(--ja-green-600);
   --border-radius: var(--ja-radius-md);
   font-weight: 700;
   font-size: 15px;
@@ -1926,8 +1933,8 @@ textarea::placeholder {
 }
 
 .ja-diary-hero-btn {
-  --background: var(--ja-green-600);
-  --background-hover: var(--ja-green-500);
+  --background: var(--ja-green-900);
+  --background-hover: var(--ja-green-600);
   --border-radius: var(--ja-radius-md);
   font-weight: 700;
   font-size: 14px;
@@ -1937,7 +1944,7 @@ textarea::placeholder {
 }
 .ja-diary-hero-btn.ion-disabled,
 .ja-diary-hero-btn[disabled] {
-  --background: var(--ja-green-600) !important;
+  --background: var(--ja-green-900) !important;
   opacity: 0.55 !important;
 }
 
