@@ -132,9 +132,9 @@ ion-content.ja-ion-content {
   --ripple-color: rgba(255, 255, 255, 0.16);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  --padding-top: 6px;
-  --padding-bottom: 4px;
+  letter-spacing: 0.01em;
+  --padding-top: 4px;
+  --padding-bottom: 3px;
   transition: color 0.15s ease;
 }
 
@@ -157,9 +157,9 @@ ion-content.ja-ion-content {
 }
 
 .ja-ion-tab-bar ion-icon {
-  font-size: 22px;
-  margin-bottom: 2px;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+  font-size: 21px;
+  margin-bottom: 1px;
+  filter: none;
 }
 
 @media (min-width: 768px) {
@@ -6606,17 +6606,17 @@ ion-content.ja-ion-content,
 }
 
 .ja-ion-tab-bar ion-icon {
-  width: 28px;
-  height: 28px;
-  padding: 6px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.08);
-  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: content-box;
 }
 
 .ja-ion-tab-bar ion-tab-button.tab-selected ion-icon {
-  background: rgba(255,255,255,0.16);
-  color: #ffffff;
+  background: transparent;
+  color: var(--ja-gold-light);
 }
 
 .ja-budget-summary-card,
