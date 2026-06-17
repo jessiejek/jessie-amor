@@ -5478,12 +5478,6 @@ textarea::placeholder {
   will-change: transform;
 }
 
-.ja-ion-tab-bar {
-  transform: translateY(calc(var(--ja-pull-offset, 0px) * -0.4));
-  transition: var(--ja-pull-easing, none);
-  will-change: transform;
-}
-
 /* Bar is now static inside the fixed header — remove its own fixed/shadow */
 .ja-nav-mobile-bar {
   position: static !important;
