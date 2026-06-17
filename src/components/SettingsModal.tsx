@@ -127,7 +127,7 @@ export default function SettingsModal({
   };
 
   return (
-    <IonModal isOpen={open} onDidDismiss={() => { if (!isFirstSetup) onClose(); }} backdropDismiss={!isFirstSetup} className="ja-settings-modal">
+    <IonModal isOpen={open} onDidDismiss={() => { if (!isFirstSetup) onClose(); }} backdropDismiss={!isFirstSetup} className="ja-settings-modal ja-settings-fullpage">
       <IonHeader>
         <IonToolbar style={brandToolbar}>
           {!isFirstSetup && <IonButtons slot="end"><IonButton onClick={onClose} aria-label="Close settings modal"><IonIcon icon={closeOutline} /></IonButton></IonButtons>}
