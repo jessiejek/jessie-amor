@@ -239,7 +239,7 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
         </div>
       </header>
 
-      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={true} enterAnimation={moreDrawerEnterAnimation} leaveAnimation={moreDrawerLeaveAnimation} style={{ "--width": "100vw", "--max-width": "100vw", "--min-width": "260px", "--height": "100dvh", "--border-radius": "0", "--box-shadow": "8px 0 32px rgba(0,0,0,0.3)", "--backdrop-opacity": "0.5" } as React.CSSProperties}>
+      <IonModal isOpen={showMoreDrawer} onDidDismiss={() => setShowMoreDrawer(false)} className="ja-more-modal" swipeToClose={true} enterAnimation={moreDrawerEnterAnimation} leaveAnimation={moreDrawerLeaveAnimation} style={{ "--width": "100vw", "--max-width": "100vw", "--min-width": "260px", "--height": "460px", "--border-radius": "0", "--box-shadow": "8px 0 32px rgba(0,0,0,0.3)", "--backdrop-opacity": "0.5" } as React.CSSProperties}>
         <IonHeader><IonToolbar style={{ "--background": "#1a3a35", "--color": "#ffffff" } as React.CSSProperties}>
           <IonTitle className="ja-nav-more-title">More</IonTitle>
           <IonButtons slot="end"><IonButton onClick={() => setShowMoreDrawer(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>
