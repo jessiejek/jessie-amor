@@ -130,11 +130,11 @@ ion-content.ja-ion-content {
   --color-selected: #ffffff;
   --background-focused: transparent;
   --ripple-color: rgba(255, 255, 255, 0.16);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  --padding-top: 6px;
-  --padding-bottom: 5px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
   transition: color 0.15s ease;
 }
 
@@ -511,7 +511,8 @@ textarea::placeholder {
   background: #f8faf9;
   color: #374151;
   border-radius: 999px;
-  padding: 9px 15px;
+  padding: 12px 16px;
+  min-height: 44px;
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
@@ -656,15 +657,16 @@ textarea::placeholder {
 
   .budget-page .budget-label {
     font-size: 14px !important;
-    margin-bottom: 3px !important;
+    margin-bottom: 8px !important;
   }
 
   .budget-page .budget-input {
-    height: 30px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
+    min-height: 40px !important;
+    height: auto !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
     font-size: 15px !important;
   }
 
@@ -1150,6 +1152,15 @@ textarea::placeholder {
   backdrop-filter: blur(8px);
 }
 
+@media (max-width: 767px) {
+  .ja-nav-mobile-actions .ja-nav-icon-btn {
+    height: 40px;
+    width: 40px;
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
 .ja-nav-desktop-btn {
   --padding-start: 10px;
   --padding-end: 10px;
@@ -1162,7 +1173,7 @@ textarea::placeholder {
 }
 
 .ja-more-modal {
-  --width: min(320px, 85vw);
+  --width: 100vw;
   --height: 100dvh;
   --max-height: 100dvh;
   --border-radius: 0;
@@ -1175,7 +1186,7 @@ textarea::placeholder {
 .ja-more-modal::part(content) {
   position: absolute;
   inset: 0 auto 0 0;
-  width: min(320px, 85vw);
+  width: 100vw;
   margin-left: 0;
   margin-right: auto;
   height: 100dvh;
@@ -1419,7 +1430,7 @@ textarea::placeholder {
   --padding-end: 16px;
   font-size: 12px;
   font-weight: 600;
-  height: 36px;
+  height: 44px;
   margin: 0;
 }
 
@@ -2729,9 +2740,6 @@ textarea::placeholder {
   color: var(--ja-green-900) !important;
   padding: 0;
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 @media (min-width: 768px) {
@@ -4975,13 +4983,16 @@ textarea::placeholder {
 .ja-nav-desktop { display: none; }
 @media (min-width: 768px) { .ja-nav-desktop { display: block; } }
 
-.ja-nav-mobile-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 14px 10px; background: var(--ja-green-900); color: #f5f5f4; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+.ja-nav-mobile-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; padding: max(0.75rem, env(safe-area-inset-top, 0.75rem)) 14px 10px; background: var(--ja-green-900); color: #f5f5f4; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
 .ja-nav-mobile-left { min-width: 0; }
 .ja-nav-mobile-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ja-gold); font-family: var(--font-mono); line-height: 1; font-weight: 700; }
 .ja-nav-mobile-title-row { margin-top: 6px; }
 .ja-nav-mobile-title { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.22; color: #ffffff; letter-spacing: -0.015em; }
 .ja-nav-mobile-title-inner { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .ja-nav-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+@media (max-width: 767px) {
+  .ja-nav-mobile-title .ja-nav-truncate { white-space: normal; overflow: visible; text-overflow: unset; line-height: 1.2; }
+}
 .ja-nav-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
 .ja-nav-dot-online { background: var(--ja-success); }
 .ja-nav-dot-offline { background: var(--ja-danger); }
