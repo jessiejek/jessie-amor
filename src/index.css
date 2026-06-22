@@ -3181,14 +3181,9 @@ textarea::placeholder {
 }
 
 .ja-settings-grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-}
-
-@media (min-width: 768px) {
-  .ja-settings-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .ja-settings-field-label {
