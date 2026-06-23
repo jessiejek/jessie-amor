@@ -137,7 +137,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
     e.preventDefault();
     if (!canEdit) return;
     const pa = parseFloat(amountText);
-    if (!desc.trim() || !amountText || isNaN(pa)) return;
+    if (!desc.trim() || !amountText || isNaN(pa) || pa <= 0) return;
     setExpenses((prev) => [...prev, { id: "exp-" + Date.now(), day, category, item: desc, amount: convertToRm(pa, amountCurrency), paidWith, originalAmount: pa, originalCurrency: amountCurrency, createdBy: currentUser?.userId, savedByUserId: currentUser?.userId, savedByEmail: currentUser?.email, createdAt: new Date().toISOString(), syncStatus: "pending" }]);
     setDesc(""); setAmountText("");
   };

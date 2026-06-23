@@ -3,12 +3,10 @@ import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, Book
 import { createAnimation, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
-import { itinerary } from "../data/code1Itinerary";
+import { itinerary, TRAVELER_1, TRAVELER_2 } from "../data/code1Itinerary";
 import type { Expense } from "../types";
 import { jsPDF } from "jspdf";
 
-const TRAVELER_1 = "Jessie Jay Q. Rubi";
-const TRAVELER_2 = "Rizza Amor L. Caguco";
 const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0);
 const HEADER_TITLE = "J&A Malaysia · Singapore Trip 2026";
 const HOLIDAY_DISPLAY_DATE = { year: 2026, month: 6, day: 11 };

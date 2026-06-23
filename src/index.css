@@ -5208,9 +5208,9 @@ textarea::placeholder {
 .ja-app-settings-warning { font-size: 11px; color: #d97706; }
 .ja-app-settings-helper { font-size: 11px; color: #a8a29e; }
 
-.ja-app-scroll-btn { position: fixed; bottom: 96px; right: 20px; z-index: 1300; display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--ja-green-900); color: #ffffff; box-shadow: var(--ja-shadow-sm); transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; transform: translateY(16px); pointer-events: none; border: none; cursor: pointer; }
+.ja-app-scroll-btn { position: fixed; bottom: calc(70px + 12px + env(safe-area-inset-bottom, 0px)); right: 20px; z-index: 1300; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--ja-green-900); color: #ffffff; box-shadow: var(--ja-shadow-sm); transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; transform: translateY(16px); pointer-events: none; border: none; cursor: pointer; }
 .ja-app-scroll-btn:hover { background: var(--ja-green-600); }
-@media (min-width: 768px) { .ja-app-scroll-btn { bottom: 32px; right: 32px; } }
+@media (min-width: 768px) { .ja-app-scroll-btn { bottom: 32px; right: 32px; width: 40px; height: 40px; } }
 .ja-app-scroll-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
 .ja-app-mobile-card { padding: 16px; }

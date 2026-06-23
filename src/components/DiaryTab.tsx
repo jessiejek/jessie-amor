@@ -39,15 +39,23 @@ const normalizeDiaryRating = (rating: number) => Math.round(Math.max(1, Math.min
 const formatDiaryRating = (rating: number) => { const n = normalizeDiaryRating(rating); return Number.isInteger(n) ? String(n) : n.toFixed(1); };
 
 const compressImageFileToDataUrl = async (file: File) => {
-  const objectUrl = URL.createObjectURL(file);
+  // createImageBitmap with imageOrientation:'from-image' respects iPhone EXIF rotation
+  // so portrait photos no longer come out sideways after canvas compression
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error("The selected image could not be read.")); img.src = objectUrl; });
-    const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement("canvas"); canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("Canvas compression is not supported in this browser.");
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas compression is not supported in this browser.");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/jpeg", 0.8);
-  } finally { URL.revokeObjectURL(objectUrl); }
+  } finally {
+    bitmap.close();
+  }
 };
 
 const formatSavedBy = (email?: string, userId?: string) => { if (email) return email.split("@")[0]; if (userId) return userId.slice(0, 8); return "Unknown"; };

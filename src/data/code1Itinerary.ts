@@ -1,4 +1,7 @@
-﻿export type Category = 'train' | 'bus' | 'food' | 'spot' | 'hotel' | 'walk' | 'free';
+﻿export const TRAVELER_1 = "Jessie Jay Q. Rubi";
+export const TRAVELER_2 = "Rizza Amor L. Caguco";
+
+export type Category = 'train' | 'bus' | 'food' | 'spot' | 'hotel' | 'walk' | 'free';
 export type TagVariant = 'train' | 'bus' | 'food' | 'walk' | 'spot' | 'hotel' | 'free';
 
 export type TextSegment = {

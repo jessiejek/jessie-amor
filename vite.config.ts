@@ -35,7 +35,7 @@ export default defineConfig(() => {
               handler: "StaleWhileRevalidate",
               options: {
                 cacheName: "map-tiles",
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 14 },
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
               },
             },
           ],
