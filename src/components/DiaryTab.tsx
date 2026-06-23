@@ -123,10 +123,20 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
   const [photoError, setPhotoError] = useState("");
   const [locationLookupError, setLocationLookupError] = useState("");
   const [isLocating, setIsLocating] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+  const [shakingFields, setShakingFields] = useState<Set<string>>(new Set());
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const ratingTrackRef = useRef<HTMLDivElement | null>(null);
   const isRatingDraggingRef = useRef(false);
+  const titleFieldRef = useRef<HTMLDivElement | null>(null);
+  const dateFieldRef = useRef<HTMLDivElement | null>(null);
+  const locationFieldRef = useRef<HTMLDivElement | null>(null);
+  const descriptionFieldRef = useRef<HTMLDivElement | null>(null);
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => { const next = new Set(prev); next.delete(field); return next; });
+  };
 
   const editingEntry = editingId ? diaryEntries.find((e) => e.id === editingId) ?? null : null;
   const canManageEntry = (entry?: DiaryEntry | null) => { if (!currentUser || !entry) return false; const o = entry.createdBy ?? entry.savedByUserId ?? null; return currentUser.isAdmin || o === currentUser.userId; };
@@ -157,7 +167,7 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
     }).sort((a, b) => { const at = new Date(a.createdAt).getTime(); const bt = new Date(b.createdAt).getTime(); return at !== bt ? bt - at : b.id.localeCompare(a.id); });
   }, [diaryEntries, filterRating, filterType, searchTerm, ownerFilter, currentUser]);
 
-  const resetForm = () => { setEditingId(null); setForm(createEmptyForm()); setPhotoError(""); setLocationLookupError(""); };
+  const resetForm = () => { setEditingId(null); setForm(createEmptyForm()); setPhotoError(""); setLocationLookupError(""); setFieldErrors(new Set()); setShakingFields(new Set()); };
   const focusForm = () => { if (!canEdit) return; titleInputRef.current?.focus(); formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,7 +201,24 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
     event.preventDefault();
     if (!canEdit) return; if (editingId && !editableEntry) return;
     const tt = form.title.trim(); const td = form.description.trim(); const tl = form.locationName.trim(); const tags = form.tagsText.split(",").map((t) => t.trim()).filter(Boolean);
-    if (!tt || !td || !tl || !form.dateVisited) return;
+
+    const errors = new Set<string>();
+    if (!tt) errors.add("title");
+    if (!form.dateVisited) errors.add("date");
+    if (!tl) errors.add("location");
+    if (!td) errors.add("description");
+
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      setShakingFields(new Set(errors));
+      setTimeout(() => setShakingFields(new Set()), 600);
+
+      const firstRef = !tt ? titleFieldRef : !form.dateVisited ? dateFieldRef : !tl ? locationFieldRef : descriptionFieldRef;
+      firstRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    setFieldErrors(new Set());
     const ex = editableEntry; const now = new Date().toISOString();
     const oid = ex ? (ex.createdBy ?? ex.savedByUserId ?? null) : currentUser?.userId ?? null;
     const oe = ex ? ex.savedByEmail ?? null : currentUser?.email ?? null;
@@ -249,10 +276,11 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
             </div>
             <div className="ja-diary-form-layout">
               <div className="ja-diary-form-fields">
-                <div className="ja-diary-field-span2">
-                  <span className="ja-diary-field-label">Title</span>
-                  <IonInput ref={titleInputRef} value={form.title} onIonInput={(e) => setForm((c) => ({ ...c, title: e.detail.value ?? "" }))}
-                    disabled={!canEdit} placeholder="Kaya toast at sunrise, Batu Caves, Marina Bay walk..." className="ja-diary-input" maxlength={120} required />
+                <div ref={titleFieldRef} className={`ja-diary-field-span2${fieldErrors.has("title") ? " ja-diary-field--error" : ""}${shakingFields.has("title") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Title <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("title") && <span className="ja-diary-field-error-msg">Title is required</span>}
+                  <IonInput ref={titleInputRef} value={form.title} onIonInput={(e) => { setForm((c) => ({ ...c, title: e.detail.value ?? "" })); clearFieldError("title"); }}
+                    disabled={!canEdit} placeholder="Kaya toast at sunrise, Batu Caves, Marina Bay walk..." className="ja-diary-input" maxlength={120} />
                 </div>
                 <div className="ja-diary-field">
                   <span className="ja-diary-field-label">Type</span>
@@ -260,17 +288,20 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
                     {diaryTypes.map((t) => <IonSelectOption key={t} value={t}>{t}</IonSelectOption>)}
                   </IonSelect>
                 </div>
-                <div className="ja-diary-field">
-                  <span className="ja-diary-field-label">Date visited</span>
-                  <IonInput type="date" value={form.dateVisited} onIonInput={(e) => setForm((c) => ({ ...c, dateVisited: e.detail.value ?? "" }))} disabled={!canEdit} className="ja-diary-input" required />
+                <div ref={dateFieldRef} className={`ja-diary-field${fieldErrors.has("date") ? " ja-diary-field--error" : ""}${shakingFields.has("date") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Date visited <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("date") && <span className="ja-diary-field-error-msg">Date is required</span>}
+                  <IonInput type="date" value={form.dateVisited} onIonInput={(e) => { setForm((c) => ({ ...c, dateVisited: e.detail.value ?? "" })); clearFieldError("date"); }} disabled={!canEdit} className="ja-diary-input" />
                 </div>
-                <div className="ja-diary-field-span2">
-                  <div className="ja-diary-field-row"><span className="ja-diary-field-label">Location name</span>
+                <div ref={locationFieldRef} className={`ja-diary-field-span2${fieldErrors.has("location") ? " ja-diary-field--error" : ""}${shakingFields.has("location") ? " ja-diary-field--shake" : ""}`}>
+                  <div className="ja-diary-field-row">
+                    <span className="ja-diary-field-label">Location name <span className="ja-diary-required">*</span></span>
                     <IonButton type="button" size="small" onClick={handleLocateMe} disabled={!canEdit || isLocating} className="ja-diary-locate-btn">
                       {isLocating ? <IonSpinner name="crescent" slot="start" /> : <IonIcon icon={locateOutline} slot="start" />}{isLocating ? "Locating..." : "Locate Me"}
                     </IonButton>
                   </div>
-                  <IonInput value={form.locationName} onIonInput={(e) => setForm((c) => ({ ...c, locationName: e.detail.value ?? "" }))} disabled={!canEdit} placeholder="Jalan Alor, Marina Bay Sands, KL Sentral..." className="ja-diary-input" maxlength={120} required />
+                  {fieldErrors.has("location") && <span className="ja-diary-field-error-msg">Location is required</span>}
+                  <IonInput value={form.locationName} onIonInput={(e) => { setForm((c) => ({ ...c, locationName: e.detail.value ?? "" })); clearFieldError("location"); }} disabled={!canEdit} placeholder="Jalan Alor, Marina Bay Sands, KL Sentral..." className="ja-diary-input" maxlength={120} />
                 </div>
                 <div className="ja-diary-field-span2">
                   <span className="ja-diary-field-label">Country or city</span>
@@ -302,10 +333,11 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
                 </div>
 
                 {/* Description */}
-                <div className="ja-diary-field-span2">
-                  <span className="ja-diary-field-label">Description</span>
-                  <IonTextarea value={form.description} onIonInput={(e) => setForm((c) => ({ ...c, description: e.detail.value ?? "" }))} disabled={!canEdit}
-                    placeholder="What made this stop memorable? What should we remember next time?" className="ja-diary-textarea" maxlength={1000} required />
+                <div ref={descriptionFieldRef} className={`ja-diary-field-span2${fieldErrors.has("description") ? " ja-diary-field--error" : ""}${shakingFields.has("description") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Description <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("description") && <span className="ja-diary-field-error-msg">Description is required</span>}
+                  <IonTextarea value={form.description} onIonInput={(e) => { setForm((c) => ({ ...c, description: e.detail.value ?? "" })); clearFieldError("description"); }} disabled={!canEdit}
+                    placeholder="What made this stop memorable? What should we remember next time?" className="ja-diary-textarea" maxlength={1000} />
                 </div>
 
                 {/* Tags */}
