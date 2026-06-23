@@ -109,13 +109,20 @@ export async function fetchExchangeRates(
   return buildRatesSnapshot(normalizedRates, "live", payload.date);
 }
 
+// Refresh interval while the app stays open and online (30 minutes).
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
 export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"]) => {
   const [rates, setRates] = useState<ExchangeRates>(getInitialRates);
 
   useEffect(() => {
     let cancelled = false;
 
+    // Always try for the freshest rates. On success we persist them so the
+    // last-known values survive going offline; on failure we keep whatever we
+    // already have (cached or fallback) and try again on the next trigger.
     const loadRates = async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
       try {
         const live = await fetchExchangeRates("PHP", ["MYR", ...additionalSymbols]);
         if (cancelled) return;
@@ -126,10 +133,21 @@ export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"
       }
     };
 
+    // Fetch on mount / when the requested currencies change.
     void loadRates();
+
+    // Refetch the moment connectivity returns, so a session that started
+    // offline upgrades to live rates without needing a reload.
+    const handleOnline = () => void loadRates();
+    window.addEventListener("online", handleOnline);
+
+    // Keep rates fresh during a long-running session.
+    const interval = window.setInterval(() => void loadRates(), REFRESH_INTERVAL_MS);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("online", handleOnline);
+      window.clearInterval(interval);
     };
   }, [additionalSymbols]);
 
