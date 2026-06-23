@@ -111,16 +111,13 @@ export async function fetchExchangeRates(
 
 export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"]) => {
   const [rates, setRates] = useState<ExchangeRates>(getInitialRates);
-  // Use a stable string key so array identity changes don't cause spurious refetches
-  const symbolsKey = additionalSymbols.join(",");
 
   useEffect(() => {
     let cancelled = false;
-    const symbols = symbolsKey ? symbolsKey.split(",") : ["MYR", "SGD"];
 
     const loadRates = async () => {
       try {
-        const live = await fetchExchangeRates("PHP", ["MYR", ...symbols]);
+        const live = await fetchExchangeRates("PHP", ["MYR", ...additionalSymbols]);
         if (cancelled) return;
         writeCachedRates(live);
         setRates(live);
@@ -134,7 +131,7 @@ export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"
     return () => {
       cancelled = true;
     };
-  }, [symbolsKey]);
+  }, [additionalSymbols]);
 
   return rates;
 };
