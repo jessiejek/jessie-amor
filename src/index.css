@@ -1145,9 +1145,10 @@ textarea::placeholder {
   border: 1px solid #e7e5e4;
   border-radius: 8px;
   background: #ffffff;
-  padding: 2px 8px;
-  --padding-start: 0;
-  --padding-end: 0;
+  --padding-start: 8px !important;
+  --padding-end: 8px !important;
+  --padding-top: 2px !important;
+  --padding-bottom: 2px !important;
 }
 
 .ja-settings-cap-input {
@@ -1155,9 +1156,10 @@ textarea::placeholder {
   border: 1px solid #e7e5e4;
   border-radius: 8px;
   background: #ffffff;
-  padding: 2px 8px;
-  --padding-start: 0;
-  --padding-end: 0;
+  --padding-start: 8px !important;
+  --padding-end: 8px !important;
+  --padding-top: 2px !important;
+  --padding-bottom: 2px !important;
 }
 
 .ja-settings-save-btn {
@@ -1614,9 +1616,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 12px !important;
+  --padding-end: 12px !important;
+  --padding-top: 10px !important;
+  --padding-bottom: 10px !important;
   font-size: 14px;
   min-height: 44px;
   transition: border-color 0.15s ease;
@@ -1630,9 +1633,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 12px !important;
+  --padding-end: 12px !important;
+  --padding-top: 10px !important;
+  --padding-bottom: 10px !important;
   font-size: 14px;
   transition: border-color 0.15s ease;
 }
@@ -1799,9 +1803,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 12px !important;
+  --padding-end: 12px !important;
+  --padding-top: 10px !important;
+  --padding-bottom: 10px !important;
   font-size: 15px;
   min-height: 44px;
   transition: border-color 0.15s ease;
@@ -1976,11 +1981,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 10px 14px;
-  --padding-start: 14px;
-  --padding-end: 14px;
-  --padding-top: 10px;
-  --padding-bottom: 10px;
+  --padding-start: 14px !important;
+  --padding-end: 14px !important;
+  --padding-top: 10px !important;
+  --padding-bottom: 10px !important;
   font-size: 14px;
   min-height: 44px;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -1995,11 +1999,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 10px 14px;
-  --padding-start: 14px;
-  --padding-end: 14px;
-  --padding-top: 10px;
-  --padding-bottom: 10px;
+  --padding-start: 14px !important;
+  --padding-end: 14px !important;
+  --padding-top: 10px !important;
+  --padding-bottom: 10px !important;
   font-size: 14px;
   min-height: 120px;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -2303,9 +2306,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 10px;
-  --padding-end: 10px;
+  --padding-start: 10px !important;
+  --padding-end: 10px !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 8px !important;
   font-size: 13px;
   min-height: 84px;
   transition: border-color 0.15s ease;
@@ -2319,9 +2323,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 10px;
-  --padding-end: 10px;
+  --padding-start: 10px !important;
+  --padding-end: 10px !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 8px !important;
   font-size: 13px;
   min-height: 72px;
   transition: border-color 0.15s ease;
@@ -2335,9 +2340,10 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 10px;
-  --padding-end: 10px;
+  --padding-start: 10px !important;
+  --padding-end: 10px !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 8px !important;
   font-size: 13px;
   min-height: 40px;
   transition: border-color 0.15s ease;
@@ -6057,23 +6063,6 @@ textarea::placeholder {
   }
 }
 
-/* FIX 10 — Ionic shadow DOM input padding
-   IonInput / IonTextarea render text inside a shadow ::part(native) element.
-   Setting padding on the host class has no effect on the inner text; only
-   ::part(native) reaches inside the shadow DOM.                            */
-.ja-budget-input::part(native),
-.ja-notes-input::part(native),
-.ja-notes-textarea::part(native),
-.ja-notes-input-wide::part(native),
-.ja-diary-input::part(native),
-.ja-diary-textarea::part(native),
-.ja-map-input-sm::part(native),
-.ja-map-textarea::part(native),
-.ja-map-textarea-sm::part(native),
-.ja-settings-date-input::part(native),
-.ja-settings-cap-input::part(native) {
-  padding: 10px 14px;
-}
 
 /* FIX 10 — Diary entries responsive grid on desktop
    Uses the real class .ja-diary-entry-grid from DiaryTab.tsx.
@@ -6566,8 +6555,8 @@ html {
   }
 
   .ja-budget-input {
-    --padding-start: 8px;
-    --padding-end: 8px;
+    --padding-start: 8px !important;
+    --padding-end: 8px !important;
   }
 
   .ja-budget-select {
