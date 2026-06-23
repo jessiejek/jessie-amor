@@ -125,7 +125,7 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
   const [isLocating, setIsLocating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
   const [shakingFields, setShakingFields] = useState<Set<string>>(new Set());
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const titleInputRef = useRef<HTMLIonInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const ratingTrackRef = useRef<HTMLDivElement | null>(null);
   const isRatingDraggingRef = useRef(false);
@@ -168,7 +168,7 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
   }, [diaryEntries, filterRating, filterType, searchTerm, ownerFilter, currentUser]);
 
   const resetForm = () => { setEditingId(null); setForm(createEmptyForm()); setPhotoError(""); setLocationLookupError(""); setFieldErrors(new Set()); setShakingFields(new Set()); };
-  const focusForm = () => { if (!canEdit) return; titleInputRef.current?.focus(); formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const focusForm = () => { if (!canEdit) return; void titleInputRef.current?.setFocus(); formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!canEdit) return; const file = event.target.files?.[0]; if (!file) return; setPhotoError("");
@@ -194,7 +194,7 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
     if (!canManageEntry(entry)) return;
     setEditingId(entry.id); setPhotoError(""); setLocationLookupError("");
     setForm({ title: entry.title, description: entry.description, type: entry.type, rating: normalizeDiaryRating(entry.rating), dateVisited: entry.dateVisited, locationName: entry.locationName, cityOrCountry: entry.cityOrCountry ?? "", tagsText: entry.tags.join(", "), wouldRevisit: entry.wouldRevisit, photoUrl: entry.photoUrl ?? "", photoPath: entry.photoPath, photoChanged: false });
-    window.setTimeout(() => titleInputRef.current?.focus(), 0);
+    window.setTimeout(() => void titleInputRef.current?.setFocus(), 0);
   };
 
   const handleSubmit = (event: React.FormEvent) => {

@@ -942,7 +942,7 @@ function AppShell() {
       const baseEntry = rowToDiaryEntry(row);
       if (!row.photo_path) return baseEntry;
 
-      const { data, error } = await supabase.storage.from(supabaseDiaryBucket).createSignedUrl(row.photo_path, 60 * 60);
+      const { data, error } = await supabase.storage.from(supabaseDiaryBucket).createSignedUrl(row.photo_path, 60 * 60 * 24 * 365);
       if (error) {
         console.warn("Supabase diary photo load failed:", error.message);
         return baseEntry;
@@ -1222,7 +1222,7 @@ function AppShell() {
               return expense;
             }
 
-            return { ...expense, syncStatus: "synced" };
+            return { ...expense, syncStatus: "synced" as const };
           });
 
           for (const requestExpense of requestExpenses) {
@@ -1354,7 +1354,7 @@ function AppShell() {
               return item;
             }
 
-            return { ...item, syncStatus: "synced" };
+            return { ...item, syncStatus: "synced" as const };
           });
 
           for (const requestItem of requestChecklist) {
@@ -1569,7 +1569,7 @@ function AppShell() {
 
               const { data: signedData, error: signedError } = await supabase.storage
                 .from(supabaseDiaryBucket)
-                .createSignedUrl(photoPath, 60 * 60);
+                .createSignedUrl(photoPath, 60 * 60 * 24 * 365);
 
               if (signedError) {
                 console.warn("Supabase diary photo sign URL failed:", signedError.message);

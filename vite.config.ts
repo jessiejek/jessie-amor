@@ -9,27 +9,10 @@ export default defineConfig(() => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: [
-          "favicon.png",
-          "apple-touch-icon.png",
-          "icon-192.png",
-          "icon-512.png",
-          "day12-kl-skyline.png",
-          "day13-batu-caves.png",
-          "day13-saloma-bridge.png",
-        ],
         workbox: {
-          globPatterns: ["**/*.{js,css,html,woff2,ico}"],
+          globPatterns: ["**/*.{js,css,html,woff2,ico,webp,png}"],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*tabler.*/i,
-              handler: "CacheFirst",
-              options: {
-                cacheName: "tabler-icons",
-                expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
             {
               urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
               handler: "StaleWhileRevalidate",
@@ -68,6 +51,18 @@ export default defineConfig(() => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-react": ["react", "react-dom"],
+            "vendor-ionic": ["@ionic/react", "@ionic/react-router", "ionicons"],
+            "vendor-leaflet": ["leaflet"],
+            "vendor-supabase": ["@supabase/supabase-js"],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

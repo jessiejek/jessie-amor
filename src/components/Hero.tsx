@@ -2,7 +2,7 @@ import React from "react";
 import { IonChip } from "@ionic/react";
 import type { HeroData } from "../data/code1Itinerary";
 import RichText from "./RichText";
-import heroImage from "../assets/images/malaysia_singapore_hero_019e9d4d.png";
+import heroImage from "../assets/images/malaysia_singapore_hero.webp";
 
 interface HeroProps {
   hero: HeroData;

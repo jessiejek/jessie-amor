@@ -760,7 +760,7 @@ const currentItinerary = {
       title: 'DAY 1 · July 12',
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
 images: [
-      { title: 'Kuala Lumpur Skyline', url: '/day12-kl-skyline.png', label: 'CITY VIEW' },
+      { title: 'Kuala Lumpur Skyline', url: '/day12-kl-skyline.webp', label: 'CITY VIEW' },
     ],
       items: [
         {
@@ -927,8 +927,8 @@ images: [
       title: 'DAY 2 · July 13',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
 images: [
-      { title: 'Batu Caves Shrine', url: '/day13-batu-caves.png', label: 'MORNING ASCENT' },
-      { title: 'Saloma Link Bridge', url: '/day13-saloma-bridge.png', label: 'NIGHT ILLUMINATION' },
+      { title: 'Batu Caves Shrine', url: '/day13-batu-caves.webp', label: 'MORNING ASCENT' },
+      { title: 'Saloma Link Bridge', url: '/day13-saloma-bridge.webp', label: 'NIGHT ILLUMINATION' },
     ],
       items: [
         {

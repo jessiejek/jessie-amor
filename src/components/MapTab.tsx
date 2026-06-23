@@ -200,7 +200,8 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
     const pts = activeDay.destinations.map((d) => [d.lat, d.lng] as L.LatLngTuple);
     if (pts.length === 0) return;
     if (pts.length === 1) { map.setView(pts[0], 14, { animate: true }); } else { map.fitBounds(L.latLngBounds(pts), { padding: [36, 36] }); }
-    window.setTimeout(() => map.invalidateSize(), 50);
+    const to = window.setTimeout(() => map.invalidateSize(), 50);
+    return () => window.clearTimeout(to);
   }, [activeDay?.day, activeDay?.destinations.map((d) => `${d.id}:${d.lat},${d.lng}`).join("|")]);
 
   useEffect(() => { const map = mapRef.current; const m = selectedDestinationId ? markerRefs.current[selectedDestinationId] : null; if (!map || !m) return; map.panTo(m.getLatLng(), { animate: true, duration: 0.55 }); m.openPopup(); }, [selectedDestinationId, selectedDay]);

@@ -6901,3 +6901,79 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
     padding-top: calc(var(--ja-nav-height-desktop) + var(--ja-nav-content-gap)) !important;
   }
 }
+
+/* Error boundary — full-screen fallback when the app crashes */
+.ja-error-boundary {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--ja-cream);
+  font-family: var(--font-sans);
+  z-index: 99999;
+}
+
+.ja-error-boundary-card {
+  max-width: 360px;
+  width: 100%;
+  background: var(--ja-white);
+  border: 1px solid var(--ja-line);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(11, 53, 48, 0.12);
+}
+
+.ja-error-boundary-emoji {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.ja-error-boundary-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ja-green-900);
+  margin: 0 0 12px;
+}
+
+.ja-error-boundary-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #57534e;
+  margin: 0 0 16px;
+}
+
+.ja-error-boundary-detail {
+  font-size: 11px;
+  text-align: left;
+  color: #9ca3af;
+  background: var(--ja-cream-2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.ja-error-boundary-btn {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ja-green-900);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ja-error-boundary-btn:hover {
+  background: #18534C;
+}
