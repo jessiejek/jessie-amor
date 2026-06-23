@@ -6057,6 +6057,24 @@ textarea::placeholder {
   }
 }
 
+/* FIX 10 — Ionic shadow DOM input padding
+   IonInput / IonTextarea render text inside a shadow ::part(native) element.
+   Setting padding on the host class has no effect on the inner text; only
+   ::part(native) reaches inside the shadow DOM.                            */
+.ja-budget-input::part(native),
+.ja-notes-input::part(native),
+.ja-notes-textarea::part(native),
+.ja-notes-input-wide::part(native),
+.ja-diary-input::part(native),
+.ja-diary-textarea::part(native),
+.ja-map-input-sm::part(native),
+.ja-map-textarea::part(native),
+.ja-map-textarea-sm::part(native),
+.ja-settings-date-input::part(native),
+.ja-settings-cap-input::part(native) {
+  padding: 10px 14px;
+}
+
 /* FIX 10 — Diary entries responsive grid on desktop
    Uses the real class .ja-diary-entry-grid from DiaryTab.tsx.
    Defer to 1024px so internal card image+content layout has room. */
