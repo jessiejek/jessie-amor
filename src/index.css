@@ -1976,9 +1976,11 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  padding: 10px 14px;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
   font-size: 14px;
   min-height: 44px;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -1993,9 +1995,11 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 2px 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  padding: 10px 14px;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
   font-size: 14px;
   min-height: 120px;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -2010,7 +2014,7 @@ textarea::placeholder {
   border: 1px solid var(--ja-line);
   border-radius: var(--ja-radius-sm);
   background: var(--ja-white);
-  padding: 0 12px;
+  padding: 10px 14px;
   font-size: 14px;
   min-height: 44px;
   width: 100%;
@@ -4519,11 +4523,11 @@ textarea::placeholder {
 .ja-diary-form-fields {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 20px;
 }
 @media (min-width: 768px) { .ja-diary-form-fields { grid-template-columns: repeat(2, 1fr); } }
 
-.ja-diary-field-label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #57534e; }
+.ja-diary-field-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: #57534e; }
 .ja-diary-field-span2 { }
 @media (min-width: 768px) { .ja-diary-field-span2 { grid-column: span 2; } }
 
