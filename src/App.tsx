@@ -1256,7 +1256,7 @@ function AppShell() {
               .from(supabaseReceiptBucket)
               .remove(removedReceiptPaths);
             if (receiptDeleteError) {
-              console.warn("Supabase receipt photo delete failed:", receiptDeleteError.message);
+              console.error("Supabase receipt photo delete failed:", receiptDeleteError.message, "paths:", removedReceiptPaths);
             }
           }
           requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; });
