@@ -23,8 +23,8 @@ type TransactionRow = {
 // still pending. We prefer createImageBitmap (fast, respects EXIF rotation) and
 // fall back to an <img> decode for browsers/formats it can't handle directly
 // (e.g. some iPhone HEIC photos), so attaching never just errors out.
-const MAX_RECEIPT_BYTES = 3 * 1024 * 1024;          // hard ceiling
-const TARGET_RECEIPT_BYTES = 1.2 * 1024 * 1024;     // aim small to stay cache-safe
+const MAX_RECEIPT_BYTES = 900 * 1024;   // hard ceiling — anything above this retries
+const TARGET_RECEIPT_BYTES = 500 * 1024; // aim for ≤500 KB so uploads are fast on mobile
 const estimateDataUrlBytes = (dataUrl: string) => {
   const comma = dataUrl.indexOf(",");
   const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
@@ -60,10 +60,14 @@ const loadDrawable = async (file: File): Promise<Drawable> => {
 const compressReceiptToDataUrl = async (file: File): Promise<string> => {
   const src = await loadDrawable(file);
   try {
-    let scale = Math.min(1, 1280 / Math.max(src.width, src.height));
-    let quality = 0.7;
+    // Start at 1024px max — smaller initial dimension means less data to push
+    // through the quality loop for large gallery photos.
+    const longestEdge = Math.max(src.width, src.height);
+    let scale = Math.min(1, 1024 / longestEdge);
+    // Large source files start with a lower quality to hit the target faster.
+    let quality = longestEdge > 2500 ? 0.55 : 0.65;
     let bestUnderCeiling = "";
-    for (let attempt = 0; attempt < 8; attempt++) {
+    for (let attempt = 0; attempt < 12; attempt++) {
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(src.width * scale));
       canvas.height = Math.max(1, Math.round(src.height * scale));
@@ -76,8 +80,8 @@ const compressReceiptToDataUrl = async (file: File): Promise<string> => {
       const bytes = estimateDataUrlBytes(dataUrl);
       if (bytes <= TARGET_RECEIPT_BYTES) return dataUrl;
       if (bytes <= MAX_RECEIPT_BYTES) bestUnderCeiling = dataUrl;
-      if (quality > 0.45) quality -= 0.12;
-      else scale *= 0.8;
+      if (quality > 0.35) quality -= 0.1;
+      else scale *= 0.75;
     }
     if (bestUnderCeiling) return bestUnderCeiling;
     throw new Error("This photo is too large even after compression. Try a smaller image.");
