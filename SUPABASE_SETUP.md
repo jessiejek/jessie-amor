@@ -356,6 +356,52 @@ create policy "Users manage own settings"
   with check (auth.uid()::text = user_id);
 ```
 
+## 4b) Receipt photos on budget expenses
+
+Run this once to enable attaching a receipt photo to each expense. It adds one
+column to the existing expenses table and a private storage bucket that mirrors
+the diary photo setup.
+
+```sql
+-- Receipt photo path on expenses
+alter table public.budget_expenses
+  add column if not exists receipt_path text;
+
+-- Private bucket for receipt photos
+insert into storage.buckets (id, name, public)
+values ('trip-receipt-photos', 'trip-receipt-photos', false)
+on conflict (id) do update
+set name = excluded.name,
+    public = excluded.public;
+
+drop policy if exists "Authenticated users can read receipt photos" on storage.objects;
+create policy "Authenticated users can read receipt photos"
+  on storage.objects
+  for select
+  using (bucket_id = 'trip-receipt-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can upload receipt photos" on storage.objects;
+create policy "Authenticated users can upload receipt photos"
+  on storage.objects
+  for insert
+  with check (bucket_id = 'trip-receipt-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can update receipt photos" on storage.objects;
+create policy "Authenticated users can update receipt photos"
+  on storage.objects
+  for update
+  using (bucket_id = 'trip-receipt-photos' and auth.role() = 'authenticated')
+  with check (bucket_id = 'trip-receipt-photos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can delete receipt photos" on storage.objects;
+create policy "Authenticated users can delete receipt photos"
+  on storage.objects
+  for delete
+  using (bucket_id = 'trip-receipt-photos' and auth.role() = 'authenticated');
+```
+
+Optional env override (defaults shown): `VITE_SUPABASE_RECEIPT_BUCKET=trip-receipt-photos`.
+
 ## 5) Notes
 
 - The app uses `VITE_TRIP_KEY` so both travelers sync to the same trip record.

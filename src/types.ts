@@ -20,6 +20,8 @@ export interface Expense {
   paidWith: PaymentMethod;
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
+  receiptPath?: string; // Supabase Storage path for the receipt photo
+  receiptUrl?: string; // local data: URL before upload, signed URL after
   createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;

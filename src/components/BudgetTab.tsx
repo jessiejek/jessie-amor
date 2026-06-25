@@ -5,7 +5,7 @@ import {
   IonInput, IonButton, IonIcon, IonSelect, IonSelectOption,
   IonSegment, IonSegmentButton, IonChip, IonLabel,
 } from "@ionic/react";
-import { addCircleOutline, cashOutline, cardOutline, micOutline, micCircleOutline, funnelOutline, alertCircleOutline } from "ionicons/icons";
+import { addCircleOutline, cashOutline, cardOutline, micOutline, micCircleOutline, funnelOutline, alertCircleOutline, imageOutline, cameraOutline, closeOutline } from "ionicons/icons";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { CurrentUserInfo, Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus, UserTripSettings } from "../types";
 
@@ -14,6 +14,41 @@ type TransactionRow = {
   category: string; method: string; user: string | null; createdBy: string | null;
   savedByUserId: string | null; savedByEmail: string | null; amount: number;
   originalAmount?: number; originalCurrency?: ExpenseCurrency; created_at?: string; syncStatus?: SyncStatus;
+  receiptUrl?: string; receiptPath?: string;
+};
+
+// Receipts are compressed on the front end so every upload stays under 3 MB,
+// keeping Storage usage (and the offline cache) small. EXIF orientation is
+// preserved so phone photos do not come out sideways.
+const MAX_RECEIPT_BYTES = 3 * 1024 * 1024;
+const estimateDataUrlBytes = (dataUrl: string) => {
+  const comma = dataUrl.indexOf(",");
+  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  return Math.floor((base64.length * 3) / 4);
+};
+const compressReceiptToDataUrl = async (file: File): Promise<string> => {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  try {
+    let scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    let quality = 0.8;
+    for (let attempt = 0; attempt < 7; attempt++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Image compression is not supported in this browser.");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      if (estimateDataUrlBytes(dataUrl) <= MAX_RECEIPT_BYTES) return dataUrl;
+      if (quality > 0.5) quality -= 0.15;
+      else scale *= 0.8;
+    }
+    throw new Error("This photo is too large even after compression. Try a smaller image.");
+  } finally {
+    bitmap.close();
+  }
 };
 
 interface SpeechRecognition {
@@ -74,9 +109,10 @@ interface BudgetTabProps {
   isSupabaseConnected?: boolean; isOnline?: boolean; canEdit?: boolean;
   currentUser?: CurrentUserInfo | null; exchangeRates: ExchangeRates;
   budgetCapPhp: number; userSettings?: UserTripSettings | null;
+  getReceiptSignedUrl?: (path: string) => Promise<string | null>;
 }
 
-export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected = false, isOnline = true, canEdit = false, currentUser = null, exchangeRates, budgetCapPhp, userSettings = null }: BudgetTabProps) {
+export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected = false, isOnline = true, canEdit = false, currentUser = null, exchangeRates, budgetCapPhp, userSettings = null, getReceiptSignedUrl }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
   const fallbackDayOptions = [{ value: 12, label: "July 12" }, { value: 13, label: "July 13" }, { value: 14, label: "July 14" }, { value: 15, label: "July 15" }];
@@ -92,6 +128,15 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [dismissedOverBudget, setDismissedOverBudget] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+  // Receipt photo attached to the in-progress "Add Custom Spend" form
+  const [draftReceiptUrl, setDraftReceiptUrl] = useState<string>("");
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  const [loadingReceiptId, setLoadingReceiptId] = useState<string | null>(null);
+  // Hidden input reused to attach/replace a receipt on an existing expense
+  const cardReceiptInputRef = React.useRef<HTMLInputElement | null>(null);
+  const receiptTargetIdRef = React.useRef<string | null>(null);
 
   const activeDayOptions = useMemo(() => {
     const d = (userSettings?.travelDates ?? []).map((ds) => { const dt = new Date(`${ds}T00:00:00`); return { value: dt.getDate(), label: dt.toLocaleDateString("en-US", { month: "long", day: "numeric" }) }; });
@@ -128,7 +173,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
     : `100 ${primaryDisplayCurrency}`;
   const formatDisplayTime = (v?: string | null) => { if (!v) return "Unknown time"; const p = new Date(v); return Number.isNaN(p.getTime()) ? "Unknown time" : p.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase(); };
   const formatTransactionAmount = (tx: TransactionRow) => tx.originalAmount != null && tx.originalCurrency ? `-${tx.originalCurrency} ${Math.abs(tx.originalAmount).toFixed(2)}` : `-RM ${Math.abs(tx.amount).toFixed(2)}`;
-  const mapExpenseToTransaction = (e: Expense): TransactionRow => ({ id: e.id, name: e.item, date: dayLabelByValue.get(e.day) ?? `July ${String(e.day)}`, dayValue: e.day, time: formatDisplayTime(e.createdAt), category: e.category, method: e.paidWith, user: e.savedByEmail ?? e.savedByUserId ?? null, createdBy: e.createdBy ?? e.savedByUserId ?? null, savedByUserId: e.savedByUserId ?? null, savedByEmail: e.savedByEmail ?? null, amount: e.amount, originalAmount: e.originalAmount, originalCurrency: e.originalCurrency, created_at: e.createdAt, syncStatus: e.syncStatus });
+  const mapExpenseToTransaction = (e: Expense): TransactionRow => ({ id: e.id, name: e.item, date: dayLabelByValue.get(e.day) ?? `July ${String(e.day)}`, dayValue: e.day, time: formatDisplayTime(e.createdAt), category: e.category, method: e.paidWith, user: e.savedByEmail ?? e.savedByUserId ?? null, createdBy: e.createdBy ?? e.savedByUserId ?? null, savedByUserId: e.savedByUserId ?? null, savedByEmail: e.savedByEmail ?? null, amount: e.amount, originalAmount: e.originalAmount, originalCurrency: e.originalCurrency, created_at: e.createdAt, syncStatus: e.syncStatus, receiptUrl: e.receiptUrl, receiptPath: e.receiptPath });
   const sortTransactions = (items: TransactionRow[]) => [...items].sort((a, b) => { const at = a.created_at ? new Date(a.created_at).getTime() : 0; const bt = b.created_at ? new Date(b.created_at).getTime() : 0; if (at !== bt) return bt - at; if (a.dayValue !== b.dayValue) return b.dayValue - a.dayValue; return b.id.localeCompare(a.id); });
   const transactions = sortTransactions(expenses.map(mapExpenseToTransaction));
   const canManageExpense = (e: Expense | TransactionRow) => { const o = e.createdBy ?? e.savedByUserId ?? null; return Boolean(currentUser?.isAdmin || (currentUser && o === currentUser.userId)); };
@@ -138,11 +183,49 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
     if (!canEdit) return;
     const pa = parseFloat(amountText);
     if (!desc.trim() || !amountText || isNaN(pa) || pa <= 0) return;
-    setExpenses((prev) => [...prev, { id: "exp-" + Date.now(), day, category, item: desc, amount: convertToRm(pa, amountCurrency), paidWith, originalAmount: pa, originalCurrency: amountCurrency, createdBy: currentUser?.userId, savedByUserId: currentUser?.userId, savedByEmail: currentUser?.email, createdAt: new Date().toISOString(), syncStatus: "pending" }]);
-    setDesc(""); setAmountText("");
+    setExpenses((prev) => [...prev, { id: "exp-" + Date.now(), day, category, item: desc, amount: convertToRm(pa, amountCurrency), paidWith, originalAmount: pa, originalCurrency: amountCurrency, receiptUrl: draftReceiptUrl || undefined, createdBy: currentUser?.userId, savedByUserId: currentUser?.userId, savedByEmail: currentUser?.email, createdAt: new Date().toISOString(), syncStatus: "pending" }]);
+    setDesc(""); setAmountText(""); setDraftReceiptUrl(""); setReceiptError(null);
   };
 
   const deleteTransaction = (tx: TransactionRow) => { if (!canManageExpense(tx)) return; setExpenses((prev) => prev.filter((e) => e.id !== tx.id)); };
+
+  // Compress + attach a receipt photo to the in-progress add form
+  const handleDraftReceiptChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return;
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setReceiptError(null); setReceiptBusy(true);
+    try { setDraftReceiptUrl(await compressReceiptToDataUrl(file)); }
+    catch (err) { setReceiptError(err instanceof Error ? err.message : "Could not process the photo."); }
+    finally { setReceiptBusy(false); }
+  };
+
+  // Attach/replace a photo on an already-saved expense ("snap now, fix later")
+  const triggerCardReceipt = (expenseId: string) => { receiptTargetIdRef.current = expenseId; cardReceiptInputRef.current?.click(); };
+  const handleCardReceiptChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const targetId = receiptTargetIdRef.current;
+    event.target.value = ""; receiptTargetIdRef.current = null;
+    if (!file || !targetId) return;
+    setReceiptError(null); setReceiptBusy(true);
+    try {
+      const dataUrl = await compressReceiptToDataUrl(file);
+      setExpenses((prev) => prev.map((e) => e.id === targetId ? { ...e, receiptUrl: dataUrl, syncStatus: "pending" } : e));
+    } catch (err) { setReceiptError(err instanceof Error ? err.message : "Could not process the photo."); }
+    finally { setReceiptBusy(false); }
+  };
+
+  const openReceipt = async (tx: TransactionRow) => {
+    if (tx.receiptUrl) { setViewingReceipt(tx.receiptUrl); return; }
+    if (tx.receiptPath && getReceiptSignedUrl) {
+      setLoadingReceiptId(tx.id);
+      try {
+        const url = await getReceiptSignedUrl(tx.receiptPath);
+        if (url) setViewingReceipt(url); else setReceiptError("Could not load that photo. Check your connection.");
+      } finally { setLoadingReceiptId(null); }
+    }
+  };
 
   const ownerExpenses = useMemo(() => { if (ownerFilter === "mine" && currentUser) return expenses.filter((e) => e.createdBy === currentUser.userId || e.savedByUserId === currentUser.userId); return expenses; }, [expenses, ownerFilter, currentUser]);
   const myExpenses = useMemo(() => { if (!currentUser) return expenses; return expenses.filter((e) => e.createdBy === currentUser.userId || e.savedByUserId === currentUser.userId); }, [expenses, currentUser]);
@@ -335,6 +418,20 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                   {isListening && <span className="ja-budget-voice-pulse" />}
                   {speechError && <p className="ja-budget-voice-error"><IonIcon icon={alertCircleOutline} />{speechError}</p>}
                 </div>
+                <div className="ja-budget-receipt-wrap">
+                  <label className="ja-budget-receipt-attach">
+                    <input type="file" accept="image/*" capture="environment" onChange={handleDraftReceiptChange} disabled={!canEdit || receiptBusy} className="ja-diary-sr-only" />
+                    <IonIcon icon={draftReceiptUrl ? imageOutline : cameraOutline} />
+                    <span>{receiptBusy ? "Processing photo..." : draftReceiptUrl ? "Photo attached - tap to replace" : "Snap or attach photo (optional)"}</span>
+                  </label>
+                  {draftReceiptUrl && (
+                    <div className="ja-budget-receipt-preview">
+                      <img src={draftReceiptUrl} alt="Attached photo preview" onClick={() => setViewingReceipt(draftReceiptUrl)} />
+                      <button type="button" className="ja-budget-receipt-remove" onClick={() => setDraftReceiptUrl("")} aria-label="Remove photo"><IonIcon icon={closeOutline} /></button>
+                    </div>
+                  )}
+                  {receiptError && <p className="ja-budget-voice-error"><IonIcon icon={alertCircleOutline} />{receiptError}</p>}
+                </div>
                 <IonButton type="submit" expand="block" disabled={!canEdit} className="ja-budget-submit-btn">
                   <IonIcon slot="start" icon={addCircleOutline} />Add Expense Detail
                 </IonButton>
@@ -418,28 +515,40 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                         <article key={tx.id} className="budget-transaction-card">
                           <div className="budget-transaction-icon">{getCategoryIcon(tx.category)}</div>
                           <div className="budget-transaction-body">
-                            <div className="budget-transaction-top"><h4 className="budget-transaction-name">{tx.name}</h4></div>
-                            <div className="budget-transaction-middle">
-                              <div className="budget-transaction-badges">
-                                <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
-                                <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
-                              </div>
+                            <div className="budget-transaction-top">
+                              <h4 className="budget-transaction-name">{tx.name}</h4>
                               <div className="ja-budget-tx-amount-row">
                                 <div className="budget-transaction-amount">{formatTransactionAmount(tx)}</div>
                                 <span className="ja-budget-sync-dot" style={{ backgroundColor: getSyncDotColor(tx.syncStatus) }} title={getSyncDotLabel(tx.syncStatus)} aria-label={getSyncDotLabel(tx.syncStatus)} />
                               </div>
                             </div>
+                            <div className="budget-transaction-badges">
+                              <span className={getCategoryPillClass(tx.category)}>{tx.category}</span>
+                              <span className={getMethodPillClass(tx.method)}>{tx.method}</span>
+                              {(tx.receiptUrl || tx.receiptPath) && <span className="budget-pill budget-pill-receipt"><IonIcon icon={imageOutline} aria-hidden="true" />Photo</span>}
+                            </div>
                             <div className="budget-transaction-bottom">
                               <div className="budget-transaction-datetime">
                                 <span className="budget-transaction-date">{tx.date}</span>
-                                <span className="budget-transaction-dot" aria-hidden="true">|</span>
+                                <span className="budget-transaction-dot" aria-hidden="true">·</span>
                                 <span className="budget-transaction-time">{tx.time}</span>
+                                <span className="budget-transaction-dot" aria-hidden="true">·</span>
+                                <span className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</span>
                               </div>
-                              <div className="budget-transaction-user-line">{formatTransactionUser(tx.user)}</div>
+                              <div className="budget-transaction-actions">
+                                {(tx.receiptUrl || tx.receiptPath) && (
+                                  <button type="button" onClick={() => openReceipt(tx)} className="budget-transaction-receipt" title="View photo" aria-label="View photo" disabled={loadingReceiptId === tx.id}>
+                                    <IonIcon icon={imageOutline} />
+                                  </button>
+                                )}
+                                {canManageExpense(tx) && canEdit && (
+                                  <button type="button" onClick={() => triggerCardReceipt(tx.id)} className="budget-transaction-receipt" title={tx.receiptUrl || tx.receiptPath ? "Replace photo" : "Add photo"} aria-label={tx.receiptUrl || tx.receiptPath ? "Replace photo" : "Add photo"}>
+                                    <IonIcon icon={cameraOutline} />
+                                  </button>
+                                )}
+                                {canManageExpense(tx) && <button type="button" onClick={() => deleteTransaction(tx)} className="budget-transaction-delete" title="Delete transaction" aria-label="Delete transaction"><Trash2 size={16} aria-hidden="true" /></button>}
+                              </div>
                             </div>
-                          </div>
-                          <div className="budget-transaction-actions">
-                            {canManageExpense(tx) && <button type="button" onClick={() => deleteTransaction(tx)} className="budget-transaction-delete" title="Delete transaction" aria-label="Delete transaction"><Trash2 size={16} aria-hidden="true" /></button>}
                           </div>
                         </article>
                       ))}
@@ -451,6 +560,17 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
           </IonCardContent>
         </IonCard>
       </div>
+
+      {/* Shared hidden input for attaching/replacing a receipt on an existing row */}
+      <input ref={cardReceiptInputRef} type="file" accept="image/*" capture="environment" onChange={handleCardReceiptChange} className="ja-diary-sr-only" />
+
+      {/* Receipt viewer overlay */}
+      {viewingReceipt && (
+        <div className="ja-budget-receipt-viewer" role="dialog" aria-modal="true" onClick={() => setViewingReceipt(null)}>
+          <button type="button" className="ja-budget-receipt-viewer-close" onClick={() => setViewingReceipt(null)} aria-label="Close photo"><IonIcon icon={closeOutline} /></button>
+          <img src={viewingReceipt} alt="Attached photo" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }

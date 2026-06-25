@@ -58,6 +58,7 @@ import {
   supabaseNotesTable,
   supabaseDiaryTable,
   supabaseDiaryBucket,
+  supabaseReceiptBucket,
   supabaseBudgetSettingsTable,
   supabaseSettingsTable,
   tripKey,
@@ -90,6 +91,7 @@ type SupabaseExpenseRow = {
   paid_with: Expense["paidWith"];
   original_amount: number | null;
   original_currency: Expense["originalCurrency"] | null;
+  receipt_path: string | null;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
   created_at: string | null;
@@ -160,6 +162,7 @@ const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
   paid_with: expense.paidWith,
   original_amount: expense.originalAmount ?? null,
   original_currency: expense.originalCurrency ?? null,
+  receipt_path: expense.receiptPath ?? null,
   saved_by_user_id: expense.createdBy ?? expense.savedByUserId ?? null,
   saved_by_email: expense.savedByEmail ?? null,
   created_at: expense.createdAt ?? new Date().toISOString(),
@@ -175,6 +178,7 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   paidWith: row.paid_with,
   originalAmount: row.original_amount ?? undefined,
   originalCurrency: row.original_currency ?? undefined,
+  receiptPath: row.receipt_path ?? undefined,
   createdBy: row.saved_by_user_id ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
@@ -331,6 +335,9 @@ const getDiaryOwnerId = (entry: DiaryEntry) => entry.createdBy ?? entry.savedByU
 const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
 const isDiaryLocalPhotoUrl = (photoUrl?: string) => Boolean(photoUrl?.startsWith("data:"));
 
+const buildReceiptPath = (expenseId: string, userId: string) => `${tripKey}/${userId}/${expenseId}-receipt.jpg`;
+const isLocalReceiptUrl = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("data:"));
+
 const hashString = (value: string) => {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -470,6 +477,11 @@ function AppShell() {
   const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
   const diaryDirtyRef = useRef<boolean>(initialDiaryCache?.dirty ?? false);
   const expenseIdsRef = useRef<string[]>(initialExpenseCache?.syncedIds ?? initialExpenseItems.map((expense) => expense.id));
+  // Remembers each expense's uploaded receipt path so we can delete the stored
+  // photo from Storage when its expense is removed (avoids orphaned receipts).
+  const expenseReceiptPathsRef = useRef<Record<string, string>>(
+    Object.fromEntries(initialExpenseItems.filter((expense) => expense.receiptPath).map((expense) => [expense.id, expense.receiptPath as string])),
+  );
   const checklistIdsRef = useRef<string[]>(initialChecklistCache?.syncedIds ?? initialChecklistItems.map((item) => item.id));
   const notesIdsRef = useRef<string[]>(initialNotesCache?.syncedIds ?? initialNoteItems.map((note) => note.id));
   const diaryIdsRef = useRef<string[]>(initialDiaryCache?.syncedIds ?? initialDiaryItems.map((entry) => entry.id));
@@ -1194,6 +1206,20 @@ function AppShell() {
             console.warn("Supabase expense delete failed:", deleteError.message);
             return;
           }
+
+          // Remove the orphaned receipt photos from Storage too.
+          const removedReceiptPaths = requestRemovedIds
+            .map((id) => expenseReceiptPathsRef.current[id])
+            .filter((value): value is string => Boolean(value));
+          if (removedReceiptPaths.length > 0) {
+            const { error: receiptDeleteError } = await supabase.storage
+              .from(supabaseReceiptBucket)
+              .remove(removedReceiptPaths);
+            if (receiptDeleteError) {
+              console.warn("Supabase receipt photo delete failed:", receiptDeleteError.message);
+            }
+          }
+          requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; });
         }
 
         setExpenses((current) => {
@@ -1256,6 +1282,98 @@ function AppShell() {
       expenseSyncInFlightRef.current = false;
     };
   }, [expenses, expensesLoaded, authReady, session, isOnline, currentUser, expenseSyncNonce]);
+
+  // Keep a running map of expense id -> uploaded receipt path. We never drop
+  // entries here, so a just-deleted expense still has its path available for
+  // Storage cleanup in the sync delete branch below.
+  useEffect(() => {
+    for (const expense of expenses) {
+      if (expense.receiptPath) expenseReceiptPathsRef.current[expense.id] = expense.receiptPath;
+    }
+  }, [expenses]);
+
+  // Upload locally-attached receipt photos to Supabase Storage once we are
+  // online and signed in. Runs independently of the expense upsert engine: it
+  // only sets receiptPath/receiptUrl, and that field change lets the normal
+  // expense sync persist the path. Offline receipts stay as local data URLs in
+  // the cache and upload automatically when connectivity returns.
+  const receiptUploadInFlightRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (!supabase || !authReady || !session || !isOnline || !currentUser) return;
+    if (receiptUploadInFlightRef.current) return;
+
+    const pending = expenses.filter(
+      (expense) =>
+        isLocalReceiptUrl(expense.receiptUrl) &&
+        (currentUser.isAdmin || getExpenseOwnerId(expense) === currentUser.userId),
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    receiptUploadInFlightRef.current = true;
+
+    void (async () => {
+      try {
+        const results = await Promise.all(
+          pending.map(async (expense) => {
+            try {
+              const ownerId = getExpenseOwnerId(expense) ?? currentUser.userId;
+              const path = expense.receiptPath ?? buildReceiptPath(expense.id, ownerId);
+              const response = await fetch(expense.receiptUrl as string);
+              const blob = await response.blob();
+              const { error: uploadError } = await supabase.storage
+                .from(supabaseReceiptBucket)
+                .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: true });
+              if (uploadError) throw uploadError;
+              const { data: signed } = await supabase.storage
+                .from(supabaseReceiptBucket)
+                .createSignedUrl(path, 60 * 60 * 24 * 365);
+              return { id: expense.id, path, url: signed?.signedUrl, ok: true as const };
+            } catch (error) {
+              console.warn("Receipt upload failed:", error instanceof Error ? error.message : String(error));
+              return { id: expense.id, ok: false as const };
+            }
+          }),
+        );
+
+        if (cancelled) return;
+
+        const uploaded = results.filter((result) => result.ok);
+        if (uploaded.length > 0) {
+          const byId = new Map(uploaded.map((result) => [result.id, result] as const));
+          setExpenses((current) =>
+            current.map((expense) => {
+              const result = byId.get(expense.id);
+              if (!result || !result.ok) return expense;
+              return {
+                ...expense,
+                receiptPath: result.path,
+                receiptUrl: result.url ?? expense.receiptUrl,
+                syncStatus: "pending" as const,
+              };
+            }),
+          );
+        }
+      } finally {
+        receiptUploadInFlightRef.current = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [expenses, authReady, session, isOnline, currentUser]);
+
+  // On-demand signed URL for viewing a stored receipt (short-lived).
+  const getReceiptSignedUrl = async (path: string): Promise<string | null> => {
+    if (!supabase) return null;
+    const { data, error } = await supabase.storage.from(supabaseReceiptBucket).createSignedUrl(path, 60 * 60);
+    if (error) {
+      console.warn("Receipt signed URL failed:", error.message);
+      return null;
+    }
+    return data?.signedUrl ?? null;
+  };
 
   useEffect(() => {
     if (!checklistLoaded) return;
@@ -2234,6 +2352,7 @@ function AppShell() {
                 exchangeRates={exchangeRates}
                 budgetCapPhp={budgetCapPhp}
                 userSettings={userSettings}
+                getReceiptSignedUrl={getReceiptSignedUrl}
               />,
               { routeKey: "/budget" }
             )}
