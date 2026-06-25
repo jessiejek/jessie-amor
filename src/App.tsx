@@ -336,6 +336,19 @@ const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${u
 const isDiaryLocalPhotoUrl = (photoUrl?: string) => Boolean(photoUrl?.startsWith("data:"));
 
 const buildReceiptPath = (expenseId: string, userId: string) => `${tripKey}/${userId}/${expenseId}-receipt.jpg`;
+
+// Convert a data: URL to a Blob without using fetch() — fetch() silently fails
+// on iOS Safari/PWA for large data URLs (>~1–2 MB) due to WKWebView limits.
+const dataUrlToBlob = (dataUrl: string): Blob => {
+  const comma = dataUrl.indexOf(",");
+  const meta = comma >= 0 ? dataUrl.slice(0, comma) : "";
+  const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const mime = /data:(.*?);/.exec(meta)?.[1] ?? "image/jpeg";
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+};
 const isLocalReceiptUrl = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("data:"));
 
 const hashString = (value: string) => {
@@ -1334,8 +1347,7 @@ function AppShell() {
             try {
               const ownerId = getExpenseOwnerId(expense) ?? currentUser.userId;
               const path = expense.receiptPath ?? buildReceiptPath(expense.id, ownerId);
-              const response = await fetch(expense.receiptUrl as string);
-              const blob = await response.blob();
+              const blob = dataUrlToBlob(expense.receiptUrl as string);
               const { error: uploadError } = await supabase.storage
                 .from(supabaseReceiptBucket)
                 .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: true });
