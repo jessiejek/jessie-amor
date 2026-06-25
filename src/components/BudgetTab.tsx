@@ -420,7 +420,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                 </div>
                 <div className="ja-budget-receipt-wrap">
                   <label className="ja-budget-receipt-attach">
-                    <input type="file" accept="image/*" capture="environment" onChange={handleDraftReceiptChange} disabled={!canEdit || receiptBusy} className="ja-diary-sr-only" />
+                    <input type="file" accept="image/*" onChange={handleDraftReceiptChange} disabled={!canEdit || receiptBusy} className="ja-diary-sr-only" />
                     <IonIcon icon={draftReceiptUrl ? imageOutline : cameraOutline} />
                     <span>{receiptBusy ? "Processing photo..." : draftReceiptUrl ? "Photo attached - tap to replace" : "Snap or attach photo (optional)"}</span>
                   </label>
@@ -562,7 +562,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
       </div>
 
       {/* Shared hidden input for attaching/replacing a receipt on an existing row */}
-      <input ref={cardReceiptInputRef} type="file" accept="image/*" capture="environment" onChange={handleCardReceiptChange} className="ja-diary-sr-only" />
+      <input ref={cardReceiptInputRef} type="file" accept="image/*" onChange={handleCardReceiptChange} className="ja-diary-sr-only" />
 
       {/* Receipt viewer overlay */}
       {viewingReceipt && (
