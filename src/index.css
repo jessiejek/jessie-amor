@@ -598,6 +598,8 @@ textarea::placeholder {
   z-index: 1000;
   background: rgba(0, 0, 0, 0.85);
   display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;

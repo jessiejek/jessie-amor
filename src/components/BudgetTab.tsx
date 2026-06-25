@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Trash2 } from "lucide-react";
 import {
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
@@ -657,12 +658,14 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
       {/* Shared hidden input for attaching/replacing a receipt on an existing row */}
       <input ref={cardReceiptInputRef} type="file" accept="image/*" onChange={handleCardReceiptChange} className="ja-diary-sr-only" />
 
-      {/* Receipt viewer overlay */}
-      {viewingReceipt && (
+      {/* Receipt viewer overlay — rendered via portal so position:fixed escapes
+          Ionic's scroll container and works correctly on iOS PWA */}
+      {viewingReceipt && createPortal(
         <div className="ja-budget-receipt-viewer" role="dialog" aria-modal="true" onClick={() => setViewingReceipt(null)}>
           <button type="button" className="ja-budget-receipt-viewer-close" onClick={() => setViewingReceipt(null)} aria-label="Close photo"><IonIcon icon={closeOutline} /></button>
           <img src={viewingReceipt} alt="Attached photo" onClick={(e) => e.stopPropagation()} />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
