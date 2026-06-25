@@ -880,6 +880,24 @@ function AppShell() {
               const existing = current.find((expense) => expense.id === row.id);
               const incoming = rowToExpense(row);
               if (existing && expenseSignature([existing]) === expenseSignature([incoming])) return current;
+
+              // The first upsert (receipt_path = null) can arrive via Realtime AFTER the
+              // receipt upload effect has already set receiptPath locally. If we blindly
+              // replace with the stale row we erase the path before the second upsert fires.
+              // Preserve the local receipt data and keep the expense pending so the next
+              // upsert cycle saves receipt_path to the DB.
+              if (existing?.receiptPath && !incoming.receiptPath) {
+                const preserved: Expense = {
+                  ...incoming,
+                  receiptPath: existing.receiptPath,
+                  receiptUrl: existing.receiptUrl,
+                  syncStatus: "pending" as const,
+                };
+                const next = current.map((expense) => expense.id === incoming.id ? preserved : expense);
+                saveExpenseSnapshot(next, expenseSignatureRef.current, true, expenseIdsRef.current);
+                return next;
+              }
+
               const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
               const nextSignature = expenseSignature(next);
               saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
