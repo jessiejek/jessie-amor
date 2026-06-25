@@ -1259,10 +1259,9 @@ function AppShell() {
 
             // Don't mark synced while the receipt photo is still uploading —
             // the data: URL means receipt_path hasn't been saved to the DB yet.
-            if (isLocalReceiptUrl(expense.receiptUrl)) {
-              hasMismatch = true;
-              return expense;
-            }
+            // Do NOT set hasMismatch here: the receipt upload effect will re-mark
+            // the expense pending and trigger the next sync when it finishes.
+            if (isLocalReceiptUrl(expense.receiptUrl)) return expense;
 
             return { ...expense, syncStatus: "synced" as const };
           });
