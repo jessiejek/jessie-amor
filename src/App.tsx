@@ -733,7 +733,7 @@ function AppShell() {
       const [expenseResult, checklistResult, notesResult] = await Promise.all([
         supabase
           .from(supabaseExpenseTable)
-          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email, created_at")
+          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, receipt_path, saved_by_user_id, saved_by_email, created_at")
           .eq("trip_key", tripKey)
           .order("day", { ascending: true })
           .order("item", { ascending: true }),
