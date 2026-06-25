@@ -370,7 +370,16 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
     }
 
     if (localItem) {
-      merged.push(remoteItem);
+      // If the local synced item has a receipt path that the remote row doesn't
+      // have yet (second upsert hasn't completed), rescue the local receipt data
+      // and re-queue a sync so receipt_path gets saved to the DB.
+      const localReceipt = localItem as unknown as { receiptPath?: string; receiptUrl?: string };
+      const remoteReceipt = remoteItem as unknown as { receiptPath?: string };
+      if (localReceipt.receiptPath && !remoteReceipt.receiptPath) {
+        merged.push({ ...remoteItem, receiptPath: localReceipt.receiptPath, receiptUrl: localReceipt.receiptUrl, syncStatus: "pending" as const });
+      } else {
+        merged.push(remoteItem);
+      }
       seen.add(remoteItem.id);
       continue;
     }
@@ -1244,6 +1253,13 @@ function AppShell() {
             }
 
             if (expenseSignature([expense]) !== expenseSignature([requestExpense])) {
+              hasMismatch = true;
+              return expense;
+            }
+
+            // Don't mark synced while the receipt photo is still uploading —
+            // the data: URL means receipt_path hasn't been saved to the DB yet.
+            if (isLocalReceiptUrl(expense.receiptUrl)) {
               hasMismatch = true;
               return expense;
             }
