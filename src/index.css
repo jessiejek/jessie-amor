@@ -515,6 +515,17 @@ textarea::placeholder {
   background: rgba(11, 53, 48, 0.07);
 }
 
+.budget-transaction-receipt-active {
+  color: #0B3530;
+  background: rgba(11, 53, 48, 0.14);
+}
+
+.ja-budget-cancel-btn {
+  --color: #6b7280;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
 .budget-transaction-receipt:disabled {
   cursor: progress;
   opacity: 0.5;
