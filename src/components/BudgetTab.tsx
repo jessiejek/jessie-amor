@@ -18,75 +18,23 @@ type TransactionRow = {
   receiptUrl?: string; receiptPath?: string;
 };
 
-// Photos are compressed on the front end so every upload stays well under 3 MB
-// — small enough to survive the browser's localStorage cache while an upload is
-// still pending. We prefer createImageBitmap (fast, respects EXIF rotation) and
-// fall back to an <img> decode for browsers/formats it can't handle directly
-// (e.g. some iPhone HEIC photos), so attaching never just errors out.
-const MAX_RECEIPT_BYTES = 900 * 1024;   // hard ceiling — anything above this retries
-const TARGET_RECEIPT_BYTES = 500 * 1024; // aim for ≤500 KB so uploads are fast on mobile
-const estimateDataUrlBytes = (dataUrl: string) => {
-  const comma = dataUrl.indexOf(",");
-  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
-  return Math.floor((base64.length * 3) / 4);
-};
-
-type Drawable = { width: number; height: number; draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void; cleanup: () => void };
-
-const loadDrawable = async (file: File): Promise<Drawable> => {
-  if (typeof createImageBitmap === "function") {
-    try {
-      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-      return { width: bmp.width, height: bmp.height, draw: (ctx, w, h) => ctx.drawImage(bmp, 0, 0, w, h), cleanup: () => bmp.close() };
-    } catch {
-      // fall through to the <img> decode path below
-    }
-  }
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("This image format is not supported on this device. Try a JPEG or PNG."));
-      el.src = url;
-    });
-    return { width: img.naturalWidth || 1, height: img.naturalHeight || 1, draw: (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h), cleanup: () => URL.revokeObjectURL(url) };
-  } catch (err) {
-    URL.revokeObjectURL(url);
-    throw err;
-  }
-};
-
+// createImageBitmap with imageOrientation:'from-image' respects iPhone EXIF rotation
+// so portrait photos no longer come out sideways after canvas compression
 const compressReceiptToDataUrl = async (file: File): Promise<string> => {
-  const src = await loadDrawable(file);
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   try {
-    // Start at 1024px max — smaller initial dimension means less data to push
-    // through the quality loop for large gallery photos.
-    const longestEdge = Math.max(src.width, src.height);
-    let scale = Math.min(1, 1024 / longestEdge);
-    // Large source files start with a lower quality to hit the target faster.
-    let quality = longestEdge > 2500 ? 0.55 : 0.65;
-    let bestUnderCeiling = "";
-    for (let attempt = 0; attempt < 12; attempt++) {
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(src.width * scale));
-      canvas.height = Math.max(1, Math.round(src.height * scale));
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Image compression is not supported in this browser.");
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      src.draw(ctx, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", quality);
-      const bytes = estimateDataUrlBytes(dataUrl);
-      if (bytes <= TARGET_RECEIPT_BYTES) return dataUrl;
-      if (bytes <= MAX_RECEIPT_BYTES) bestUnderCeiling = dataUrl;
-      if (quality > 0.35) quality -= 0.1;
-      else scale *= 0.75;
-    }
-    if (bestUnderCeiling) return bestUnderCeiling;
-    throw new Error("This photo is too large even after compression. Try a smaller image.");
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Image compression is not supported in this browser.");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.8);
   } finally {
-    src.cleanup();
+    bitmap.close();
   }
 };
 
