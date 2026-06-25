@@ -18,23 +18,56 @@ type TransactionRow = {
   receiptUrl?: string; receiptPath?: string;
 };
 
-// createImageBitmap with imageOrientation:'from-image' respects iPhone EXIF rotation
-// so portrait photos no longer come out sideways after canvas compression
-const compressReceiptToDataUrl = async (file: File): Promise<string> => {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+type Drawable = {
+  width: number; height: number;
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+  cleanup: () => void;
+};
+
+const loadDrawable = async (file: File): Promise<Drawable> => {
+  if (typeof createImageBitmap === "function") {
+    // Try with EXIF-aware orientation first; fall back to no options if the
+    // browser doesn't support the imageOrientation option (older iOS/Safari).
+    for (const opts of [{ imageOrientation: "from-image" as const }, undefined]) {
+      try {
+        const bmp = opts
+          ? await createImageBitmap(file, opts)
+          : await createImageBitmap(file);
+        return { width: bmp.width, height: bmp.height, draw: (ctx, w, h) => ctx.drawImage(bmp, 0, 0, w, h), cleanup: () => bmp.close() };
+      } catch { /* try next */ }
+    }
+  }
+  // Final fallback: decode via <img> + object URL (works on all browsers)
+  const url = URL.createObjectURL(file);
   try {
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("This image format is not supported on this device. Try a JPEG or PNG."));
+      el.src = url;
+    });
+    return { width: img.naturalWidth || 1, height: img.naturalHeight || 1, draw: (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h), cleanup: () => URL.revokeObjectURL(url) };
+  } catch (err) {
+    URL.revokeObjectURL(url);
+    throw err;
+  }
+};
+
+const compressReceiptToDataUrl = async (file: File): Promise<string> => {
+  const src = await loadDrawable(file);
+  try {
+    const scale = Math.min(1, 1600 / Math.max(src.width, src.height));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.width = Math.max(1, Math.round(src.width * scale));
+    canvas.height = Math.max(1, Math.round(src.height * scale));
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Image compression is not supported in this browser.");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    src.draw(ctx, canvas.width, canvas.height);
     return canvas.toDataURL("image/jpeg", 0.8);
   } finally {
-    bitmap.close();
+    src.cleanup();
   }
 };
 

@@ -1251,15 +1251,12 @@ function AppShell() {
           const removedReceiptPaths = requestRemovedIds
             .map((id) => expenseReceiptPathsRef.current[id])
             .filter((value): value is string => Boolean(value));
-          console.log("[receipt-delete] removedIds:", requestRemovedIds, "paths:", removedReceiptPaths, "map:", { ...expenseReceiptPathsRef.current });
           if (removedReceiptPaths.length > 0) {
-            const { data: deleteData, error: receiptDeleteError } = await supabase.storage
+            const { error: receiptDeleteError } = await supabase.storage
               .from(supabaseReceiptBucket)
               .remove(removedReceiptPaths);
             if (receiptDeleteError) {
-              console.error("[receipt-delete] Storage remove failed:", receiptDeleteError.message, "paths:", removedReceiptPaths);
-            } else {
-              console.log("[receipt-delete] Storage remove result:", deleteData);
+              console.warn("Supabase receipt photo delete failed:", receiptDeleteError.message);
             }
           }
           requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; });
