@@ -182,7 +182,14 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   createdBy: row.saved_by_user_id ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
-  createdAt: row.created_at ?? row.updated_at,
+  // Normalize DB timestamp to ISO format with Z so it matches the client's
+  // new Date().toISOString() output and expenseSignature comparisons don't
+  // falsely differ due to "+00:00" vs "Z" or microsecond precision.
+  createdAt: row.created_at
+    ? new Date(row.created_at).toISOString()
+    : row.updated_at
+      ? new Date(row.updated_at).toISOString()
+      : undefined,
 });
 
 const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
@@ -898,7 +905,17 @@ function AppShell() {
                 return next;
               }
 
-              const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
+              // Belt-and-suspenders: if the expense has a local data: URL still
+              // uploading and the incoming row has no receipt_path, preserve the
+              // data: URL so the badge doesn't disappear mid-upload.
+              const mergedList = mergeExpenseRow(current, row);
+              const next = mergedList.map((expense) => {
+                if (expense.id !== row.id) return { ...expense, syncStatus: "synced" as const };
+                if (isLocalReceiptUrl(existing?.receiptUrl) && !expense.receiptPath) {
+                  return { ...expense, receiptUrl: existing!.receiptUrl, syncStatus: "pending" as const };
+                }
+                return { ...expense, syncStatus: "synced" as const };
+              });
               const nextSignature = expenseSignature(next);
               saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
               return next;
