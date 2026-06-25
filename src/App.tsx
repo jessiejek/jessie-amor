@@ -1372,7 +1372,6 @@ function AppShell() {
     );
     if (pending.length === 0) return;
 
-    let cancelled = false;
     receiptUploadInFlightRef.current = true;
 
     void (async () => {
@@ -1398,8 +1397,6 @@ function AppShell() {
           }),
         );
 
-        if (cancelled) return;
-
         const uploaded = results.filter((result) => result.ok);
         if (uploaded.length > 0) {
           const byId = new Map(uploaded.map((result) => [result.id, result] as const));
@@ -1420,10 +1417,6 @@ function AppShell() {
         receiptUploadInFlightRef.current = false;
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [expenses, authReady, session, isOnline, currentUser]);
 
   // On-demand signed URL for viewing a stored receipt (short-lived).
