@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import {
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonInput, IonButton, IonIcon, IonSelect, IonSelectOption,
-  IonSegment, IonSegmentButton, IonChip, IonLabel,
+  IonSegment, IonSegmentButton, IonChip, IonLabel, IonSpinner,
 } from "@ionic/react";
 import { addCircleOutline, cashOutline, cardOutline, micOutline, micCircleOutline, funnelOutline, alertCircleOutline, imageOutline, cameraOutline, closeOutline, createOutline, checkmarkCircleOutline } from "ionicons/icons";
 import type { ExchangeRates } from "../lib/exchangeRates";
@@ -157,10 +157,13 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  const [viewerImageLoaded, setViewerImageLoaded] = useState(false);
   const [loadingReceiptId, setLoadingReceiptId] = useState<string | null>(null);
   // Hidden input reused to attach/replace a receipt on an existing expense
   const cardReceiptInputRef = React.useRef<HTMLInputElement | null>(null);
   const receiptTargetIdRef = React.useRef<string | null>(null);
+
+  useEffect(() => { setViewerImageLoaded(false); }, [viewingReceipt]);
 
   const activeDayOptions = useMemo(() => {
     const d = (userSettings?.travelDates ?? []).map((ds) => { const dt = new Date(`${ds}T00:00:00`); return { value: dt.getDate(), label: dt.toLocaleDateString("en-US", { month: "long", day: "numeric" }) }; });
@@ -648,7 +651,15 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
       {viewingReceipt && createPortal(
         <div className="ja-budget-receipt-viewer" role="dialog" aria-modal="true" onClick={() => setViewingReceipt(null)}>
           <button type="button" className="ja-budget-receipt-viewer-close" onClick={() => setViewingReceipt(null)} aria-label="Close photo"><IonIcon icon={closeOutline} /></button>
-          <img src={viewingReceipt} alt="Attached photo" onClick={(e) => e.stopPropagation()} />
+          {!viewerImageLoaded && <IonSpinner name="crescent" className="ja-budget-receipt-viewer-spinner" />}
+          <img
+            src={viewingReceipt}
+            alt="Attached photo"
+            style={viewerImageLoaded ? undefined : { opacity: 0, position: "absolute", pointerEvents: "none" }}
+            onClick={(e) => e.stopPropagation()}
+            onLoad={() => setViewerImageLoaded(true)}
+            onError={() => setViewerImageLoaded(true)}
+          />
         </div>,
         document.body
       )}

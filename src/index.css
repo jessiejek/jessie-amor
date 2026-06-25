@@ -613,6 +613,12 @@ textarea::placeholder {
   border-radius: 8px;
 }
 
+.ja-budget-receipt-viewer-spinner {
+  color: #fff;
+  width: 48px;
+  height: 48px;
+}
+
 .ja-budget-receipt-viewer-close {
   position: absolute;
   top: calc(16px + env(safe-area-inset-top, 0px));
