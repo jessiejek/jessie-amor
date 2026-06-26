@@ -50,8 +50,7 @@ const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined)
   const p = new Date(`${md}T00:00:00`); return Number.isNaN(p.getTime()) ? null : p.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-export default function MapTab({ session: authSession, canEdit = false, isOnline = true, userSettings = null, currentUser = null }: MapTabProps) {
-  const [session, setSession] = useState<Session | null>(authSession);
+export default function MapTab({ session, canEdit = false, isOnline = true, userSettings = null, currentUser = null }: MapTabProps) {
   const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey) ?? null);
   const [initialMapData] = useState(() => applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"));
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
@@ -111,8 +110,7 @@ export default function MapTab({ session: authSession, canEdit = false, isOnline
   }), [itineraryData.days, userSettings?.travelDates]);
   const activeDay = useMemo(() => displayDays.find((d) => d.day === selectedDay) ?? displayDays[0] ?? null, [displayDays, selectedDay]);
 
-  // --- Leaflet / Sync useEffects (unchanged) ---
-  useEffect(() => { if (!supabase) { setSession(null); return; } let m = true; supabase.auth.getSession().then(({ data }) => { if (!m) return; setSession(data.session); }); const { data: al } = supabase.auth.onAuthStateChange((_e, ns) => setSession(ns)); return () => { m = false; al.subscription.unsubscribe(); }; }, [authSession]);
+  // --- Leaflet / Sync useEffects ---
   useEffect(() => {
     if (!supabase) { setMapLoaded(true); return; } if (!isOnline) { setMapLoaded(true); return; }
     let c = false; let ch: ReturnType<typeof supabase.channel> | null = null;

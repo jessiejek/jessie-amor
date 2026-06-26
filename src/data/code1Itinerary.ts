@@ -1701,7 +1701,7 @@ images: [
   } satisfies AlertBoxData,
   tips: [
     {
-      icon: 'ðŸ’³',
+      icon: '💳',
       description: [
         text("Get a "),
         strong("Touch 'n Go card"),
@@ -1709,7 +1709,7 @@ images: [
       ],
     },
     {
-      icon: 'ðŸ—“ï¸',
+      icon: '🗓️',
       description: [
         strong('Book the Malacca bus in advance'),
         text(' · July 14 is a Sunday and buses fill up fast.'),
@@ -1724,7 +1724,7 @@ images: [
       ],
     },
     {
-      icon: 'ðŸ“±',
+      icon: '📱',
       description: [
         text('Download the '),
         strong('KLIA Ekspres app'),
@@ -1732,7 +1732,7 @@ images: [
       ],
     },
     {
-      icon: 'ðŸ¦€',
+      icon: '🦀',
       description: [
         text('At Jalan Alor: '),
         strong('avoid seafood platters, crab, and big tourist sets'),

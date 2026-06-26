@@ -17,6 +17,7 @@ interface DiaryTabProps {
   isOnline?: boolean;
   canEdit?: boolean;
   currentUser?: { userId: string; email: string; isAdmin: boolean; } | null;
+  onRetryPhotoUpload?: () => void;
 }
 
 type DiaryFormState = {
@@ -113,7 +114,7 @@ const getRatingCellClass = (r: number, filled: boolean) => {
 };
 
 // --- COMPONENT ---
-export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = true, canEdit = false, currentUser = null }: DiaryTabProps) {
+export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = true, canEdit = false, currentUser = null, onRetryPhotoUpload }: DiaryTabProps) {
   const [form, setForm] = useState<DiaryFormState>(() => createEmptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -263,7 +264,14 @@ export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = tru
         </IonCardContent>
       </IonCard>
       {!isOnline && <div className="ja-diary-banner ja-diary-banner-amber">Offline mode is active. Text changes stay on this device and photos upload when the connection returns.</div>}
-      {pendingPhotoCount > 0 && <div className="ja-diary-banner ja-diary-banner-sky">{pendingPhotoCount} photo{pendingPhotoCount === 1 ? "" : "s"} still need an online sync before they can be fully shared from Supabase Storage.</div>}
+      {pendingPhotoCount > 0 && (
+        <div className="ja-diary-banner ja-diary-banner-sky" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{pendingPhotoCount} photo{pendingPhotoCount === 1 ? "" : "s"} still need an online sync before they can be fully shared from Supabase Storage.</span>
+          {onRetryPhotoUpload && (
+            <IonButton size="small" fill="outline" onClick={onRetryPhotoUpload} style={{ flexShrink: 0 }}>Retry</IonButton>
+          )}
+        </div>
+      )}
 
       <IonCard className="ja-diary-form-card">
         <form ref={formRef} onSubmit={handleSubmit}>

@@ -387,8 +387,11 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
                 {secondaryDisplayCurrencies.length > 0 && <span className="ja-budget-summary-alt">{formatSecondaryDisplay(cashSpent)}</span>}
                 {budgetCapRm > 0 && (
                   <div className="ja-budget-progress-wrap">
-                    <div className={`ja-budget-progress-fill${cashSpent > budgetCapRm ? " ja-budget-progress-over" : ""}`} style={{ width: `${Math.min(100, (cashSpent / budgetCapRm) * 100)}%` }} />
+                    <div className={`ja-budget-progress-fill${myCashSpent > budgetCapRm ? " ja-budget-progress-over" : ""}`} style={{ width: `${Math.min(100, (myCashSpent / budgetCapRm) * 100)}%` }} />
                   </div>
+                )}
+                {budgetCapRm > 0 && ownerFilter === "all" && (
+                  <span className="ja-budget-summary-cap" style={{ fontSize: 11, opacity: 0.6 }}>Cap tracks your spending only</span>
                 )}
               </div>
               <div className="budget-summary-icon ja-budget-summary-icon">

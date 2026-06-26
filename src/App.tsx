@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CreditCard,
@@ -426,17 +426,6 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
 
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
-const normalizeTipIcon = (icon: string) => {
-  const normalized = icon.trim();
-  const iconMap: Record<string, string> = {
-    "ðŸ’³": "💳",
-    "ðŸ—“ï¸": "🗓️",
-    "ðŸ“±": "📱",
-    "ðŸ¦€": "🦀",
-  };
-
-  return iconMap[normalized] ?? normalized;
-};
 
 function AppShell() {
   const itinerary = selectedItinerary;
@@ -974,9 +963,15 @@ function AppShell() {
             if (!row || !Array.isArray(row.notes)) return;
             const incomingNotes = forceSyncStatus<TravelNote>(row.notes, "synced");
             setNotes((current) => {
-              if (notesSignature(current) === notesSignature(incomingNotes)) return current;
-              saveNotesSnapshot(incomingNotes, notesSignature(incomingNotes), false, incomingNotes.map((note) => note.id));
-              return incomingNotes;
+              // Preserve locally pending notes (not yet flushed to DB) that the
+              // remote blob doesn't know about — prevents concurrent writes from
+              // dropping notes that are in-flight on this device.
+              const incomingIds = new Set(incomingNotes.map((n) => n.id));
+              const localPending = current.filter((n) => n.syncStatus === "pending" && !incomingIds.has(n.id));
+              const merged = localPending.length > 0 ? [...incomingNotes, ...localPending] : incomingNotes;
+              if (notesSignature(current) === notesSignature(merged)) return current;
+              saveNotesSnapshot(merged, notesSignature(incomingNotes), localPending.length > 0, merged.map((n) => n.id));
+              return merged;
             });
           },
         )
@@ -1361,6 +1356,14 @@ function AppShell() {
   // expense sync persist the path. Offline receipts stay as local data URLs in
   // the cache and upload automatically when connectivity returns.
   const receiptUploadInFlightRef = useRef<boolean>(false);
+  const receiptUploadFailedIdsRef = useRef<Set<string>>(new Set());
+
+  // Reset failed-receipt block when connectivity or auth changes so the user can
+  // recover by toggling airplane mode or signing out and back in.
+  useEffect(() => {
+    receiptUploadFailedIdsRef.current.clear();
+  }, [isOnline, session]);
+
   useEffect(() => {
     if (!supabase || !authReady || !session || !isOnline || !currentUser) return;
     if (receiptUploadInFlightRef.current) return;
@@ -1368,6 +1371,7 @@ function AppShell() {
     const pending = expenses.filter(
       (expense) =>
         isLocalReceiptUrl(expense.receiptUrl) &&
+        !receiptUploadFailedIdsRef.current.has(expense.id) &&
         (currentUser.isAdmin || getExpenseOwnerId(expense) === currentUser.userId),
     );
     if (pending.length === 0) return;
@@ -1392,6 +1396,7 @@ function AppShell() {
               return { id: expense.id, path, url: signed?.signedUrl, ok: true as const };
             } catch (error) {
               console.warn("Receipt upload failed:", error instanceof Error ? error.message : String(error));
+              receiptUploadFailedIdsRef.current.add(expense.id);
               return { id: expense.id, ok: false as const };
             }
           }),
@@ -2022,11 +2027,7 @@ function AppShell() {
     title: "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
-  const normalizedTips = itinerary.tips.map((tip) => ({
-    ...tip,
-    icon: normalizeTipIcon(tip.icon),
-  }));
-
+  
   const formatPhp = (php: number) =>
     `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const phpToRm = (php: number) =>
@@ -2362,7 +2363,7 @@ function AppShell() {
                 <section className="ja-app-section">
                   <div className="ja-app-section-header"><div><h3 className="ja-app-section-title">Trip Tips</h3><p className="ja-app-section-desc">Code 1's itinerary reminders, folded into Code 2's visual system.</p></div></div>
                   <div className="ja-app-tips-grid">
-                    {normalizedTips.map((tip, index) => (
+                    {itinerary.tips.map((tip, index) => (
                       <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
                     ))}
                   </div>
@@ -2446,6 +2447,10 @@ function AppShell() {
                 isOnline={isOnline}
                 canEdit={Boolean(session)}
                 currentUser={currentUser}
+                onRetryPhotoUpload={() => {
+                  diaryPhotoRetryBlockRef.current = "";
+                  setDiarySyncNonce((v) => v + 1);
+                }}
               />,
               { routeKey: "/diary" }
             )}
