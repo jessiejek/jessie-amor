@@ -773,18 +773,25 @@ function AppShell() {
       const { data: checklistData, error: checklistError } = checklistResult;
       const { data: notesData, error: notesError } = notesResult;
 
+      // Read fresh from localStorage instead of the mount-time snapshot so that
+      // items added/edited while offline are included when connectivity returns
+      // and this bootstrap re-runs (isOnline is in the effect deps).
+      const currentExpenseCache = readCachedDataset<Expense[]>(expenseCacheKey);
+      const currentChecklistCache = readCachedDataset<ChecklistItem[]>(checklistCacheKey);
+      const currentNotesCache = readCachedDataset<TravelNote[]>(notesCacheKey);
+
       if (expenseError) {
         console.warn("Supabase expense load failed:", expenseError.message);
       } else {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
         const { merged, hasLocalPending } = mergeBootstrapItems<Expense>(
-          initialExpenseCache?.data ?? [],
+          currentExpenseCache?.data ?? [],
           forceSyncStatus<Expense>(remoteExpenses, "synced"),
-          initialExpenseCache?.syncedIds ?? expenseIdsRef.current,
+          currentExpenseCache?.syncedIds ?? expenseIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
-          saveExpenseSnapshot(merged, syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
+          saveExpenseSnapshot(merged, syncedSignature, true, currentExpenseCache?.syncedIds ?? expenseIdsRef.current);
           setExpenses(merged);
         } else {
           const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
@@ -799,13 +806,13 @@ function AppShell() {
       } else {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
         const { merged, hasLocalPending } = mergeBootstrapItems<ChecklistItem>(
-          initialChecklistCache?.data ?? [],
+          currentChecklistCache?.data ?? [],
           forceSyncStatus<ChecklistItem>(remoteChecklist, "synced"),
-          initialChecklistCache?.syncedIds ?? checklistIdsRef.current,
+          currentChecklistCache?.syncedIds ?? checklistIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = checklistSignatureRef.current || checklistSignature(merged);
-          saveChecklistSnapshot(merged, syncedSignature, true, initialChecklistCache?.syncedIds ?? checklistIdsRef.current);
+          saveChecklistSnapshot(merged, syncedSignature, true, currentChecklistCache?.syncedIds ?? checklistIdsRef.current);
           checklistDirtyRef.current = true;
           setChecklist(merged);
         } else {
@@ -823,13 +830,13 @@ function AppShell() {
           ? (notesData as SupabaseNotesRow).notes
           : [];
         const { merged, hasLocalPending } = mergeBootstrapItems<TravelNote>(
-          initialNotesCache?.data ?? [],
+          currentNotesCache?.data ?? [],
           forceSyncStatus<TravelNote>(remoteNotes, "synced"),
-          initialNotesCache?.syncedIds ?? notesIdsRef.current,
+          currentNotesCache?.syncedIds ?? notesIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = notesSignatureRef.current || notesSignature(merged);
-          saveNotesSnapshot(merged, syncedSignature, true, initialNotesCache?.syncedIds ?? notesIdsRef.current);
+          saveNotesSnapshot(merged, syncedSignature, true, currentNotesCache?.syncedIds ?? notesIdsRef.current);
           notesDirtyRef.current = true;
           setNotes(merged);
         } else {
@@ -1038,15 +1045,19 @@ function AppShell() {
       const hydratedRows = await Promise.all(remoteRows.map(async (row) => hydrateDiaryEntry(row)));
       if (cancelled) return;
 
+      // Read fresh from localStorage so offline-added diary entries survive
+      // the bootstrap re-run that occurs when connectivity returns.
+      const currentDiaryCache = readCachedDataset<DiaryEntry[]>(diaryCacheKey);
+
       const { merged, hasLocalPending } = mergeBootstrapItems<DiaryEntry>(
-        initialDiaryCache?.data ?? [],
+        currentDiaryCache?.data ?? [],
         forceSyncStatus<DiaryEntry>(hydratedRows, "synced"),
-        initialDiaryCache?.syncedIds ?? diaryIdsRef.current,
+        currentDiaryCache?.syncedIds ?? diaryIdsRef.current,
       );
 
       if (hasLocalPending) {
         const syncedSignature = diarySignatureRef.current || diarySignature(merged);
-        saveDiarySnapshot(merged, syncedSignature, true, initialDiaryCache?.syncedIds ?? diaryIdsRef.current);
+        saveDiarySnapshot(merged, syncedSignature, true, currentDiaryCache?.syncedIds ?? diaryIdsRef.current);
         setDiaryEntries(merged);
       } else {
         const syncedDiary = forceSyncStatus<DiaryEntry>(merged, "synced");
@@ -2419,6 +2430,7 @@ function AppShell() {
                 session={session}
                 canEdit={Boolean(session)}
                 isOnline={isOnline}
+                isActive={activeRoute === "/map"}
                 userSettings={userSettings}
                 currentUser={currentUser}
               />,

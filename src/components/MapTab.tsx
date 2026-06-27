@@ -37,7 +37,7 @@ const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;")
 const renderPopup = (dest: MapDestination, order: number) =>
   `<div style="min-width:180px;max-width:220px;"><div style="font-size:13px;font-family:monospace;letter-spacing:0.12em;color:#88B04B;text-transform:uppercase;">Stop ${order}</div><div style="font-weight:700;color:#0B3530;margin-top:4px;">${escapeHtml(dest.name)}</div><div style="font-size:14px;color:#6B7280;margin-top:4px;">${escapeHtml(dest.time)}</div><div style="font-size:14px;color:#374151;line-height:1.45;margin-top:8px;">${escapeHtml(dest.notes)}</div></div>`;
 
-interface MapTabProps { session: Session | null; canEdit?: boolean; isOnline?: boolean; userSettings?: UserTripSettings | null; currentUser?: { userId: string; email: string; isAdmin: boolean; } | null; }
+interface MapTabProps { session: Session | null; canEdit?: boolean; isOnline?: boolean; isActive?: boolean; userSettings?: UserTripSettings | null; currentUser?: { userId: string; email: string; isAdmin: boolean; } | null; }
 type SavedByInfo = { userId: string; email: string; };
 const formatSavedBy = (e?: string, u?: string) => { if (e) return e.split("@")[0]; if (u) return u.slice(0, 8); return "Unknown"; };
 const getSyncDotColor = (v?: SyncStatus | "syncing" | "dirty" | "unsynced") => { if (v === "syncing") return "#64748b"; if (v === "synced") return "#10b981"; return "#f59e0b"; };
@@ -50,7 +50,7 @@ const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined)
   const p = new Date(`${md}T00:00:00`); return Number.isNaN(p.getTime()) ? null : p.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-export default function MapTab({ session, canEdit = false, isOnline = true, userSettings = null, currentUser = null }: MapTabProps) {
+export default function MapTab({ session, canEdit = false, isOnline = true, isActive = true, userSettings = null, currentUser = null }: MapTabProps) {
   const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey) ?? null);
   const [initialMapData] = useState(() => applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"));
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
@@ -171,6 +171,19 @@ export default function MapTab({ session, canEdit = false, isOnline = true, user
     const handleVisibilityChange = () => { if (document.hidden) { if (locationWatchIdRef.current !== null && navigator.geolocation) { locationPausedRef.current = true; setIsTrackingPaused(true); navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; setIsTrackingLocation(false); locationShouldPanRef.current = false; } return; } if (locationPausedRef.current) setIsTrackingPaused(true); };
     document.addEventListener("visibilitychange", handleVisibilityChange); return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
+
+  // Pause GPS when the user navigates away from the Map tab — Ionic keeps this
+  // component mounted, so visibilitychange never fires on an in-app tab switch.
+  useEffect(() => {
+    if (!isActive && locationWatchIdRef.current !== null && navigator.geolocation) {
+      locationPausedRef.current = true;
+      setIsTrackingPaused(true);
+      navigator.geolocation.clearWatch(locationWatchIdRef.current);
+      locationWatchIdRef.current = null;
+      setIsTrackingLocation(false);
+      locationShouldPanRef.current = false;
+    }
+  }, [isActive]);
 
   useEffect(() => {
     const map = mapRef.current; const ml = markerLayerRef.current; if (!map || !ml || !activeDay) return;

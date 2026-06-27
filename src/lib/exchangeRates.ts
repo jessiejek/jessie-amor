@@ -123,6 +123,7 @@ export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"
     // already have (cached or fallback) and try again on the next trigger.
     const loadRates = async () => {
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const live = await fetchExchangeRates("PHP", ["MYR", ...additionalSymbols]);
         if (cancelled) return;

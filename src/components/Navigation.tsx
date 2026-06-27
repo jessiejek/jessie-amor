@@ -7,13 +7,13 @@ import { itinerary, TRAVELER_1, TRAVELER_2 } from "../data/code1Itinerary";
 import type { Expense } from "../types";
 import { jsPDF } from "jspdf";
 
-const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0);
+const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0); // July 11 — countdown ends here
+const TRIP_END = new Date(2026, 6, 17, 0, 0, 0, 0);             // July 17 — trip over after this
 const HEADER_TITLE = "J&A Malaysia · Singapore Trip 2026";
-const HOLIDAY_DISPLAY_DATE = { year: 2026, month: 6, day: 11 };
 
 type CountdownState = { days: number; hours: number; minutes: number; seconds: number; };
 const getCountdownState = (): CountdownState => { const d = Math.max(0, TRIP_COUNTDOWN_TARGET.getTime() - Date.now()); const ts = Math.floor(d / 1000); return { days: Math.floor(ts / 86400), hours: Math.floor((ts % 86400) / 3600), minutes: Math.floor((ts % 3600) / 60), seconds: ts % 60 }; };
-const isHolidayDisplayDate = (date: Date) => date.getFullYear() === HOLIDAY_DISPLAY_DATE.year && date.getMonth() === HOLIDAY_DISPLAY_DATE.month && date.getDate() === HOLIDAY_DISPLAY_DATE.day;
+const isTripOngoing = (date: Date) => date.getTime() >= TRIP_COUNTDOWN_TARGET.getTime() && date.getTime() < TRIP_END.getTime();
 const getNextLocalMidnightDelay = () => { const n = new Date(); return Math.max(1000, new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 0, 0).getTime() - n.getTime()); };
 const getMoreDrawerElements = (baseEl: HTMLElement) => {
   const root = baseEl.shadowRoot;
@@ -60,8 +60,13 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
   useEffect(() => {
     const update = () => { const nc = getCountdownState(); setCountdown(nc); return nc.days === 0 && nc.hours === 0 && nc.minutes === 0 && nc.seconds === 0; };
     if (update()) return;
-    const interval = window.setInterval(() => { if (update()) window.clearInterval(interval); }, 1000);
-    return () => window.clearInterval(interval);
+    let interval: number | undefined;
+    const stop = () => { if (interval !== undefined) { window.clearInterval(interval); interval = undefined; } };
+    const start = () => { stop(); interval = window.setInterval(() => { if (update()) stop(); }, 1000); };
+    const handleVisibility = () => { if (document.hidden) { stop(); } else { if (!update()) start(); } };
+    document.addEventListener("visibilitychange", handleVisibility);
+    if (!document.hidden) start();
+    return () => { stop(); document.removeEventListener("visibilitychange", handleVisibility); };
   }, []);
 
   useEffect(() => { const to = window.setTimeout(() => setCurrentDate(new Date()), getNextLocalMidnightDelay()); return () => window.clearTimeout(to); }, [currentDate]);
@@ -94,7 +99,7 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
   };
 
   const countdownTime = `${String(countdown.hours).padStart(2, "0")}h ${String(countdown.minutes).padStart(2, "0")}m ${String(countdown.seconds).padStart(2, "0")}s`;
-  const shouldShowHolidayBanner = isHolidayDisplayDate(currentDate);
+  const shouldShowHolidayBanner = isTripOngoing(currentDate);
   const shouldShowCountdown = !shouldShowHolidayBanner && currentDate.getTime() < TRIP_COUNTDOWN_TARGET.getTime();
   const bottomNavItems = navItems.filter((tab) => tab.showInBottom);
   const bottomNavPaths = bottomNavItems.map((tab) => tab.path);

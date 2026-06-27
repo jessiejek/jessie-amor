@@ -160,6 +160,8 @@ Each dataset is stored in `localStorage` as JSON under the key `offline-cache:{t
 
 `writeCachedDataset` also fires a custom `offline-cache-update` window event so that `useCachedDataset` can refresh reactively within the same tab.
 
+**Bootstrap merge uses fresh cache reads.** The initial `readCachedDataset` calls in `AppShell` (`initialExpenseCache` etc.) are frozen at mount time. The bootstrap `loadSyncedData` / `loadSyncedDiary` functions — which re-run when `isOnline` flips true — call `readCachedDataset(...)` fresh inside the async function so that any items added or edited offline are included in the merge, not the stale mount-time snapshot.
+
 ---
 
 ## Sync Engine (all in AppShell)
@@ -192,6 +194,7 @@ Finds expenses where `receiptUrl.startsWith("data:")` and current user owns them
 4. On success: `setExpenses` with `receiptPath`, `receiptUrl` (signed URL), `syncStatus: "pending"`
 5. No `cancelled` flag — React 18 `setExpenses` with functional updater is safe after re-render.
 6. `receiptUploadInFlightRef.current` prevents double-starts but does NOT prevent re-running after re-render; the `if (pending.length === 0) return` early-exit handles that.
+7. `receiptUploadFailedIdsRef = useRef<Set<string>>(new Set())` tracks receipt IDs that already failed to upload. These IDs are excluded from the `pending` filter, so a failed receipt is NOT retried on every `expenses` change. The set is cleared by a separate `useEffect([isOnline, session])` — retries resume when connectivity or session changes.
 
 **Receipt path tracking (separate effect)**:
 Runs on every `expenses` change. Populates `expenseReceiptPathsRef.current[id] = receiptPath` for every expense with a path. Never clears entries — deleted expenses still have their path available for Storage cleanup.
@@ -210,7 +213,7 @@ Most complex. In addition to text upsert/delete, it handles photo uploads:
    c. Get 365-day signed URL
 2. Upsert all entries to `trip_diary_entries`
 3. Delete removed entries; also delete photos from Storage using `diarySyncedEntriesRef.current[id].photoPath`
-4. Photo retry-block: `diaryPhotoRetryBlockRef` stores the last failed photo signature — if nothing changed except a photo that already failed, it skips retry to prevent a tight loop. Cleared on `isOnline` or `session` change.
+4. Photo retry-block: `diaryPhotoRetryBlockRef` stores the last failed photo signature — if nothing changed except a photo that already failed, it skips retry to prevent a tight loop. Cleared on `isOnline` or `session` change. A manual retry is also available via the `onRetryPhotoUpload` callback passed to DiaryTab, which clears `diaryPhotoRetryBlockRef.current` and increments `diarySyncNonce`.
 
 ### Map Sync
 Map sync is **inside MapTab**, not AppShell. It has its own `mapDirtyRef`, debounced 300ms. Upserts destinations individually (one `supabase.from(table).upsert()` call per destination, not batch), then deletes from `pendingDeleteIdsRef`.
@@ -229,6 +232,7 @@ A separate channel `trip-diary-sync-{tripKey}` subscribes to `trip_diary_entries
 - `expenseDirtyRef.current === true` → Realtime events for expenses are silently dropped
 - `checklistDirtyRef.current === true` → dropped for checklist
 - `notesDirtyRef.current === true` → dropped for notes
+- When notes Realtime fires and notes are NOT dirty: incoming notes are **merged** with any locally-pending notes rather than fully replacing local state. Notes that are `syncStatus === "pending"` and not present in the incoming payload are preserved and prepended. If the merged result signature matches current state, no re-render is triggered.
 - Diary uses `isDiaryEntryProtectedFromRealtime(entry, syncedEntry)` → returns true if `entry.syncStatus === "pending"` OR `isDiaryLocalPhotoUrl(entry.photoUrl)` OR the entry's signature differs from the last synced snapshot
 
 **Expense Realtime race condition handling** (three layers):
@@ -318,6 +322,7 @@ Derived from `userSettings.travelDates` (YYYY-MM-DD strings). Each date is parse
 - `myCashSpent` = same as cashSpent but always filtered to `currentUser.userId` (not affected by `ownerFilter`)
 - `budgetCapRm` = `budgetCapPhp / exchangeRates.php`
 - `isOverBudget` = `budgetCapRm > 0 && myCashSpent > budgetCapRm && !dismissedOverBudget`
+- Budget cap **progress bar** uses `myCashSpent` (always the current user's spending, regardless of `ownerFilter`). When `ownerFilter === "all"`, a small label "Cap tracks your spending only" is shown beneath the bar to clarify the scope.
 
 ### Adding an Expense
 1. Form submit → `e.preventDefault()`
@@ -386,8 +391,8 @@ Uses `window.SpeechRecognition` or `window.webkitSpeechRecognition`. `lang: "en-
 - If remote data available and not dirty: overwrites with remote rows
 - `buildInitialMapItinerary()` returns hardcoded day structure when no cache
 
-### Local Session Subscription (MapTab)
-MapTab receives `session` as a prop but also **manages its own Supabase auth subscription** internally. It calls `supabase.auth.getSession()` on mount and listens to `onAuthStateChange` via its own local `session` state. This means MapTab's Supabase calls always use fresh session data independent of the prop value.
+### Session (MapTab)
+MapTab receives `session` as a prop and uses it directly — there is no internal auth subscription. The component does not call `supabase.auth.getSession()` or `onAuthStateChange` on its own. All auth state comes from AppShell via the `session` prop.
 
 ### Map Rendering (Leaflet)
 - Container: `<div ref={mapContainerRef}>` — Leaflet attaches here; initialized with `preferCanvas: true`, `scrollWheelZoom: true`, `zoomControl: true`, initial center `[3.139, 101.6869]` (KL), zoom level 12
@@ -465,7 +470,7 @@ Notes: `canManageEntry(target)` check. Checklist items: same check. `setNotes`/`
 
 **Purpose**: Travel diary with photos, ratings, geolocation.
 
-**Props from AppShell**: `diaryEntries`, `setDiaryEntries`, `isOnline`, `canEdit`, `currentUser`
+**Props from AppShell**: `diaryEntries`, `setDiaryEntries`, `isOnline`, `canEdit`, `currentUser`, `onRetryPhotoUpload?: () => void`
 
 ### Local State (DiaryTab)
 - `form`: `DiaryFormState` — all form fields including `photoUrl` (data: URL), `photoChanged`
@@ -674,7 +679,7 @@ Top bar only (Login/Settings NOT shown here). Bottom `IonTabBar` in AppShell han
 | Auth fail | `authError` state → shown in `AuthPanel` |
 | Supabase load fail | `console.warn`, data falls back to local cache |
 | Supabase sync fail | `console.warn`, `syncStatus` stays `"pending"`, retried next time effect runs |
-| Receipt upload fail | `console.warn`, expense stays with `receiptUrl = "data:..."`, retried on next `expenses` change |
+| Receipt upload fail | `console.warn`, expense stays with `receiptUrl = "data:..."`, ID added to `receiptUploadFailedIdsRef` — NOT retried on next `expenses` change. Retry resumes when `isOnline` or `session` changes (those events clear `receiptUploadFailedIdsRef`). |
 | Diary photo upload fail | `console.warn`, entry stays `syncStatus: "pending"`, retry blocked by `diaryPhotoRetryBlockRef` until online/session changes |
 | Map sync fail | `console.warn`, map state stays `"pending"`, retried on next `itineraryData` change |
 | Image compression fail | `receiptError` or `photoError` state shown in UI |
@@ -734,9 +739,6 @@ Pull-to-refresh (`IonRefresher`) calls `window.location.reload()` after 600ms �
 ## App.tsx Inline Helpers
 
 These small functions live directly inside `AppShell` (not in separate files):
-
-### `normalizeTipIcon(icon: string): string`
-Fixes garbled multi-byte unicode sequences caused by incorrect UTF-8→Latin-1 encoding of emoji in the static itinerary data. Maps corrupted byte sequences back to correct emoji. Examples: `"ðŸ'³"` → `"💳"`, `"ðŸ—"ï¸"` → `"🗓️"`, `"ðŸ"±"` → `"📱"`, `"ðŸ¦€"` → `"🦀"`. Applied to `itinerary.tips` before rendering `<TipCard>` components.
 
 ### `hashString(value: string): number`
 djb2-style hash: `hash = (hash << 5) - hash + charCodeAt(i); hash |= 0` (force 32-bit int). Returns a signed 32-bit integer. Used by `diaryPhotoRetryBlockRef` to compare photo payload signatures across sync cycles (prevents infinite retry on a persistently-failing photo upload).
@@ -842,7 +844,7 @@ Three segment kinds:
 - `budgetSummary`: 6 cards — July 12 (RM 130–200), July 13 (RM 165–265), July 14 (RM 280–393), July 15 (RM 25–45), "Total for 2" (RM 600–903, `featured: true`), "Recommended cash" (RM 1,000, `featured: true`)
 - `legend`: 6 items — Train/LRT/MRT (#378ADD), Bus (#BA7517), Food (#1D9E75), Tourist spot (#7F77DD), Walk/Free (#888780), Hotel/Grab (#D4537E)
 - `alert.title = "📌 Fact-check note · bus fare correction"` (corrects original itinerary's bus fare estimate)
-- `tips`: 6 entries. The emoji icons are garbled UTF-8 at source (`"ðŸ'³"` etc.) — `normalizeTipIcon` in App.tsx fixes these before render
+- `tips`: 6 entries. The emoji icons are stored correctly at source as `'💳'`, `'🗓️'`, `'📱'`, `'🦀'` etc. (fixed at binary level in `code1Itinerary.ts`; no runtime normalization needed)
 - `days`: 6 days — day 11 (Flight Day · July 11), day 12 (DAY 1 · July 12), day 13 (DAY 2 · July 13), day 14 (DAY 3 · July 14), day 15 (DAY 4 · July 15 KL→Singapore), day 16 (DAY 5 · July 16 Singapore & Departure)
 - `footer = "J&A Malaysia · Singapore Trip 2026"`
 
