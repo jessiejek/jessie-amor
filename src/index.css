@@ -7150,12 +7150,9 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
-.ja-outfit-tip-icon {
-  color: #a07810;
-  flex-shrink: 0;
-}
+.ja-outfit-tip-icon { color: #a07810; flex-shrink: 0; }
 .ja-outfit-tip-label {
   font-size: 12px;
   font-weight: 700;
@@ -7163,27 +7160,49 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
   letter-spacing: 0.06em;
   color: #a07810;
 }
-.ja-outfit-tip-list {
+.ja-outfit-tip-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .ja-outfit-tip-cols { grid-template-columns: 1fr; }
+}
+.ja-outfit-section { border-radius: 7px; padding: 8px 10px; }
+.ja-outfit-wear { background: #f0faf0; border: 1px solid #86efac; }
+.ja-outfit-avoid { background: #fff5f5; border: 1px solid #fca5a5; }
+.ja-outfit-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 7px;
+}
+.ja-outfit-wear .ja-outfit-section-title { color: #15803d; }
+.ja-outfit-avoid .ja-outfit-section-title { color: #dc2626; }
+.ja-outfit-row {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  margin-bottom: 5px;
+}
+.ja-outfit-row:last-child { margin-bottom: 0; }
+.ja-outfit-gender {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #78716c;
+  min-width: 38px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.ja-outfit-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
-.ja-outfit-tip-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  color: #5c4000;
-  line-height: 1.45;
-}
-.ja-outfit-tip-dot {
-  flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #d4a017;
-  margin-top: 6px;
-}
+.ja-outfit-list li { font-size: 12px; line-height: 1.4; color: #44403c; }

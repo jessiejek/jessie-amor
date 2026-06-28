@@ -58,7 +58,10 @@ export type DaySectionData = {
   day: 11 | 12 | 13 | 14 | 15 | 16;
   title: string;
   budgetLabel: string;
-  outfitTip?: { items: string[] };
+  outfitTip?: {
+    wear: { male: string[]; female: string[] };
+    avoid: { male: string[]; female: string[] };
+  };
   items: TimelineItemData[];
   images?: {
     title: string;
@@ -726,13 +729,14 @@ const currentItinerary = {
       title: 'FLIGHT DAY · July 11',
       budgetLabel: 'Travel Day',
       outfitTip: {
-        items: [
-          'Her: Loose joggers or a soft co-ord set — something you can sleep in on the plane',
-          'Him: Sweatpants or athletic pants with a plain tee',
-          'Both: Light jacket or cardigan — airline AC can get very cold',
-          'Both: Slip-on shoes for quick airport security, socks in your bag',
-          'Pack tomorrow\'s first-day outfit in your carry-on so you can change at the hotel after midnight arrival',
-        ],
+        wear: {
+          male: ['Sweatpants or joggers', 'Plain t-shirt', 'Light jacket', 'Slip-on shoes'],
+          female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', 'Slip-on shoes'],
+        },
+        avoid: {
+          male: ['Jeans (too stiff for a long flight)', 'Dress shoes'],
+          female: ['Tight clothes or bodycon', 'Heels or wedges'],
+        },
       },
       items: [
         {
@@ -770,13 +774,14 @@ const currentItinerary = {
       title: 'DAY 1 · July 12',
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
       outfitTip: {
-        items: [
-          'Her: Light sundress or linen top + wide-leg pants — breathable for KL heat',
-          'Him: Slim chinos or lightweight trousers + polo or collared shirt — presentable for Petronas',
-          'Both: Comfortable cushioned shoes — you\'ll cover most of the city on foot today',
-          'Both: Small crossbody bag — keeps hands free in Petaling Street\'s crowds',
-          'No strict dress codes today but look neat — Petronas observation deck is smart casual',
-        ],
+        wear: {
+          male: ['Chinos or lightweight trousers', 'Polo or collared shirt', 'Cushioned walking shoes'],
+          female: ['Linen pants or light sundress', 'Breathable top', 'Cushioned walking shoes', 'Small crossbody bag'],
+        },
+        avoid: {
+          male: ['Sleeveless shirts or tank tops', 'Flip-flops (too much walking)'],
+          female: ['Tight or heavy fabric', 'Heels or wedges', 'Large backpack in crowded streets'],
+        },
       },
 images: [
       { title: 'Kuala Lumpur Skyline', url: '/day12-kl-skyline.webp', label: 'CITY VIEW' },
@@ -946,13 +951,14 @@ images: [
       title: 'DAY 2 · July 13',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
-        items: [
-          'Her: Loose pants or a midi skirt + top covering shoulders — required for Batu Caves and Chin Swee Temple',
-          'Him: Long pants (no shorts) + t-shirt covering shoulders — required for both temples',
-          'Both: Closed shoes with grip — 272 steep steps at Batu Caves, wet stone at Chin Swee',
-          'Both: Light jacket in your bag — Genting peak is cold and misty at around 6,000 ft',
-          'Avoid white or light colours — the cave area is dusty and the steps have pigeon droppings',
-        ],
+        wear: {
+          male: ['Long pants', 'T-shirt with sleeves', 'Closed shoes with grip', 'Light jacket in bag for Genting'],
+          female: ['Loose pants or midi skirt (knee-length or longer)', 'Top covering shoulders', 'Closed shoes with grip', 'Light jacket in bag for Genting'],
+        },
+        avoid: {
+          male: ['Shorts — not allowed at the temples', 'Sleeveless or tank tops', 'White clothing (cave dust + pigeons)', 'Sandals or slippers'],
+          female: ['Short skirts or mini dresses — not allowed at the temples', 'Sleeveless tops', 'White clothing', 'Heels or sandals'],
+        },
       },
 images: [
       { title: 'Batu Caves Shrine', url: '/day13-batu-caves.webp', label: 'MORNING ASCENT' },
@@ -1152,13 +1158,14 @@ images: [
       title: 'DAY 3 · July 14',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
-        items: [
-          'Her: Long pants or a maxi skirt + top covering shoulders — required for the Melaka Straits Mosque; a light scarf to cover hair is recommended',
-          'Him: Long pants (no shorts) + t-shirt — required for mosque entry',
-          'Both: The most breathable outfit of the trip — Malacca is hotter and more humid than KL with almost no shade',
-          'Both: Comfortable walking shoes — this is the longest on-foot day of the whole trip',
-          'Both: Small umbrella or hat — the heritage walk is fully exposed to afternoon sun',
-        ],
+        wear: {
+          male: ['Long pants', 'T-shirt or light button-up', 'Comfortable walking shoes', 'Hat or cap for the sun'],
+          female: ['Maxi skirt or loose pants', 'Top covering shoulders', 'Light scarf for hair at the mosque', 'Comfortable walking shoes', 'Hat or small umbrella'],
+        },
+        avoid: {
+          male: ['Shorts — not allowed at the mosque', 'Sleeveless tops'],
+          female: ['Short skirts or shorts', 'Sleeveless tops', 'Bare hair inside the mosque', 'Heels (cobblestone streets all day)'],
+        },
       },
       items: [
         {
@@ -1340,13 +1347,14 @@ images: [
       title: 'DAY 4 · July 15 — KL to Singapore',
       budgetLabel: 'WAKE UP TIME: 4:00 AM',
       outfitTip: {
-        items: [
-          'Her: Flowy maxi dress or wide-leg pants + sleeved top — covers both Sri Veeramakaliamman Temple (Hindu) and Sultan Mosque; bring a scarf to wrap your hair at the mosque',
-          'Him: Long pants + collared or sleeved shirt — required for both the Hindu temple and the Sultan Mosque',
-          'Both: Comfortable shoes you can slip off — you remove footwear before entering Sri Veeramakaliamman',
-          'Both: This same outfit works perfectly for Gardens by the Bay and the Marina Bay light shows at night',
-          'Singapore standard is neat and presentable — dress a small step above what you\'d wear in KL',
-        ],
+        wear: {
+          male: ['Long pants', 'Collared or sleeved shirt', 'Slip-on shoes (removed at the Hindu temple)', 'Light jacket for evening at Gardens by the Bay'],
+          female: ['Maxi dress or wide-leg pants + sleeved top', 'Light scarf for hair at Sultan Mosque', 'Slip-on shoes (removed at the Hindu temple)'],
+        },
+        avoid: {
+          male: ['Shorts — not allowed at the Hindu temple or mosque', 'Sleeveless tops', 'Lace-up boots (too slow to remove at temple entrance)'],
+          female: ['Short skirts or shorts', 'Sleeveless tops', 'Bare hair inside the mosque', 'Heels (long walking day)'],
+        },
       },
       items: [
         {
@@ -1545,13 +1553,14 @@ images: [
       title: 'DAY 5 · July 16 — Singapore City & Departure',
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
       outfitTip: {
-        items: [
-          'Her: Start in a modest top + pants or midi skirt — shoulders and knees covered for Buddha Tooth Relic Temple (Buddhist) in Singapore Chinatown',
-          'Him: Long pants + t-shirt or collared shirt — required for the Buddha Tooth Relic Temple',
-          'Both: 5 AM Merlion sunrise start — wear your most comfortable walking shoes',
-          'Both: Change into travel clothes during the 8:30 AM hotel pack-up block before checkout',
-          'Both: Layer up for the airport and flight home — Changi and the plane cabin are both heavily air-conditioned',
-        ],
+        wear: {
+          male: ['Long pants', 'T-shirt or collared shirt', 'Most comfortable walking shoes for 5 AM start', 'Light jacket for airport and flight'],
+          female: ['Pants or midi skirt covering knees', 'Top covering shoulders', 'Comfortable flat shoes', 'Light jacket for airport and flight'],
+        },
+        avoid: {
+          male: ['Shorts — not allowed at Buddha Tooth Relic Temple', 'Sleeveless tops', 'Heavy clothes (you\'ll change at 8:30 AM)'],
+          female: ['Short skirts or shorts', 'Sleeveless tops', 'Heels or wedges (5 AM is not the time)'],
+        },
       },
       items: [
         {

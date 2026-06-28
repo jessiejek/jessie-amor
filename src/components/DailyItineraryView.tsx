@@ -78,14 +78,18 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
             <Shirt size={15} className="ja-outfit-tip-icon" />
             <span className="ja-outfit-tip-label">What to wear today</span>
           </div>
-          <ul className="ja-outfit-tip-list">
-            {day.outfitTip.items.map((item) => (
-              <li key={item} className="ja-outfit-tip-item">
-                <span className="ja-outfit-tip-dot" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="ja-outfit-tip-cols">
+            <div className="ja-outfit-section ja-outfit-wear">
+              <div className="ja-outfit-section-title">✓ Wear this</div>
+              <div className="ja-outfit-row"><span className="ja-outfit-gender">Male</span><ul className="ja-outfit-list">{day.outfitTip.wear.male.map((i) => <li key={i}>{i}</li>)}</ul></div>
+              <div className="ja-outfit-row"><span className="ja-outfit-gender">Female</span><ul className="ja-outfit-list">{day.outfitTip.wear.female.map((i) => <li key={i}>{i}</li>)}</ul></div>
+            </div>
+            <div className="ja-outfit-section ja-outfit-avoid">
+              <div className="ja-outfit-section-title">✕ Don't wear</div>
+              <div className="ja-outfit-row"><span className="ja-outfit-gender">Male</span><ul className="ja-outfit-list">{day.outfitTip.avoid.male.map((i) => <li key={i}>{i}</li>)}</ul></div>
+              <div className="ja-outfit-row"><span className="ja-outfit-gender">Female</span><ul className="ja-outfit-list">{day.outfitTip.avoid.female.map((i) => <li key={i}>{i}</li>)}</ul></div>
+            </div>
+          </div>
         </div>
       )}
 
