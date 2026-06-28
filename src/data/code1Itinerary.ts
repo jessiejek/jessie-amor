@@ -952,7 +952,7 @@ images: [
       title: 'DAY 2 · July 13',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are fine for the day — just pack a sarong or scarf in your bag. You can cover up at the temple entrance and remove it after.',
+        note: '💡 Shorts and lighter clothes are fine — just bring your own sarong. Temples sell or rent sarongs at the entrance and it adds up. Wrap it when you enter, take it off when you leave.',
         wear: {
           male: ['Long pants', 'T-shirt with sleeves', '👞 Wear your closed shoes today — 272 steep steps at Batu Caves, stone gets wet and slippery', 'Light jacket in bag for Genting'],
           female: ['Loose pants or midi skirt (knee-length or longer)', 'Top covering shoulders', '👞 Wear your closed shoes today — 272 steep steps at Batu Caves, stone gets wet and slippery', 'Light jacket in bag for Genting'],
@@ -1160,7 +1160,7 @@ images: [
       title: 'DAY 3 · July 14',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are fine for sightseeing — just carry a sarong or scarf to cover up at the mosque entrance. The mosque provides wraps at the door but having your own is easier.',
+        note: '💡 Shorts and lighter clothes are fine — bring your own sarong. The mosque provides wraps at the entrance but they charge for it. Your own sarong is free and faster.',
         wear: {
           male: ['Long pants', 'T-shirt or light button-up', '👟 Birkenstocks today — cobblestone streets all day, and easy slip-off at the mosque', 'Hat or cap for the sun'],
           female: ['Maxi skirt or loose pants', 'Top covering shoulders', 'Light scarf for hair at the mosque', '👟 Birkenstocks today — cobblestone streets and easy slip-off at the mosque entrance', 'Hat or small umbrella'],
@@ -1350,7 +1350,7 @@ images: [
       title: 'DAY 4 · July 15 — KL to Singapore',
       budgetLabel: 'WAKE UP TIME: 4:00 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are totally fine — two temple and mosque stops today, but both provide cover-ups at the entrance. Just carry a scarf in your bag to save time queuing for theirs.',
+        note: '💡 Shorts and lighter clothes are fine — bring your own sarong. Two temple and mosque stops today and both charge for their cover-ups at the entrance. One sarong each saves you money both times.',
         wear: {
           male: ['Long pants', 'Collared or sleeved shirt', '👟 Birkenstocks today — you remove shoes at the Hindu temple, slip-off is ideal', 'Light jacket for evening at Gardens by the Bay'],
           female: ['Maxi dress or wide-leg pants + sleeved top', 'Light scarf for hair at Sultan Mosque', '👟 Birkenstocks today — you remove shoes at the Hindu temple, slip-off is ideal'],
@@ -1557,7 +1557,7 @@ images: [
       title: 'DAY 5 · July 16 — Singapore City & Departure',
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are fine for the morning — just bring a scarf or sarong for Buddha Tooth Relic Temple. Cover up at the entrance, remove it after, done.',
+        note: '💡 Shorts and lighter clothes are fine — bring your own sarong for Buddha Tooth Relic Temple. They have wraps at the entrance but charge for them. Wrap it going in, take it off coming out.',
         wear: {
           male: ['Long pants', 'T-shirt or collared shirt', '👟 Birkenstocks for the morning — easy slip-off at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
           female: ['Pants or midi skirt covering knees', 'Top covering shoulders', '👟 Birkenstocks for the morning — easy slip-off at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
