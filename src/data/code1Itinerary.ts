@@ -734,8 +734,8 @@ const currentItinerary = {
           female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', '👞 Closed shoes today — travel shoes for the flight'],
         },
         avoid: {
-          male: ['Jeans — too stiff and hot for hours on a plane', 'Lace-up shoes — annoying to take off at security and uncomfortable in a seat'],
-          female: ['Tight clothes or bodycon — you\'ll be sitting for hours, circulation matters', 'Heels or wedges — airports are huge, you walk more than you think'],
+          male: ['Jeans — too stiff and hot for hours on a plane, you\'ll regret it by hour 3'],
+          female: ['Tight clothes or bodycon — you\'ll be sitting for hours, circulation suffers on long flights'],
         },
       },
       items: [
@@ -779,8 +779,8 @@ const currentItinerary = {
           female: ['Linen pants or light sundress', 'Breathable top', '👟 Birkenstocks today — long flat city walk, no tricky terrain', 'Small crossbody bag'],
         },
         avoid: {
-          male: ['Sleeveless shirts or tank tops — Petronas observation deck has a smart casual dress code, you\'ll be turned away', 'Flip-flops — too much walking today, your feet will hurt by noon'],
-          female: ['Tight or heavy fabric — KL heat and humidity will make it unbearable by mid-afternoon', 'Heels or wedges — you\'re walking Petaling Street, Merdeka Square, KLCC Park all in one day', 'Large backpack in crowded streets — Petaling Street is packed, easy target for bag snatching'],
+          male: ['Sleeveless shirts or tank tops — Petronas observation deck has a smart casual dress code, you\'ll be turned away at the entrance'],
+          female: ['Tight or heavy fabric — KL heat and humidity will make it unbearable by mid-afternoon', 'Large backpack in crowded streets — Petaling Street is packed, easy target for bag snatching'],
         },
       },
 images: [
@@ -956,8 +956,8 @@ images: [
           female: ['Loose pants or midi skirt (knee-length or longer)', 'Top covering shoulders', '👞 Wear your closed shoes today — 272 steep steps at Batu Caves, stone gets wet and slippery', 'Light jacket in bag for Genting'],
         },
         avoid: {
-          male: ['Shorts — you will be stopped at the Batu Caves and Chin Swee entrance and asked to wrap a sarong', 'Sleeveless or tank tops — same reason, temples require covered shoulders', 'White clothing — cave dust and pigeon droppings on the steps will ruin it', 'Birkenstocks or sandals — the 272 steps are steep and the stone gets wet, sandals can slip'],
-          female: ['Short skirts or mini dresses — you will be stopped at the temple entrance and given a sarong to wrap', 'Sleeveless tops — temples require covered shoulders or you\'ll be turned away', 'White clothing — cave dust and pigeon droppings on the steps will ruin it', 'Heels or sandals — the Batu Caves steps are steep and slippery, not the day for open shoes'],
+          male: ['Shorts — you will be stopped at the Batu Caves and Chin Swee entrance and asked to wrap a sarong', 'Sleeveless or tank tops — temples require covered shoulders, you\'ll be turned away', 'White clothing — cave dust and pigeon droppings on the steps will ruin it', 'Birkenstocks — the 272 steps are steep and the stone gets wet, your closed shoes are the call today'],
+          female: ['Short skirts or mini dresses — you will be stopped at the temple entrance and given a sarong to wrap', 'Sleeveless tops — temples require covered shoulders or you\'ll be turned away', 'White clothing — cave dust and pigeon droppings on the steps will ruin it', 'Birkenstocks — the 272 steps are steep and the stone gets wet, your closed shoes are the call today'],
         },
       },
 images: [
@@ -1164,7 +1164,7 @@ images: [
         },
         avoid: {
           male: ['Shorts — you will be refused entry to the Melaka Straits Mosque, no exceptions', 'Sleeveless tops — mosque requires covered shoulders, staff will stop you at the gate'],
-          female: ['Short skirts or shorts — you will be refused entry to the mosque', 'Sleeveless tops — mosque requires covered shoulders', 'Bare hair inside the mosque — bring a light scarf or they\'ll hand you one at the entrance', 'Heels — Malacca\'s heritage district is all uneven cobblestone, heels will ruin the day'],
+          female: ['Short skirts or shorts — you will be refused entry to the mosque', 'Sleeveless tops — mosque requires covered shoulders', 'Bare hair inside the mosque — bring a light scarf or they\'ll hand you one at the entrance'],
         },
       },
       items: [
@@ -1352,8 +1352,8 @@ images: [
           female: ['Maxi dress or wide-leg pants + sleeved top', 'Light scarf for hair at Sultan Mosque', '👟 Birkenstocks today — you remove shoes at the Hindu temple, slip-off is ideal'],
         },
         avoid: {
-          male: ['Shorts — you\'ll be turned away at both Sri Veeramakaliamman Temple and Sultan Mosque', 'Sleeveless tops — both the Hindu temple and mosque require covered shoulders', 'Lace-up shoes — you remove footwear at the Hindu temple, laces slow everyone down'],
-          female: ['Short skirts or shorts — refused entry at both the Hindu temple and Sultan Mosque', 'Sleeveless tops — both require covered shoulders, no exceptions', 'Bare hair inside Sultan Mosque — a scarf is provided at the entrance but bring your own to be safe', 'Heels — long day from Little India to Haji Lane to Gardens by the Bay, all on foot'],
+          male: ['Shorts — you\'ll be turned away at both Sri Veeramakaliamman Temple and Sultan Mosque', 'Sleeveless tops — both the Hindu temple and mosque require covered shoulders'],
+          female: ['Short skirts or shorts — refused entry at both the Hindu temple and Sultan Mosque', 'Sleeveless tops — both require covered shoulders, no exceptions', 'Bare hair inside Sultan Mosque — a scarf is provided at the entrance but bring your own to be safe'],
         },
       },
       items: [
@@ -1558,8 +1558,8 @@ images: [
           female: ['Pants or midi skirt covering knees', 'Top covering shoulders', '👟 Birkenstocks for the morning — easy slip-off at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
         },
         avoid: {
-          male: ['Shorts — Buddha Tooth Relic Temple requires knees covered, you\'ll be stopped at the door', 'Sleeveless tops — temple requires shoulders covered', 'Heavy or bulky clothes — you\'re changing into travel clothes at 8:30 AM anyway, don\'t layer up now'],
-          female: ['Short skirts or shorts — Buddha Tooth Relic Temple will turn you away or hand you a wrap', 'Sleeveless tops — temple requires covered shoulders', 'Heels or wedges — 5 AM Merlion sunrise walk on wet boardwalk, not the moment for heels'],
+          male: ['Shorts — Buddha Tooth Relic Temple requires knees covered, you\'ll be stopped at the door', 'Sleeveless tops — temple requires covered shoulders', 'Heavy or bulky clothes — you\'re changing into travel clothes at 8:30 AM anyway, no point layering up now'],
+          female: ['Short skirts or shorts — Buddha Tooth Relic Temple will turn you away or hand you a wrap', 'Sleeveless tops — temple requires covered shoulders'],
         },
       },
       items: [
