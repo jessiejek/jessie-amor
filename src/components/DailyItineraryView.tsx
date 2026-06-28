@@ -78,6 +78,9 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
             <Shirt size={15} className="ja-outfit-tip-icon" />
             <span className="ja-outfit-tip-label">What to wear today</span>
           </div>
+          {day.outfitTip.note && (
+            <p className="ja-outfit-tip-note">{day.outfitTip.note}</p>
+          )}
           <div className="ja-outfit-tip-cols">
             <div className="ja-outfit-section ja-outfit-wear">
               <div className="ja-outfit-section-title">✓ Wear this</div>
