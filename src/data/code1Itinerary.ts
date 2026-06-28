@@ -730,11 +730,11 @@ const currentItinerary = {
       budgetLabel: 'Travel Day',
       outfitTip: {
         wear: {
-          male: ['Sweatpants or joggers', 'Plain t-shirt', 'Light jacket', 'Slip-on shoes'],
-          female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', 'Slip-on shoes'],
+          male: ['Sweatpants or joggers', 'Plain t-shirt', 'Light jacket', 'Birkenstocks — perfect for airport security slip-off'],
+          female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', 'Birkenstocks — easy slip-off at security'],
         },
         avoid: {
-          male: ['Jeans (too stiff for a long flight)', 'Dress shoes'],
+          male: ['Jeans (too stiff for a long flight)', 'Lace-up shoes'],
           female: ['Tight clothes or bodycon', 'Heels or wedges'],
         },
       },
@@ -775,8 +775,8 @@ const currentItinerary = {
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
       outfitTip: {
         wear: {
-          male: ['Chinos or lightweight trousers', 'Polo or collared shirt', 'Cushioned walking shoes'],
-          female: ['Linen pants or light sundress', 'Breathable top', 'Cushioned walking shoes', 'Small crossbody bag'],
+          male: ['Chinos or lightweight trousers', 'Polo or collared shirt', 'Birkenstocks — comfortable for a full city walking day'],
+          female: ['Linen pants or light sundress', 'Breathable top', 'Birkenstocks — comfortable for a full city walking day', 'Small crossbody bag'],
         },
         avoid: {
           male: ['Sleeveless shirts or tank tops', 'Flip-flops (too much walking)'],
@@ -952,8 +952,8 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
         wear: {
-          male: ['Long pants', 'T-shirt with sleeves', 'Closed shoes with grip', 'Light jacket in bag for Genting'],
-          female: ['Loose pants or midi skirt (knee-length or longer)', 'Top covering shoulders', 'Closed shoes with grip', 'Light jacket in bag for Genting'],
+          male: ['Long pants', 'T-shirt with sleeves', 'Birkenstocks are okay — but go slow on the 272 steps, the stone can be wet and slippery', 'Light jacket in bag for Genting'],
+          female: ['Loose pants or midi skirt (knee-length or longer)', 'Top covering shoulders', 'Birkenstocks are okay — but grip the railing on the Batu Caves steps, especially coming down', 'Light jacket in bag for Genting'],
         },
         avoid: {
           male: ['Shorts — not allowed at the temples', 'Sleeveless or tank tops', 'White clothing (cave dust + pigeons)', 'Sandals or slippers'],
@@ -1159,8 +1159,8 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
         wear: {
-          male: ['Long pants', 'T-shirt or light button-up', 'Comfortable walking shoes', 'Hat or cap for the sun'],
-          female: ['Maxi skirt or loose pants', 'Top covering shoulders', 'Light scarf for hair at the mosque', 'Comfortable walking shoes', 'Hat or small umbrella'],
+          male: ['Long pants', 'T-shirt or light button-up', 'Birkenstocks — cobblestone streets all day, comfort matters', 'Hat or cap for the sun'],
+          female: ['Maxi skirt or loose pants', 'Top covering shoulders', 'Light scarf for hair at the mosque', 'Birkenstocks — easy slip-off at mosque entrance too', 'Hat or small umbrella'],
         },
         avoid: {
           male: ['Shorts — not allowed at the mosque', 'Sleeveless tops'],
@@ -1348,11 +1348,11 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:00 AM',
       outfitTip: {
         wear: {
-          male: ['Long pants', 'Collared or sleeved shirt', 'Slip-on shoes (removed at the Hindu temple)', 'Light jacket for evening at Gardens by the Bay'],
-          female: ['Maxi dress or wide-leg pants + sleeved top', 'Light scarf for hair at Sultan Mosque', 'Slip-on shoes (removed at the Hindu temple)'],
+          male: ['Long pants', 'Collared or sleeved shirt', 'Birkenstocks — perfect here, you remove shoes at the Hindu temple entrance', 'Light jacket for evening at Gardens by the Bay'],
+          female: ['Maxi dress or wide-leg pants + sleeved top', 'Light scarf for hair at Sultan Mosque', 'Birkenstocks — slip off in seconds at the temple entrance'],
         },
         avoid: {
-          male: ['Shorts — not allowed at the Hindu temple or mosque', 'Sleeveless tops', 'Lace-up boots (too slow to remove at temple entrance)'],
+          male: ['Shorts — not allowed at the Hindu temple or mosque', 'Sleeveless tops', 'Lace-up shoes (slow to remove at temple)'],
           female: ['Short skirts or shorts', 'Sleeveless tops', 'Bare hair inside the mosque', 'Heels (long walking day)'],
         },
       },
@@ -1554,8 +1554,8 @@ images: [
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
       outfitTip: {
         wear: {
-          male: ['Long pants', 'T-shirt or collared shirt', 'Most comfortable walking shoes for 5 AM start', 'Light jacket for airport and flight'],
-          female: ['Pants or midi skirt covering knees', 'Top covering shoulders', 'Comfortable flat shoes', 'Light jacket for airport and flight'],
+          male: ['Long pants', 'T-shirt or collared shirt', 'Birkenstocks for the morning walk — slip-off easy at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
+          female: ['Pants or midi skirt covering knees', 'Top covering shoulders', 'Birkenstocks for the morning walk — easy temple entry', 'Light jacket for airport and flight'],
         },
         avoid: {
           male: ['Shorts — not allowed at Buddha Tooth Relic Temple', 'Sleeveless tops', 'Heavy clothes (you\'ll change at 8:30 AM)'],
