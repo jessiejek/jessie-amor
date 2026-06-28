@@ -730,8 +730,8 @@ const currentItinerary = {
       budgetLabel: 'Travel Day',
       outfitTip: {
         wear: {
-          male: ['Sweatpants or joggers', 'Plain t-shirt', 'Light jacket', '👟 Birkenstocks today — easy slip-off at airport security'],
-          female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', '👟 Birkenstocks today — easy slip-off at airport security'],
+          male: ['Sweatpants or joggers', 'Plain t-shirt', 'Light jacket', '👞 Closed shoes today — travel shoes for the flight'],
+          female: ['Loose co-ord set or jogger pants', 'Cardigan or light hoodie', '👞 Closed shoes today — travel shoes for the flight'],
         },
         avoid: {
           male: ['Jeans (too stiff for a long flight)', 'Lace-up shoes'],
