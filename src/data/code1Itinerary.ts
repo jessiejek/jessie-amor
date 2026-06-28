@@ -727,10 +727,11 @@ const currentItinerary = {
       budgetLabel: 'Travel Day',
       outfitTip: {
         items: [
-          'Comfortable travel outfit you can sleep in on the plane',
-          'Light jacket or cardigan — airline AC can get cold',
-          'Slip-on shoes for easy airport security',
-          'You arrive after midnight so pack tomorrow\'s outfit in your carry-on',
+          'Her: Loose joggers or a soft co-ord set — something you can sleep in on the plane',
+          'Him: Sweatpants or athletic pants with a plain tee',
+          'Both: Light jacket or cardigan — airline AC can get very cold',
+          'Both: Slip-on shoes for quick airport security, socks in your bag',
+          'Pack tomorrow\'s first-day outfit in your carry-on so you can change at the hotel after midnight arrival',
         ],
       },
       items: [
@@ -770,10 +771,11 @@ const currentItinerary = {
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
       outfitTip: {
         items: [
-          'Light, breathable top and pants or shorts — KL July is hot and humid',
-          'Comfortable closed or cushioned shoes — you\'ll walk most of the city today',
-          'Look neat for the Petronas Twin Towers observation deck (smart casual is fine)',
-          'Small crossbody bag to keep hands free in Petaling Street\'s crowds',
+          'Her: Light sundress or linen top + wide-leg pants — breathable for KL heat',
+          'Him: Slim chinos or lightweight trousers + polo or collared shirt — presentable for Petronas',
+          'Both: Comfortable cushioned shoes — you\'ll cover most of the city on foot today',
+          'Both: Small crossbody bag — keeps hands free in Petaling Street\'s crowds',
+          'No strict dress codes today but look neat — Petronas observation deck is smart casual',
         ],
       },
 images: [
@@ -945,10 +947,11 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
         items: [
-          'Cover shoulders and knees — Batu Caves and Chin Swee are active temples',
-          'Comfortable closed shoes with grip for the 272 Batu Caves steps',
-          'Pack a light jacket in your bag — Genting peak is cold and misty at ~6,000 ft',
-          'Avoid white or light colours — the caves can be dusty',
+          'Her: Loose pants or a midi skirt + top covering shoulders — required for Batu Caves and Chin Swee Temple',
+          'Him: Long pants (no shorts) + t-shirt covering shoulders — required for both temples',
+          'Both: Closed shoes with grip — 272 steep steps at Batu Caves, wet stone at Chin Swee',
+          'Both: Light jacket in your bag — Genting peak is cold and misty at around 6,000 ft',
+          'Avoid white or light colours — the cave area is dusty and the steps have pigeon droppings',
         ],
       },
 images: [
@@ -1150,10 +1153,11 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
         items: [
-          'Cover shoulders and bring a long skirt or pants — visiting the Floating Mosque at golden hour',
-          'Light, breathable fabric — Malacca is hotter and more humid than KL',
-          'Comfortable walking shoes — this is the longest walking day of the trip',
-          'Small umbrella or hat for the open-air heritage walk under the afternoon sun',
+          'Her: Long pants or a maxi skirt + top covering shoulders — required for the Melaka Straits Mosque; a light scarf to cover hair is recommended',
+          'Him: Long pants (no shorts) + t-shirt — required for mosque entry',
+          'Both: The most breathable outfit of the trip — Malacca is hotter and more humid than KL with almost no shade',
+          'Both: Comfortable walking shoes — this is the longest on-foot day of the whole trip',
+          'Both: Small umbrella or hat — the heritage walk is fully exposed to afternoon sun',
         ],
       },
       items: [
@@ -1337,10 +1341,11 @@ images: [
       budgetLabel: 'WAKE UP TIME: 4:00 AM',
       outfitTip: {
         items: [
-          'Modest dress covers both Sri Veeramakaliamman Temple and Sultan Mosque today — shoulders and knees covered',
-          'A flowy maxi dress or pants + top that can double as evening wear at Gardens by the Bay',
-          'Comfortable shoes — you\'ll go from Little India to Haji Lane to Marina Bay all on foot',
-          'Singapore is immaculate — look presentable when you arrive',
+          'Her: Flowy maxi dress or wide-leg pants + sleeved top — covers both Sri Veeramakaliamman Temple (Hindu) and Sultan Mosque; bring a scarf to wrap your hair at the mosque',
+          'Him: Long pants + collared or sleeved shirt — required for both the Hindu temple and the Sultan Mosque',
+          'Both: Comfortable shoes you can slip off — you remove footwear before entering Sri Veeramakaliamman',
+          'Both: This same outfit works perfectly for Gardens by the Bay and the Marina Bay light shows at night',
+          'Singapore standard is neat and presentable — dress a small step above what you\'d wear in KL',
         ],
       },
       items: [
@@ -1541,10 +1546,11 @@ images: [
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
       outfitTip: {
         items: [
-          'Start with your walking outfit — cover shoulders and knees for Buddha Tooth Relic Temple in Chinatown',
-          '5 AM start so prioritise comfortable shoes you can move fast in',
-          'Change into travel clothes when you pack up at the hotel (8:30 AM block)',
-          'Layer up for the airport and flight — Changi and the plane are both heavily air-conditioned',
+          'Her: Start in a modest top + pants or midi skirt — shoulders and knees covered for Buddha Tooth Relic Temple (Buddhist) in Singapore Chinatown',
+          'Him: Long pants + t-shirt or collared shirt — required for the Buddha Tooth Relic Temple',
+          'Both: 5 AM Merlion sunrise start — wear your most comfortable walking shoes',
+          'Both: Change into travel clothes during the 8:30 AM hotel pack-up block before checkout',
+          'Both: Layer up for the airport and flight home — Changi and the plane cabin are both heavily air-conditioned',
         ],
       },
       items: [
