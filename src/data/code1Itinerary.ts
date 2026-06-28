@@ -776,11 +776,11 @@ const currentItinerary = {
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
       outfitTip: {
         wear: {
-          male: ['Chinos or lightweight trousers', 'Polo or collared shirt', '👟 Birkenstocks today — long flat city walk, no tricky terrain'],
-          female: ['Linen pants or light sundress', 'Breathable top', '👟 Birkenstocks today — long flat city walk, no tricky terrain', 'Small crossbody bag'],
+          male: ['Shorts — no temples today, wear what\'s comfortable', 'Plain t-shirt or casual top', '👟 Birkenstocks today — long flat city walk, no tricky terrain'],
+          female: ['Shorts or a light sundress — no dress code stops today', 'Breathable top', '👟 Birkenstocks today — long flat city walk, no tricky terrain', 'Small crossbody bag'],
         },
         avoid: {
-          male: ['Sleeveless shirts or tank tops — Petronas observation deck has a smart casual dress code, you\'ll be turned away at the entrance'],
+          male: ['Sleeveless shirts or tank tops — Petronas observation deck won\'t let you in'],
           female: ['Tight or heavy fabric — KL heat and humidity will make it unbearable by mid-afternoon', 'Large backpack in crowded streets — Petaling Street is packed, easy target for bag snatching'],
         },
       },
