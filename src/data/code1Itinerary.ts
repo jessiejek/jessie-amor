@@ -58,6 +58,7 @@ export type DaySectionData = {
   day: 11 | 12 | 13 | 14 | 15 | 16;
   title: string;
   budgetLabel: string;
+  outfitTip?: { items: string[] };
   items: TimelineItemData[];
   images?: {
     title: string;
@@ -724,6 +725,14 @@ const currentItinerary = {
       day: 11,
       title: 'FLIGHT DAY · July 11',
       budgetLabel: 'Travel Day',
+      outfitTip: {
+        items: [
+          'Comfortable travel outfit you can sleep in on the plane',
+          'Light jacket or cardigan — airline AC can get cold',
+          'Slip-on shoes for easy airport security',
+          'You arrive after midnight so pack tomorrow\'s outfit in your carry-on',
+        ],
+      },
       items: [
         {
           time: '11:55 AM',
@@ -759,6 +768,14 @@ const currentItinerary = {
       day: 12,
       title: 'DAY 1 · July 12',
       budgetLabel: 'WAKE UP TIME: 8:30 AM',
+      outfitTip: {
+        items: [
+          'Light, breathable top and pants or shorts — KL July is hot and humid',
+          'Comfortable closed or cushioned shoes — you\'ll walk most of the city today',
+          'Look neat for the Petronas Twin Towers observation deck (smart casual is fine)',
+          'Small crossbody bag to keep hands free in Petaling Street\'s crowds',
+        ],
+      },
 images: [
       { title: 'Kuala Lumpur Skyline', url: '/day12-kl-skyline.webp', label: 'CITY VIEW' },
     ],
@@ -926,6 +943,14 @@ images: [
       day: 13,
       title: 'DAY 2 · July 13',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
+      outfitTip: {
+        items: [
+          'Cover shoulders and knees — Batu Caves and Chin Swee are active temples',
+          'Comfortable closed shoes with grip for the 272 Batu Caves steps',
+          'Pack a light jacket in your bag — Genting peak is cold and misty at ~6,000 ft',
+          'Avoid white or light colours — the caves can be dusty',
+        ],
+      },
 images: [
       { title: 'Batu Caves Shrine', url: '/day13-batu-caves.webp', label: 'MORNING ASCENT' },
       { title: 'Saloma Link Bridge', url: '/day13-saloma-bridge.webp', label: 'NIGHT ILLUMINATION' },
@@ -1123,6 +1148,14 @@ images: [
       day: 14,
       title: 'DAY 3 · July 14',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
+      outfitTip: {
+        items: [
+          'Cover shoulders and bring a long skirt or pants — visiting the Floating Mosque at golden hour',
+          'Light, breathable fabric — Malacca is hotter and more humid than KL',
+          'Comfortable walking shoes — this is the longest walking day of the trip',
+          'Small umbrella or hat for the open-air heritage walk under the afternoon sun',
+        ],
+      },
       items: [
         {
           time: '6:00 AM',
@@ -1302,6 +1335,14 @@ images: [
       day: 15,
       title: 'DAY 4 · July 15 — KL to Singapore',
       budgetLabel: 'WAKE UP TIME: 4:00 AM',
+      outfitTip: {
+        items: [
+          'Modest dress covers both Sri Veeramakaliamman Temple and Sultan Mosque today — shoulders and knees covered',
+          'A flowy maxi dress or pants + top that can double as evening wear at Gardens by the Bay',
+          'Comfortable shoes — you\'ll go from Little India to Haji Lane to Marina Bay all on foot',
+          'Singapore is immaculate — look presentable when you arrive',
+        ],
+      },
       items: [
         {
           time: '3:15 AM',
@@ -1498,6 +1539,14 @@ images: [
       day: 16,
       title: 'DAY 5 · July 16 — Singapore City & Departure',
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
+      outfitTip: {
+        items: [
+          'Start with your walking outfit — cover shoulders and knees for Buddha Tooth Relic Temple in Chinatown',
+          '5 AM start so prioritise comfortable shoes you can move fast in',
+          'Change into travel clothes when you pack up at the hotel (8:30 AM block)',
+          'Layer up for the airport and flight — Changi and the plane are both heavily air-conditioned',
+        ],
+      },
       items: [
         {
           time: '5:00 AM',

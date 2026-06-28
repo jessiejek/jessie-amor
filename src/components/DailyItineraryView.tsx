@@ -7,7 +7,7 @@ import {
   IonIcon,
 } from "@ionic/react";
 import { informationCircleOutline } from "ionicons/icons";
-import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints } from "lucide-react";
+import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import RichText from "./RichText";
 
@@ -71,6 +71,23 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
           <p className="ja-itinerary-day-meta"><span>{day.budgetLabel}</span></p>
         </div>
       </div>
+
+      {day.outfitTip && (
+        <div className="ja-outfit-tip">
+          <div className="ja-outfit-tip-header">
+            <Shirt size={15} className="ja-outfit-tip-icon" />
+            <span className="ja-outfit-tip-label">What to wear today</span>
+          </div>
+          <ul className="ja-outfit-tip-list">
+            {day.outfitTip.items.map((item) => (
+              <li key={item} className="ja-outfit-tip-item">
+                <span className="ja-outfit-tip-dot" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {day.images?.length ? (
         <div className="ja-itinerary-images">

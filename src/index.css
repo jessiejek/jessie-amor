@@ -7136,3 +7136,54 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
 .ja-error-boundary-btn:hover {
   background: #18534C;
 }
+
+/* === Outfit Tip Banner === */
+.ja-outfit-tip {
+  margin: 0 0 16px 0;
+  padding: 12px 14px;
+  background: #fef9ee;
+  border: 1px solid #f0d98a;
+  border-radius: 10px;
+  border-left: 4px solid #d4a017;
+}
+.ja-outfit-tip-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.ja-outfit-tip-icon {
+  color: #a07810;
+  flex-shrink: 0;
+}
+.ja-outfit-tip-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a07810;
+}
+.ja-outfit-tip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ja-outfit-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #5c4000;
+  line-height: 1.45;
+}
+.ja-outfit-tip-dot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d4a017;
+  margin-top: 6px;
+}
