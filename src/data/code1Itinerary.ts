@@ -2842,6 +2842,151 @@ function buildFallbackGuideForItem(item: TimelineItemData): DestinationGuide {
         ['Keep your passport accessible.', 'Follow the gate staff instructions exactly.']
       );
 
+    case 'restoran-yusoof-dan-zakhir':
+      return genericPlaceGuide(
+        item,
+        'Restoran Yusoof Dan Zakhir is right next door to Travelodge. This is the easiest breakfast stop on the trip — walk out, order, and eat.',
+        [
+          'Walk out of the Travelodge entrance and turn to the restaurant next door.',
+          'Sit at any open table and order Roti Canai and Teh Tarik.',
+          'Eat quickly but without rushing — the food comes fast.',
+          'Pay at the counter when you finish.',
+          'Head back to collect bags and start the day.',
+        ],
+        ['This is a very short walk. No transport needed.', 'Teh Tarik is hot — let it cool a little before drinking.']
+      );
+
+    case 'awana-skyway':
+      return genericPlaceGuide(
+        item,
+        'This is the transfer from Batu Caves up to Genting. You are getting a Grab or bus to the Awana SkyCentral cable car base.',
+        'Grab Car or Pre-Booked Express Bus',
+        'Option A: Book a Grab car directly from the Batu Caves lot to Awana SkyCentral (35–45 mins). Option B: Take a short Grab to Gombak LRT, then board a pre-booked Genting express bus.',
+        ['Grab app (book from Batu Caves lot)', 'Genting Highlands express bus (pre-booked online)', 'Gombak LRT if taking the bus option'],
+        [
+          'From the Batu Caves lot, open Grab and set destination to Awana SkyCentral.',
+          'For the bus option, take a quick Grab to Gombak LRT first, then walk to the Genting bus platform.',
+          'Show your pre-booked bus ticket on your phone if using that option.',
+          'The ride up is winding — sit back and enjoy the mountain view.',
+          'Arrive at Awana SkyCentral and head inside to find the SkyWay cable car entrance.',
+        ],
+        ['Book the express bus in advance online — it sells out on weekends.', 'The mountain road is curvy; skip heavy meals right before the ride.']
+      );
+
+    case 'chin-swee-caves-temple':
+      return genericPlaceGuide(
+        item,
+        'Chin Swee Caves Temple sits on the misty mountain slopes midway up Genting. It is a peaceful stop with a 9-story pagoda, cave shrines, and sweeping views — board the SkyWay and hop off at Chin Swee Station.',
+        [
+          'Board the Awana SkyWay cable car at Awana SkyCentral.',
+          'Get off at the midway Chin Swee Station stop — do not ride to the top yet.',
+          'Walk up the terraced steps slowly and look at the cave shrines.',
+          'Find the 9-story pagoda for the best mountain view photos.',
+          'After exploring, walk back to the station and board the next cable car going to the peak.',
+        ],
+        ['The temple is cool and misty — a light jacket helps.', 'The ride from Awana to Chin Swee takes about 10 minutes.']
+      );
+
+    case 'skyavenue-mall':
+      return genericPlaceGuide(
+        item,
+        'SkyAvenue Mall sits at the Genting peak. This is your lunch and explore stop — a modern indoor mall with cafes, a food court, neon lights, and Skytropolis indoor rides below.',
+        [
+          'Ride the cable car all the way to the top station at SkyAvenue.',
+          'Walk inside and explore the mall level by level.',
+          'Choose lunch at a café or restaurant — aim for something simple to stay on budget.',
+          'After eating, check out the Skytropolis funhouse or Premium Outlets if you have time.',
+          'When you are ready to go down, head back to the cable car entrance.',
+        ],
+        ['The mall is busy near midday — go to the food court if the cafes have long waits.', 'Keep a close eye on bags inside the mall.']
+      );
+
+    case 'genting-island-transfer':
+      return genericPlaceGuide(
+        item,
+        'This is the trip back down from Genting to Kuala Lumpur. You are taking the cable car to the base, then a bus or Grab back to the hotel.',
+        'Express Bus or Grab Car',
+        'Book a Grab or board the Genting express bus at the Awana SkyCentral bus terminal. Bus tickets can be purchased at the counter if not pre-booked.',
+        ['Awana SkyCentral bus terminal counter', 'Grab app (book from Awana SkyCentral drop-off)', 'Pre-booked return bus ticket if you bought a round trip'],
+        [
+          'Take the SkyWay cable car back down to Awana SkyCentral.',
+          'Head to the bus terminal or Grab pick-up point at the base.',
+          'Board the express bus or get into the Grab car heading back to KL.',
+          'The ride back to KL takes about 45–60 minutes depending on traffic.',
+          'Drop off at Travelodge to freshen up before the evening.',
+        ],
+        ['The last express bus back to KL departs before 10 PM — do not cut it close.', 'Grab back is easier than the bus if you are very tired.']
+      );
+
+    case 'simple-breakfast-near-hotel':
+      return genericPlaceGuide(
+        item,
+        'This is a quick, light breakfast near Travelodge before a long Malacca day. Keep it fast and easy.',
+        [
+          'Walk out of the hotel and look for any nearby mamak stall or kopitiam.',
+          'Order something small — roti, toast, or a pastry with coffee or tea.',
+          'Eat quickly and avoid anything too heavy before the long travel day.',
+          'Head back to the hotel to collect your bag before the bus.',
+        ],
+        ['Keep the meal light — you will eat properly in Malacca.', 'The hotel lobby may have a simple breakfast option too.']
+      );
+
+    case 'maritime-museum':
+      return genericPlaceGuide(
+        item,
+        'The Maritime Museum is housed inside a massive replica of the Portuguese ship Flor de la Mar. Walk inside the ship and explore Malacca\'s seafaring history.',
+        [
+          'Walk from Dutch Square along the river toward the river mouth.',
+          'Look for the giant wooden ship replica — it is hard to miss.',
+          'Buy a ticket at the entrance (there are two buildings — start with the ship).',
+          'Walk through the ship exhibits slowly and read the history panels.',
+          'Exit and check the second museum building next door if time allows.',
+        ],
+        ['The ship museum is the more interesting of the two buildings — start there.', 'Bring water because the walk from Dutch Square in the heat can be tiring.']
+      );
+
+    case 'melaka-river-cruise':
+      return genericPlaceGuide(
+        item,
+        'The Melaka River Cruise is a 45-minute boat ride from the jetty next to the ship museum. You glide past old bridges, Kampung Morten houses, and massive river-wall murals.',
+        [
+          'Walk from the Maritime Museum to the River Cruise jetty right next door.',
+          'Buy a ticket at the jetty counter — the boat runs regularly.',
+          'Board the boat and sit on the side for the best view.',
+          'Watch for the murals, old bridges, and the wooden kampung houses along the bank.',
+          'The boat returns to the same jetty after the round trip.',
+        ],
+        ['The cruise is a great rest after all the walking — sit and enjoy.', 'The murals are especially vivid so have your camera ready.']
+      );
+
+    case 'melaka-straits-mosque':
+      return genericPlaceGuide(
+        item,
+        'The Melaka Straits Mosque sits on an island and appears to float over the sea at high tide. Golden hour here is one of the best moments of the whole trip.',
+        [
+          'Book a Grab from the river cruise jetty to Melaka Straits Mosque on Malacca Island.',
+          'Walk the perimeter path around the mosque slowly.',
+          'Take photos with the gold-and-blue dome against the sky and sea.',
+          'Stay until the late afternoon light turns warm if you can.',
+          'Book a Grab back to the bus terminal when you are ready to leave.',
+        ],
+        ['Non-Muslim visitors can walk the outside perimeter — dress modestly.', 'The light is best from 4:30 PM onward, so do not rush here too early.']
+      );
+
+    case 'breakfast-near-hotel':
+      return genericPlaceGuide(
+        item,
+        'Geylang Serai Market & Food Centre is a 3-minute walk from your Singapore hotel. It is cheap, authentic, and exactly the kind of hawker lunch the whole trip needs.',
+        [
+          'Walk 3 minutes from the hotel toward Geylang Serai Market.',
+          'Look for the food centre building and go inside.',
+          'Pick a stall — Nasi Padang or Mee Rebus are both easy, fast, and budget-friendly.',
+          'Pay at the stall, find a table, and eat without rushing.',
+          'Head back to the hotel or to the next stop when you finish.',
+        ],
+        ['Geylang Serai is a Malay hawker market — the food is halal and familiar.', 'Eat well here because afternoon activities can be long.']
+      );
+
     default: {
       const placeLabel = item.mapQuery ?? query;
       const friendlyTitle = title;
