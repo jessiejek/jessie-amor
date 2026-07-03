@@ -4,7 +4,7 @@ import { createAnimation, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import { itinerary, TRAVELER_1, TRAVELER_2 } from "../data/code1Itinerary";
-import type { Expense } from "../types";
+import type { Expense, TripProfile } from "../types";
 import { jsPDF } from "jspdf";
 
 const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0); // July 11 — countdown ends here
@@ -41,6 +41,7 @@ interface NavigationProps {
   activeTab: string; setActiveTab: (tab: string) => void; session: Session | null; isOnline: boolean;
   onOpenAuth: () => void; onOpenSettings?: () => void; onSignOut: () => void;
   metadata: { title: string; description: string }; expenses?: Expense[]; screenSize: "small" | "large";
+  tripProfile?: TripProfile | null;
 }
 type NavTab = { label: string; path: string; icon?: React.ComponentType<{ size?: number; className?: string }>; showInBottom?: boolean; };
 const navItems: NavTab[] = [
@@ -48,7 +49,7 @@ const navItems: NavTab[] = [
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: false },
 ];
 
-export default function Navigation({ activeTab, setActiveTab, session, isOnline, onOpenAuth, onOpenSettings, onSignOut, metadata, expenses = [], screenSize }: NavigationProps) {
+export default function Navigation({ activeTab, setActiveTab, session, isOnline, onOpenAuth, onOpenSettings, onSignOut, metadata, expenses = [], screenSize, tripProfile }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
@@ -76,6 +77,21 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
   const handlePrint = () => window.print();
 
   const handleImmigrationDoc = () => {
+    const p = tripProfile;
+    const t1 = p?.traveler1 ?? TRAVELER_1;
+    const t2 = p?.traveler2 ?? TRAVELER_2;
+    const purpose = p?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience";
+    const duration = p?.duration ?? "5 days";
+    const route = p?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore";
+    const arrivalMy = p?.arrivalMalaysia ?? "July 12, 2026 at 01:30 AM";
+    const arrivalAirport = p?.arrivalAirport ?? "Kuala Lumpur International Airport (KLIA)";
+    const departureSg = p?.departureSg ?? "July 16, 2026 (morning)";
+    const departureAirportSg = p?.departureAirportSg ?? "Changi Airport (SIN)";
+    const hotels = p?.hotels ?? [
+      { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
+      { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
+    ];
+
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const M = 18, PW = 190; let y = 22;
     const clean = (s: string) => s.replace(/\u2019|\u2018/g, "'").replace(/\u201C|\u201D/g, '"').replace(/\u2013|\u2014/g, "-").replace(/\u2192/g, "-").replace(/\u00B7/g, ".").replace(/\u2022/g, "-").replace(/\u2026/g, "...").replace(/\u00A0/g, " ").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
@@ -84,16 +100,17 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
     const np = () => { if (y > 270) { doc.addPage(); y = 22; } };
     doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text("Jessie & Amor's Malaysia - Singapore Trip 2026", M, y); y += 8;
     doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255); doc.setFillColor(11, 53, 48);
-    const bw = doc.getTextWidth("TOURISM  JULY 12-16, 2026 (5 DAYS)") + 8; doc.roundedRect(M, y, bw, 6, 3, 3, "F"); doc.text("TOURISM  JULY 12-16, 2026 (5 DAYS)", M + 4, y + 4.5); y += 12;
+    const badgeText = `TOURISM  ${duration.toUpperCase()}`;
+    const bw = doc.getTextWidth(badgeText) + 8; doc.roundedRect(M, y, bw, 6, 3, 3, "F"); doc.text(badgeText, M + 4, y + 4.5); y += 12;
     doc.setDrawColor(11, 53, 48); doc.setLineWidth(1); doc.line(M, y, PW + M - 8, y); y += 8;
-    sec("Traveler Information"); kv("Traveler 1:", TRAVELER_1); kv("Traveler 2:", TRAVELER_2); kv("Purpose:", "Tourism - sightseeing, cultural exploration, culinary experience"); kv("Duration:", "5 days (arrive Kuala Lumpur July 12, depart Singapore July 16)"); kv("Route:", "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore");
-    sec("Flight Details"); kv("Arrival in Malaysia:", "July 12, 2026 at 01:30 AM - Kuala Lumpur International Airport (KLIA)"); kv("Departure:", "July 16, 2026 (morning) - Changi Airport (SIN)");
+    sec("Traveler Information"); kv("Traveler 1:", t1); kv("Traveler 2:", t2); kv("Purpose:", purpose); kv("Duration:", duration); kv("Route:", route);
+    sec("Flight Details"); kv("Arrival in Malaysia:", `${arrivalMy} - ${arrivalAirport}`); kv("Departure:", `${departureSg} - ${departureAirportSg}`);
     sec("Accommodation"); np();
     const cw = [65, 40, 38, 39], th = ["Hotel", "Location", "Check-in", "Check-out"];
     doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); let cx = M; th.forEach((h, i) => { doc.text(h, cx + 1, y); cx += cw[i]; });
     doc.setDrawColor(11, 53, 48); doc.line(M, y + 1, M + cw.reduce((a, b) => a + b, 0), y + 1); y += 5;
     const hr = (r: string[]) => { let rx = M; r.forEach((c2, i) => { doc.setFontSize(8.5); doc.setFont("helvetica", i === 0 ? "bold" : "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(c2), rx + 1, y); rx += cw[i]; }); y += 4.5; };
-    hr(["Travelodge KL City Centre", "Kuala Lumpur", "July 12, 2026", "July 15, 2026"]); hr(["Hotel Classic by Venue", "Joo Chiat, Singapore", "July 15, 2026", "July 16, 2026"]);
+    hotels.forEach((h) => hr([h.hotel, h.location, h.checkIn, h.checkOut]));
     sec("Daily Itinerary"); itinerary.days.forEach((day) => { np(); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text("Day " + day.day + " - July " + day.day + " - " + clean(day.title), M, y); y += 4.5; day.items.forEach((item) => { np(); doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 50, 50); doc.text(clean(item.time), M + 3, y); const tw2 = doc.getTextWidth(clean(item.time)) + 5; doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(item.title), M + 3 + tw2, y); y += 4; }); y += 2; });
     doc.save("Immigration_Document.pdf");
   };

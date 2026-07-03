@@ -1215,8 +1215,8 @@ textarea::placeholder {
 
 /* Settings Modal */
 .ja-settings-modal {
-  --width: min(420px, calc(100vw - 32px));
-  --max-width: 420px;
+  --width: min(680px, calc(100vw - 32px));
+  --max-width: 680px;
   --height: calc(100dvh - 48px);
   --max-height: calc(100dvh - 48px);
   --border-radius: 18px;
@@ -3393,6 +3393,42 @@ textarea::placeholder {
 @media (min-width: 768px) {
   .ja-settings-date-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ja-profile-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+@media (min-width: 480px) {
+  .ja-profile-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ja-profile-hotel-grid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 480px) {
+  .ja-profile-hotel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ja-profile-hotel-dates {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+}
+
+@media (min-width: 480px) {
+  .ja-profile-hotel-dates {
+    grid-template-columns: 1fr 1fr auto;
   }
 }
 

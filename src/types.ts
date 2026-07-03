@@ -162,3 +162,90 @@ export function rowToSettings(row: UserTripSettingsRow): UserTripSettings {
     updatedAt: row.updated_at,
   };
 }
+
+export interface TripHotel {
+  hotel: string;
+  location: string;
+  checkIn: string;
+  checkOut: string;
+}
+
+export interface TripProfile {
+  id: string;
+  tripKey: string;
+  traveler1: string;
+  traveler2: string;
+  purpose: string;
+  duration: string;
+  route: string;
+  departPh: string;
+  arrivePh: string;
+  arrivalMalaysia: string;
+  arrivalAirport: string;
+  klToSgFlight: string;
+  departureAirportSg: string;
+  departureSg: string;
+  hotels: TripHotel[];
+  updatedAt?: string;
+}
+
+export interface TripProfileRow {
+  id: string;
+  trip_key: string;
+  traveler_1: string;
+  traveler_2: string;
+  purpose: string;
+  duration: string;
+  route: string;
+  depart_ph: string;
+  arrive_ph: string;
+  arrival_malaysia: string;
+  arrival_airport: string;
+  kl_to_sg_flight: string;
+  departure_airport_sg: string;
+  departure_sg: string;
+  hotels: TripHotel[];
+  updated_at?: string;
+}
+
+export function profileToRow(p: TripProfile): TripProfileRow {
+  return {
+    id: p.id,
+    trip_key: p.tripKey,
+    traveler_1: p.traveler1,
+    traveler_2: p.traveler2,
+    purpose: p.purpose,
+    duration: p.duration,
+    route: p.route,
+    depart_ph: p.departPh,
+    arrive_ph: p.arrivePh,
+    arrival_malaysia: p.arrivalMalaysia,
+    arrival_airport: p.arrivalAirport,
+    kl_to_sg_flight: p.klToSgFlight,
+    departure_airport_sg: p.departureAirportSg,
+    departure_sg: p.departureSg,
+    hotels: p.hotels,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function rowToProfile(row: TripProfileRow): TripProfile {
+  return {
+    id: row.id,
+    tripKey: row.trip_key,
+    traveler1: row.traveler_1,
+    traveler2: row.traveler_2,
+    purpose: row.purpose,
+    duration: row.duration,
+    route: row.route,
+    departPh: row.depart_ph,
+    arrivePh: row.arrive_ph,
+    arrivalMalaysia: row.arrival_malaysia,
+    arrivalAirport: row.arrival_airport,
+    klToSgFlight: row.kl_to_sg_flight,
+    departureAirportSg: row.departure_airport_sg,
+    departureSg: row.departure_sg,
+    hotels: row.hotels,
+    updatedAt: row.updated_at,
+  };
+}

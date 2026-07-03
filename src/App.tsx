@@ -49,7 +49,7 @@ import {
   type TimelineItemData,
 } from "./data/code1Itinerary";
 import type { MapItineraryData } from "./data/mapItinerary";
-import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow } from "./types";
+import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow, type TripProfile, type TripProfileRow, profileToRow, rowToProfile } from "./types";
 import {
   hasSupabaseConfig,
   supabase,
@@ -61,6 +61,7 @@ import {
   supabaseReceiptBucket,
   supabaseBudgetSettingsTable,
   supabaseSettingsTable,
+  supabaseTripProfileTable,
   tripKey,
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
@@ -430,6 +431,8 @@ const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 function AppShell() {
   const itinerary = selectedItinerary;
   const [userSettings, setUserSettings] = useState<UserTripSettings | null>(null);
+  const [tripProfile, setTripProfile] = useState<TripProfile | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
   const [settingsLoaded, setSettingsLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
@@ -722,7 +725,18 @@ function AppShell() {
       setSettingsLoaded(true);
     };
 
+    const loadTripProfile = async () => {
+      const { data, error } = await supabase
+        .from(supabaseTripProfileTable)
+        .select("*")
+        .eq("trip_key", tripKey)
+        .maybeSingle();
+      if (cancelled || error) return;
+      if (data) setTripProfile(rowToProfile(data as TripProfileRow));
+    };
+
     void loadUserSettings();
+    void loadTripProfile();
 
     return () => {
       cancelled = true;
@@ -2082,6 +2096,25 @@ function AppShell() {
     }
   };
 
+  const handleSaveTripProfile = async (incoming: TripProfile) => {
+    if (!supabase) return;
+    setIsSavingProfile(true);
+    try {
+      const row = profileToRow({ ...incoming, tripKey });
+      const { error } = await supabase
+        .from(supabaseTripProfileTable)
+        .upsert(row, { onConflict: "trip_key" });
+      if (error) {
+        console.error("trip_profile save failed:", error.message, error);
+      } else {
+        setTripProfile(rowToProfile(row as TripProfileRow));
+      }
+    } catch (e) {
+      console.error("trip_profile save exception:", e);
+    }
+    setIsSavingProfile(false);
+  };
+
   const handleSaveSettings = async (incoming: UserTripSettings) => {
     if (!supabase || !session) return;
 
@@ -2339,6 +2372,7 @@ function AppShell() {
         onSignOut={handleSignOut}
         expenses={expenses}
         screenSize={screenSize}
+        tripProfile={tripProfile}
       />
 
       <IonTabs>
@@ -2566,6 +2600,9 @@ function AppShell() {
               ? "cached rate"
               : "static rate"
         }
+        tripProfile={tripProfile}
+        onSaveTripProfile={handleSaveTripProfile}
+        isSavingProfile={isSavingProfile}
       />
 
       <button
