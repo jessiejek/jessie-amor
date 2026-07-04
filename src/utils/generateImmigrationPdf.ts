@@ -61,13 +61,11 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   hotels.forEach((h) => hr([h.hotel, h.location, h.checkIn, h.checkOut]));
   sec("Daily Itinerary"); days.forEach((day) => { np(); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(day.title), M, y); y += 4.5; day.items.forEach((item) => { np(); doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 50, 50); doc.text(clean(item.time), M + 3, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(item.title), M + 3 + TIME_COL, y); y += 4.5; }); y += 2; });
 
-  const generatedOn = `Generated ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`;
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3); doc.line(M, 284, PW + M - 8, 284);
     doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(140, 140, 140);
-    doc.text(generatedOn, M, 289);
     const pageText = `Page ${i} of ${totalPages}`;
     doc.text(pageText, PW + M - 8 - doc.getTextWidth(pageText), 289);
   }
