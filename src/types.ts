@@ -181,6 +181,12 @@ export interface PdfItineraryDay {
   items: PdfItineraryItem[];
 }
 
+export interface PdfFlightLeg {
+  label: string;
+  dateTime: string;
+  airport: string;
+}
+
 export interface TripProfile {
   id: string;
   tripKey: string;
@@ -190,13 +196,7 @@ export interface TripProfile {
   purpose: string;
   duration: string;
   route: string;
-  departPh: string;
-  arrivePh: string;
-  arrivalMalaysia: string;
-  arrivalAirport: string;
-  klToSgFlight: string;
-  departureAirportSg: string;
-  departureSg: string;
+  flightLegs: PdfFlightLeg[];
   hotels: TripHotel[];
   itineraryDays: PdfItineraryDay[];
   updatedAt?: string;
@@ -211,13 +211,7 @@ export interface TripProfileRow {
   purpose: string;
   duration: string;
   route: string;
-  depart_ph: string;
-  arrive_ph: string;
-  arrival_malaysia: string;
-  arrival_airport: string;
-  kl_to_sg_flight: string;
-  departure_airport_sg: string;
-  departure_sg: string;
+  flight_legs: PdfFlightLeg[] | null;
   hotels: TripHotel[];
   itinerary_days: PdfItineraryDay[] | null;
   updated_at?: string;
@@ -233,13 +227,7 @@ export function profileToRow(p: TripProfile): TripProfileRow {
     purpose: p.purpose,
     duration: p.duration,
     route: p.route,
-    depart_ph: p.departPh,
-    arrive_ph: p.arrivePh,
-    arrival_malaysia: p.arrivalMalaysia,
-    arrival_airport: p.arrivalAirport,
-    kl_to_sg_flight: p.klToSgFlight,
-    departure_airport_sg: p.departureAirportSg,
-    departure_sg: p.departureSg,
+    flight_legs: p.flightLegs,
     hotels: p.hotels,
     itinerary_days: p.itineraryDays,
     updated_at: new Date().toISOString(),
@@ -256,13 +244,7 @@ export function rowToProfile(row: TripProfileRow): TripProfile {
     purpose: row.purpose,
     duration: row.duration,
     route: row.route,
-    departPh: row.depart_ph,
-    arrivePh: row.arrive_ph,
-    arrivalMalaysia: row.arrival_malaysia,
-    arrivalAirport: row.arrival_airport,
-    klToSgFlight: row.kl_to_sg_flight,
-    departureAirportSg: row.departure_airport_sg,
-    departureSg: row.departure_sg,
+    flightLegs: row.flight_legs ?? [],
     hotels: row.hotels,
     itineraryDays: row.itinerary_days ?? [],
     updatedAt: row.updated_at,

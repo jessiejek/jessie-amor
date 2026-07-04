@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { itinerary, TRAVELER_1, TRAVELER_2 } from "../data/code1Itinerary";
-import type { PdfItineraryDay, TripProfile } from "../types";
+import type { PdfFlightLeg, PdfItineraryDay, TripProfile } from "../types";
 
 export function buildDefaultItineraryDays(): PdfItineraryDay[] {
   return itinerary.days.map((day) => ({
@@ -8,6 +8,17 @@ export function buildDefaultItineraryDays(): PdfItineraryDay[] {
     title: day.title,
     items: day.items.map((item) => ({ time: item.time, title: item.title })),
   }));
+}
+
+export function buildDefaultFlightLegs(): PdfFlightLeg[] {
+  return [
+    { label: "Depart Philippines", dateTime: "July 11, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
+    { label: "Arrival in Malaysia", dateTime: "July 12, 2026 at 01:30 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
+    { label: "Depart Malaysia", dateTime: "July 15, 2026 at 08:00 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
+    { label: "Arrive Singapore", dateTime: "July 15, 2026 (morning)", airport: "Changi Airport (SIN)" },
+    { label: "Depart Singapore", dateTime: "July 16, 2026 (morning)", airport: "Changi Airport (SIN)" },
+    { label: "Arrive Philippines", dateTime: "July 17, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
+  ];
 }
 
 export function generateImmigrationPdf(tripProfile: TripProfile | null | undefined) {
@@ -18,10 +29,7 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   const purpose = p?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience";
   const duration = p?.duration ?? "5 days";
   const route = p?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore";
-  const arrivalMy = p?.arrivalMalaysia ?? "July 12, 2026 at 01:30 AM";
-  const arrivalAirport = p?.arrivalAirport ?? "Kuala Lumpur International Airport (KLIA)";
-  const departureSg = p?.departureSg ?? "July 16, 2026 (morning)";
-  const departureAirportSg = p?.departureAirportSg ?? "Changi Airport (SIN)";
+  const flightLegs = p?.flightLegs?.length ? p.flightLegs : buildDefaultFlightLegs();
   const hotels = p?.hotels ?? [
     { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
     { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
@@ -40,7 +48,7 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   const bw = doc.getTextWidth(badgeText) + 8; doc.roundedRect(M, y, bw, 6, 3, 3, "F"); doc.text(badgeText, M + 4, y + 4.5); y += 12;
   doc.setDrawColor(11, 53, 48); doc.setLineWidth(1); doc.line(M, y, PW + M - 8, y); y += 8;
   sec("Traveler Information"); kv("Traveler 1:", t1); kv("Traveler 2:", t2); kv("Purpose:", purpose); kv("Duration:", duration); kv("Route:", route);
-  sec("Flight Details"); kv("Arrival in Malaysia:", `${arrivalMy} - ${arrivalAirport}`); kv("Departure:", `${departureSg} - ${departureAirportSg}`);
+  sec("Flight Details"); flightLegs.forEach((leg) => { np(); kv(`${leg.label}:`, leg.airport ? `${leg.dateTime} - ${leg.airport}` : leg.dateTime); });
   sec("Accommodation"); np();
   const cw = [65, 40, 38, 39], th = ["Hotel", "Location", "Check-in", "Check-out"];
   doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); let cx = M; th.forEach((h, i) => { doc.text(h, cx + 1, y); cx += cw[i]; });

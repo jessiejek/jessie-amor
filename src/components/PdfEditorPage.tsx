@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { IonButton, IonCard, IonCardContent, IonDatetime, IonInput, IonModal, IonSpinner } from "@ionic/react";
 import { ArrowLeft, FileText } from "lucide-react";
-import type { TripProfile, TripHotel, PdfItineraryDay } from "../types";
-import { generateImmigrationPdf, buildDefaultItineraryDays } from "../utils/generateImmigrationPdf";
+import type { TripProfile, TripHotel, PdfItineraryDay, PdfFlightLeg } from "../types";
+import { generateImmigrationPdf, buildDefaultItineraryDays, buildDefaultFlightLegs } from "../utils/generateImmigrationPdf";
 
 interface PdfEditorPageProps {
   tripProfile: TripProfile | null;
@@ -18,8 +18,7 @@ const DEFAULT_HOTELS: TripHotel[] = [
 
 type FormState = {
   documentTitle: string; traveler1: string; traveler2: string; purpose: string; duration: string; route: string;
-  departPh: string; arrivePh: string; arrivalMalaysia: string; arrivalAirport: string;
-  klToSgFlight: string; departureAirportSg: string; departureSg: string;
+  flightLegs: PdfFlightLeg[];
   hotels: TripHotel[];
   itineraryDays: PdfItineraryDay[];
 };
@@ -56,13 +55,7 @@ const buildInitialForm = (profile: TripProfile | null | undefined): FormState =>
   purpose: profile?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience",
   duration: profile?.duration ?? "5 days",
   route: profile?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore",
-  departPh: profile?.departPh ?? "July 11, 2026",
-  arrivePh: profile?.arrivePh ?? "July 17, 2026",
-  arrivalMalaysia: profile?.arrivalMalaysia ?? "July 12, 2026 at 01:30 AM",
-  arrivalAirport: profile?.arrivalAirport ?? "Kuala Lumpur International Airport (KLIA)",
-  klToSgFlight: profile?.klToSgFlight ?? "July 15, 2026 at 08:00 AM",
-  departureAirportSg: profile?.departureAirportSg ?? "Changi Airport (SIN)",
-  departureSg: profile?.departureSg ?? "July 16, 2026 (morning)",
+  flightLegs: profile?.flightLegs?.length ? profile.flightLegs : buildDefaultFlightLegs(),
   hotels: profile?.hotels?.length ? profile.hotels : DEFAULT_HOTELS,
   itineraryDays: profile?.itineraryDays?.length ? profile.itineraryDays : buildDefaultItineraryDays(),
 });
@@ -73,6 +66,12 @@ export default function PdfEditorPage({ tripProfile, onSave, isSaving, onBack }:
   const [editingTime, setEditingTime] = useState<{ dayIndex: number; itemIndex: number } | null>(null);
 
   useEffect(() => { setForm(buildInitialForm(tripProfile)); }, [tripProfile]);
+
+  const updateFlightLeg = (index: number, field: keyof PdfFlightLeg, value: string) => {
+    setForm((prev) => ({ ...prev, flightLegs: prev.flightLegs.map((leg, i) => (i === index ? { ...leg, [field]: value } : leg)) }));
+  };
+  const addFlightLeg = () => setForm((prev) => ({ ...prev, flightLegs: [...prev.flightLegs, { label: "", dateTime: "", airport: "" }] }));
+  const removeFlightLeg = (index: number) => setForm((prev) => ({ ...prev, flightLegs: prev.flightLegs.filter((_, i) => i !== index) }));
 
   const updateHotel = (index: number, field: keyof TripHotel, value: string) => {
     setForm((prev) => ({ ...prev, hotels: prev.hotels.map((h, i) => (i === index ? { ...h, [field]: value } : h)) }));
@@ -166,46 +165,27 @@ export default function PdfEditorPage({ tripProfile, onSave, isSaving, onBack }:
         <IonCardContent>
           <div className="ja-settings-card-header">
             <h4 className="ja-settings-card-title">Flights</h4>
-            <p className="ja-settings-card-desc">Only Arrival in Malaysia and Departure from Singapore print on the PDF today.</p>
+            <p className="ja-settings-card-desc">Every leg listed here prints on the PDF, in order.</p>
           </div>
-
-          <div className="ja-profile-grid">
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Depart Philippines</label>
-              <IonInput value={form.departPh} onIonInput={(e) => setForm((p) => ({ ...p, departPh: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
+          {form.flightLegs.map((leg, i) => (
+            <div key={i} className="ja-itinerary-item">
+              <div className="ja-itinerary-item-row">
+                <IonInput placeholder="Label (e.g. Depart Philippines)" value={leg.label} onIonInput={(e) => updateFlightLeg(i, "label", String(e.detail.value ?? ""))} className="ja-settings-date-input" style={{ flex: 1 }} />
+                <IonButton fill="clear" color="danger" size="small" onClick={() => removeFlightLeg(i)}>Remove</IonButton>
+              </div>
+              <div className="ja-profile-grid">
+                <div>
+                  <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Date / time</label>
+                  <IonInput value={leg.dateTime} onIonInput={(e) => updateFlightLeg(i, "dateTime", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
+                </div>
+                <div>
+                  <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Airport</label>
+                  <IonInput value={leg.airport} onIonInput={(e) => updateFlightLeg(i, "airport", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrive back Philippines</label>
-              <IonInput value={form.arrivePh} onIonInput={(e) => setForm((p) => ({ ...p, arrivePh: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-            </div>
-          </div>
-
-          <div className="ja-profile-grid">
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrival in Malaysia</label>
-              <IonInput value={form.arrivalMalaysia} onIonInput={(e) => setForm((p) => ({ ...p, arrivalMalaysia: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-            </div>
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrival airport</label>
-              <IonInput value={form.arrivalAirport} onIonInput={(e) => setForm((p) => ({ ...p, arrivalAirport: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-            </div>
-          </div>
-
-          <div className="ja-profile-grid">
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>KL → Singapore flight</label>
-              <IonInput value={form.klToSgFlight} onIonInput={(e) => setForm((p) => ({ ...p, klToSgFlight: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-            </div>
-            <div>
-              <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Departure airport (SG)</label>
-              <IonInput value={form.departureAirportSg} onIonInput={(e) => setForm((p) => ({ ...p, departureAirportSg: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-            </div>
-          </div>
-
-          <div>
-            <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Departure from Singapore</label>
-            <IonInput value={form.departureSg} onIonInput={(e) => setForm((p) => ({ ...p, departureSg: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-          </div>
+          ))}
+          <IonButton fill="outline" size="small" onClick={addFlightLeg}>+ Add flight leg</IonButton>
         </IonCardContent>
       </IonCard>
 
