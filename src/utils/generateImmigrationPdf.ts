@@ -37,11 +37,15 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   const days = p?.itineraryDays?.length ? p.itineraryDays : itinerary.days;
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const M = 18, PW = 190, LABEL_COL = 34, TIME_COL = 18; let y = 22;
+  const M = 18, PW = 190, LABEL_COL = 34, TIME_COL = 18, RUNNING_HEADER_H = 12; let y = 22;
   const clean = (s: string) => s.replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/ /g, " ").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
   const sec = (t: string) => { y += 3; doc.setDrawColor(11, 53, 48); doc.setLineWidth(0.5); doc.line(M, y, PW + M - 8, y); y += 5; doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(t).toUpperCase(), M, y); y += 6; };
   const kv = (k: string, v: string) => { doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(60, 60, 60); doc.text(clean(k), M, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(v), M + LABEL_COL, y); y += 4.8; };
-  const np = () => { if (y > 270) { doc.addPage(); y = 22; } };
+  const addRunningHeader = () => {
+    doc.setFillColor(11, 53, 48); doc.rect(0, 0, 210, RUNNING_HEADER_H, "F");
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255); doc.text(clean(title), M, 8);
+  };
+  const np = () => { if (y > 265) { doc.addPage(); addRunningHeader(); y = 22; } };
   doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(title), M, y); y += 8;
   doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255); doc.setFillColor(11, 53, 48);
   const badgeText = `TOURISM  ${duration.toUpperCase()}`;
@@ -56,5 +60,17 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   const hr = (r: string[]) => { let rx = M; r.forEach((c2, i) => { doc.setFontSize(8.5); doc.setFont("helvetica", i === 0 ? "bold" : "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(c2), rx + 1, y); rx += cw[i]; }); y += 4.5; };
   hotels.forEach((h) => hr([h.hotel, h.location, h.checkIn, h.checkOut]));
   sec("Daily Itinerary"); days.forEach((day) => { np(); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(day.title), M, y); y += 4.5; day.items.forEach((item) => { np(); doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 50, 50); doc.text(clean(item.time), M + 3, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(item.title), M + 3 + TIME_COL, y); y += 4.5; }); y += 2; });
+
+  const generatedOn = `Generated ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`;
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3); doc.line(M, 284, PW + M - 8, 284);
+    doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(140, 140, 140);
+    doc.text(generatedOn, M, 289);
+    const pageText = `Page ${i} of ${totalPages}`;
+    doc.text(pageText, PW + M - 8 - doc.getTextWidth(pageText), 289);
+  }
+
   doc.save("Immigration_Document.pdf");
 }
