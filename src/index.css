@@ -3331,6 +3331,22 @@ textarea::placeholder {
   padding: 16px;
 }
 
+.ja-pdf-editor-header {
+  margin-bottom: 16px;
+}
+
+.ja-pdf-editor-back {
+  margin-left: -12px;
+  --color: #0B3530;
+}
+
+.ja-pdf-editor-title {
+  margin: 4px 0 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0B3530;
+}
+
 .ja-settings-card-header {
   margin-bottom: 16px;
 }
@@ -3430,6 +3446,38 @@ textarea::placeholder {
   .ja-profile-hotel-dates {
     grid-template-columns: 1fr 1fr auto;
   }
+}
+
+.ja-time-trigger {
+  --border-radius: 8px;
+  --border-color: #e7e5e4;
+  --color: #1c1917;
+  margin: 0;
+  min-width: 92px;
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.ja-time-modal {
+  --width: fit-content;
+  --height: fit-content;
+  --border-radius: 12px;
+}
+
+.ja-itinerary-item {
+  background: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.ja-itinerary-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .ja-settings-preview {

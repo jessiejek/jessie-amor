@@ -81,6 +81,7 @@ import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
 import { useLiveExchangeRates } from "./lib/exchangeRates";
 import SettingsModal from "./components/SettingsModal";
+import PdfEditorPage from "./components/PdfEditorPage";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -452,6 +453,7 @@ function AppShell() {
     if (pathname === "/diary") return "/diary";
     if (pathname === "/account") return "/account";
     if (pathname === "/settings") return "/settings";
+    if (pathname === "/pdf-editor") return "/pdf-editor";
     return "/";
   };
 
@@ -2527,6 +2529,17 @@ function AppShell() {
               { routeKey: "/settings" }
             )}
           </Route>
+          <Route exact path="/pdf-editor">
+            {renderPage(
+              <PdfEditorPage
+                tripProfile={tripProfile}
+                onSave={handleSaveTripProfile}
+                isSaving={isSavingProfile}
+                onBack={() => navigateTo("/")}
+              />,
+              { routeKey: "/pdf-editor" }
+            )}
+          </Route>
           <Redirect to="/" />
         </IonRouterOutlet>
 
@@ -2600,9 +2613,10 @@ function AppShell() {
               ? "cached rate"
               : "static rate"
         }
-        tripProfile={tripProfile}
-        onSaveTripProfile={handleSaveTripProfile}
-        isSavingProfile={isSavingProfile}
+        onOpenPdfEditor={() => {
+          setShowSettingsModal(false);
+          navigateTo("/pdf-editor");
+        }}
       />
 
       <button

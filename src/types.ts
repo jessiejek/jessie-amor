@@ -170,9 +170,21 @@ export interface TripHotel {
   checkOut: string;
 }
 
+export interface PdfItineraryItem {
+  time: string;
+  title: string;
+}
+
+export interface PdfItineraryDay {
+  day: number;
+  title: string;
+  items: PdfItineraryItem[];
+}
+
 export interface TripProfile {
   id: string;
   tripKey: string;
+  documentTitle: string;
   traveler1: string;
   traveler2: string;
   purpose: string;
@@ -186,12 +198,14 @@ export interface TripProfile {
   departureAirportSg: string;
   departureSg: string;
   hotels: TripHotel[];
+  itineraryDays: PdfItineraryDay[];
   updatedAt?: string;
 }
 
 export interface TripProfileRow {
   id: string;
   trip_key: string;
+  document_title: string;
   traveler_1: string;
   traveler_2: string;
   purpose: string;
@@ -205,6 +219,7 @@ export interface TripProfileRow {
   departure_airport_sg: string;
   departure_sg: string;
   hotels: TripHotel[];
+  itinerary_days: PdfItineraryDay[] | null;
   updated_at?: string;
 }
 
@@ -212,6 +227,7 @@ export function profileToRow(p: TripProfile): TripProfileRow {
   return {
     id: p.id,
     trip_key: p.tripKey,
+    document_title: p.documentTitle,
     traveler_1: p.traveler1,
     traveler_2: p.traveler2,
     purpose: p.purpose,
@@ -225,6 +241,7 @@ export function profileToRow(p: TripProfile): TripProfileRow {
     departure_airport_sg: p.departureAirportSg,
     departure_sg: p.departureSg,
     hotels: p.hotels,
+    itinerary_days: p.itineraryDays,
     updated_at: new Date().toISOString(),
   };
 }
@@ -233,6 +250,7 @@ export function rowToProfile(row: TripProfileRow): TripProfile {
   return {
     id: row.id,
     tripKey: row.trip_key,
+    documentTitle: row.document_title,
     traveler1: row.traveler_1,
     traveler2: row.traveler_2,
     purpose: row.purpose,
@@ -246,6 +264,7 @@ export function rowToProfile(row: TripProfileRow): TripProfile {
     departureAirportSg: row.departure_airport_sg,
     departureSg: row.departure_sg,
     hotels: row.hotels,
+    itineraryDays: row.itinerary_days ?? [],
     updatedAt: row.updated_at,
   };
 }

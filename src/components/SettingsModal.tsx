@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { CurrentUserInfo, UserTripSettings, TripProfile, TripHotel } from "../types";
+import type { CurrentUserInfo, UserTripSettings } from "../types";
 import {
   IonModal,
   IonHeader,
@@ -21,6 +21,7 @@ import {
   IonChip,
   IonSpinner,
 } from "@ionic/react";
+import { FileText } from "lucide-react";
 import { closeOutline } from "ionicons/icons";
 
 interface SettingsModalProps {
@@ -36,40 +37,10 @@ interface SettingsModalProps {
   onBudgetCapChange?: (value: number) => void;
   budgetCapRmLabel?: string;
   budgetCapStatusLabel?: string;
-  tripProfile?: TripProfile | null;
-  onSaveTripProfile?: (profile: TripProfile) => Promise<void>;
-  isSavingProfile?: boolean;
+  onOpenPdfEditor?: () => void;
 }
 
 type FormState = { baseCurrency: string; currencies: string[]; startDate: string; endDate: string; };
-
-const DEFAULT_HOTELS: TripHotel[] = [
-  { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
-  { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
-];
-
-type ProfileFormState = {
-  traveler1: string; traveler2: string; purpose: string; duration: string; route: string;
-  departPh: string; arrivePh: string; arrivalMalaysia: string; arrivalAirport: string;
-  klToSgFlight: string; departureAirportSg: string; departureSg: string;
-  hotels: TripHotel[];
-};
-
-const buildInitialProfile = (profile: TripProfile | null | undefined): ProfileFormState => ({
-  traveler1: profile?.traveler1 ?? "Jessie Jay Q. Rubi",
-  traveler2: profile?.traveler2 ?? "Rizza Amor L. Caguco",
-  purpose: profile?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience",
-  duration: profile?.duration ?? "5 days",
-  route: profile?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore",
-  departPh: profile?.departPh ?? "July 11, 2026",
-  arrivePh: profile?.arrivePh ?? "July 17, 2026",
-  arrivalMalaysia: profile?.arrivalMalaysia ?? "July 12, 2026 at 01:30 AM",
-  arrivalAirport: profile?.arrivalAirport ?? "Kuala Lumpur International Airport (KLIA)",
-  klToSgFlight: profile?.klToSgFlight ?? "July 15, 2026 at 08:00 AM",
-  departureAirportSg: profile?.departureAirportSg ?? "Changi Airport (SIN)",
-  departureSg: profile?.departureSg ?? "July 16, 2026 (morning)",
-  hotels: profile?.hotels?.length ? profile.hotels : DEFAULT_HOTELS,
-});
 
 const currencyOptions = [
   { code: "MYR", name: "Malaysian Ringgit" }, { code: "SGD", name: "Singapore Dollar" },
@@ -105,15 +76,12 @@ export default function SettingsModal({
   open, onClose, session, currentUser, settings, onSave, isSaving,
   isFirstSetup = false, budgetCapPhp = 0, onBudgetCapChange,
   budgetCapRmLabel = "RM 0", budgetCapStatusLabel = "",
-  tripProfile, onSaveTripProfile, isSavingProfile = false,
+  onOpenPdfEditor,
 }: SettingsModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialState(settings));
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [profileForm, setProfileForm] = useState<ProfileFormState>(() => buildInitialProfile(tripProfile));
-  const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => { if (!open) return; setForm(buildInitialState(settings)); setErrors({}); }, [open, settings]);
-  useEffect(() => { if (!open) return; setProfileForm(buildInitialProfile(tripProfile)); }, [open, tripProfile]);
 
   const additionalCurrencies = useMemo(() => form.currencies.filter((code) => code !== form.baseCurrency), [form.baseCurrency, form.currencies]);
   const maxAdditionalCurrencies = 2;
@@ -148,27 +116,6 @@ export default function SettingsModal({
     if (additionalCurrencies.length < 1) next.currencies = "Select at least 1 additional currency.";
     setErrors(next);
     return Object.keys(next).length === 0;
-  };
-
-  const updateHotel = (index: number, field: keyof TripHotel, value: string) => {
-    setProfileForm((prev) => {
-      const hotels = prev.hotels.map((h, i) => i === index ? { ...h, [field]: value } : h);
-      return { ...prev, hotels };
-    });
-  };
-
-  const addHotel = () => setProfileForm((prev) => ({ ...prev, hotels: [...prev.hotels, { hotel: "", location: "", checkIn: "", checkOut: "" }] }));
-  const removeHotel = (index: number) => setProfileForm((prev) => ({ ...prev, hotels: prev.hotels.filter((_, i) => i !== index) }));
-
-  const handleSaveProfile = async () => {
-    if (!onSaveTripProfile) return;
-    await onSaveTripProfile({
-      id: tripProfile?.id ?? crypto.randomUUID(),
-      tripKey: tripProfile?.tripKey ?? "",
-      ...profileForm,
-    });
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2500);
   };
 
   const handleSubmit = async () => {
@@ -275,108 +222,17 @@ export default function SettingsModal({
             </IonCardContent>
           </IonCard>
 
-          <IonCard className="ja-settings-card">
+          {onOpenPdfEditor ? (
+            <IonCard className="ja-settings-card">
               <IonCardContent>
                 <div className="ja-settings-card-header">
-                  <h4 className="ja-settings-card-title">Trip Profile</h4>
-                  <p className="ja-settings-card-desc">Used in the immigration PDF — travelers, flights, and hotels.</p>
+                  <h4 className="ja-settings-card-title">Downloadable PDF</h4>
+                  <p className="ja-settings-card-desc">Edit the travelers, flights, and hotels that appear on the Immigration Document.</p>
                 </div>
-
-                <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Traveler 1</label>
-                <IonInput value={profileForm.traveler1} onIonInput={(e) => setProfileForm((p) => ({ ...p, traveler1: String(e.detail.value ?? "") }))} className="ja-settings-date-input" style={{ marginBottom: 10 }} />
-
-                <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Traveler 2</label>
-                <IonInput value={profileForm.traveler2} onIonInput={(e) => setProfileForm((p) => ({ ...p, traveler2: String(e.detail.value ?? "") }))} className="ja-settings-date-input" style={{ marginBottom: 10 }} />
-
-                <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Purpose of travel</label>
-                <IonInput value={profileForm.purpose} onIonInput={(e) => setProfileForm((p) => ({ ...p, purpose: String(e.detail.value ?? "") }))} className="ja-settings-date-input" style={{ marginBottom: 10 }} />
-
-                <div className="ja-profile-grid">
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Duration</label>
-                    <IonInput value={profileForm.duration} onIonInput={(e) => setProfileForm((p) => ({ ...p, duration: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Route</label>
-                    <IonInput value={profileForm.route} onIonInput={(e) => setProfileForm((p) => ({ ...p, route: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                </div>
-
-                <div className="ja-profile-grid">
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Depart Philippines</label>
-                    <IonInput value={profileForm.departPh} onIonInput={(e) => setProfileForm((p) => ({ ...p, departPh: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrive back Philippines</label>
-                    <IonInput value={profileForm.arrivePh} onIonInput={(e) => setProfileForm((p) => ({ ...p, arrivePh: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                </div>
-
-                <div className="ja-profile-grid">
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrival in Malaysia</label>
-                    <IonInput value={profileForm.arrivalMalaysia} onIonInput={(e) => setProfileForm((p) => ({ ...p, arrivalMalaysia: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Arrival airport</label>
-                    <IonInput value={profileForm.arrivalAirport} onIonInput={(e) => setProfileForm((p) => ({ ...p, arrivalAirport: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                </div>
-
-                <div className="ja-profile-grid">
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>KL → Singapore flight</label>
-                    <IonInput value={profileForm.klToSgFlight} onIonInput={(e) => setProfileForm((p) => ({ ...p, klToSgFlight: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                  <div>
-                    <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Departure airport (SG)</label>
-                    <IonInput value={profileForm.departureAirportSg} onIonInput={(e) => setProfileForm((p) => ({ ...p, departureAirportSg: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 16 }}>
-                  <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Departure from Singapore</label>
-                  <IonInput value={profileForm.departureSg} onIonInput={(e) => setProfileForm((p) => ({ ...p, departureSg: String(e.detail.value ?? "") }))} className="ja-settings-date-input" />
-                </div>
-
-                <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 8 }}>Hotels</label>
-                {profileForm.hotels.map((hotel, i) => (
-                  <div key={i} style={{ background: "var(--ion-color-light)", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
-                    <div className="ja-profile-hotel-grid">
-                      <div>
-                        <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Hotel name</label>
-                        <IonInput value={hotel.hotel} onIonInput={(e) => updateHotel(i, "hotel", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
-                      </div>
-                      <div>
-                        <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Location</label>
-                        <IonInput value={hotel.location} onIonInput={(e) => updateHotel(i, "location", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
-                      </div>
-                    </div>
-                    <div className="ja-profile-hotel-dates">
-                      <div>
-                        <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Check-in</label>
-                        <IonInput value={hotel.checkIn} onIonInput={(e) => updateHotel(i, "checkIn", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
-                      </div>
-                      <div>
-                        <label className="ja-settings-field-label" style={{ display: "block", marginBottom: 4 }}>Check-out</label>
-                        <IonInput value={hotel.checkOut} onIonInput={(e) => updateHotel(i, "checkOut", String(e.detail.value ?? ""))} className="ja-settings-date-input" />
-                      </div>
-                      {profileForm.hotels.length > 1 && (
-                        <IonButton fill="clear" color="danger" size="small" onClick={() => removeHotel(i)} style={{ marginBottom: 2 }}>Remove</IonButton>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <IonButton fill="outline" size="small" onClick={addHotel} style={{ marginBottom: 8 }}>+ Add hotel</IonButton>
-
-                <div style={{ marginTop: 12 }}>
-                  <IonButton disabled={isSavingProfile} onClick={handleSaveProfile}>
-                    {isSavingProfile ? <><IonSpinner slot="start" name="crescent" /> Saving...</> : profileSaved ? "Saved!" : "Save Trip Profile"}
-                  </IonButton>
-                </div>
+                <IonButton fill="outline" onClick={onOpenPdfEditor}><FileText size={14} style={{ marginRight: 8 }} />Edit Downloadable PDF</IonButton>
               </IonCardContent>
             </IonCard>
+          ) : null}
 
           <div className="ja-settings-actions">
             {!isFirstSetup && <IonButton fill="outline" onClick={onClose}>Cancel</IonButton>}
