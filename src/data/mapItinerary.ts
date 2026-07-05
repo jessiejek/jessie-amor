@@ -228,6 +228,7 @@ export const buildInitialMapItinerary = (): MapItineraryData => ({
       label: "July 13",
       title: "Batu Caves, Genting and Jalan Alor",
       destinations: [
+        { id: "13-0", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "05:15 AM", notes: "Start the day at Travelodge before heading out to Batu Caves and Genting Highlands." },
         { id: "13-1", name: "Restoran Yusoof Dan Zakhir Kuala Lumpur", lat: 3.1432, lng: 101.6983, time: "05:30 AM", notes: "Step out of Travelodge to Restoran Yusoof Dan Zakhir right next door. Grab a quick, hot Roti Canai and Teh Tarik to fuel up." },
         { id: "13-2", name: "Pasar Seni LRT Station", lat: 3.1319, lng: 101.6957, time: "05:50 AM", notes: "Walk right behind your hotel into Pasar Seni LRT Station. Take the Kelana Jaya Line 1 stop to KL Sentral (approx. 3 minutes)." },
         { id: "13-3", name: "KL Sentral Station", lat: 3.1344, lng: 101.6865, time: "06:00 AM", notes: "Tap out of the LRT gates at KL Sentral and follow the blue overhead signs pointing to the KTM Komuter departure gates. Buy a cash token or tap your Touch 'n Go card at the turnstiles for the Batu Caves Line." },
@@ -241,6 +242,7 @@ export const buildInitialMapItinerary = (): MapItineraryData => ({
         { id: "13-11", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "05:45 PM", notes: "Rest." },
         { id: "13-12", name: "Jalan Alor Kuala Lumpur", lat: 3.1456, lng: 101.7088, time: "07:00 PM", notes: "How to get there: A quick Grab or MRT ride down to Bukit Bintang Station. The Experience: The 500-meter stretch is in full swing by now under a canopy of glowing red lanterns. It is loud, high-energy, and smells amazing. Sit down at one of the busy, plastic-table stalls for an incredible street seafood dinner." },
         { id: "13-13", name: "Bukit Bintang MRT Station", lat: 3.1492, lng: 101.7143, time: "09:00 PM", notes: "Return to Pasar Seni via MRT for a well-deserved, deep sleep." },
+        { id: "13-14", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "09:20 PM", notes: "Arrive back at Travelodge to end the day." },
       ],
     },
     {

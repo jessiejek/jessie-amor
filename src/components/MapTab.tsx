@@ -26,16 +26,41 @@ const lookupPlaces = async (query: string, signal?: AbortSignal): Promise<Nomina
   if (!r.ok) return []; const p = (await r.json()) as NominatimSuggestion[]; return Array.isArray(p) ? p : [];
 };
 
-const createMarkerIcon = (order: number, selected: boolean) =>
+const createMarkerIcon = (order: number, selected: boolean, anchorOffset: { x: number; y: number } = { x: 0, y: 0 }) =>
   L.divIcon({
     className: "",
     html: `<div class="ja-map-marker ${selected ? "ja-map-marker-selected" : ""}"><span class="ja-map-marker-num">${order}</span></div>`,
-    iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -18],
+    iconSize: [40, 40], iconAnchor: [20 + anchorOffset.x, 20 + anchorOffset.y], popupAnchor: [-anchorOffset.x, -18 - anchorOffset.y],
   });
 
 const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const renderPopup = (dest: MapDestination, order: number) =>
   `<div style="min-width:180px;max-width:220px;"><div style="font-size:13px;font-family:monospace;letter-spacing:0.12em;color:#88B04B;text-transform:uppercase;">Stop ${order}</div><div style="font-weight:700;color:#0B3530;margin-top:4px;">${escapeHtml(dest.name)}</div><div style="font-size:14px;color:#6B7280;margin-top:4px;">${escapeHtml(dest.time)}</div><div style="font-size:14px;color:#374151;line-height:1.45;margin-top:8px;">${escapeHtml(dest.notes)}</div></div>`;
+
+// Same-coordinate stops would otherwise stack exactly on top of each other,
+// leaving only the topmost marker clickable. Fan overlapping stops out into a
+// small on-screen ring via each icon's pixel anchor — the underlying lat/lng
+// (used for the route line and map bounds) stays untouched, and the ring
+// stays a constant, clickable size at every zoom level instead of shrinking
+// to nothing when zoomed out.
+const getOverlapAnchorOffsets = (destinations: MapDestination[]): Map<string, { x: number; y: number }> => {
+  const groups = new Map<string, MapDestination[]>();
+  destinations.forEach((dest) => {
+    const key = `${dest.lat.toFixed(5)},${dest.lng.toFixed(5)}`;
+    const group = groups.get(key);
+    if (group) group.push(dest); else groups.set(key, [dest]);
+  });
+  const offsets = new Map<string, { x: number; y: number }>();
+  groups.forEach((group) => {
+    if (group.length === 1) { offsets.set(group[0].id, { x: 0, y: 0 }); return; }
+    const radiusPx = 15;
+    group.forEach((dest, i) => {
+      const angle = (2 * Math.PI * i) / group.length - Math.PI / 2;
+      offsets.set(dest.id, { x: Math.round(radiusPx * Math.cos(angle)), y: Math.round(radiusPx * Math.sin(angle)) });
+    });
+  });
+  return offsets;
+};
 
 interface MapTabProps { session: Session | null; canEdit?: boolean; isOnline?: boolean; isActive?: boolean; userSettings?: UserTripSettings | null; currentUser?: { userId: string; email: string; isAdmin: boolean; } | null; }
 type SavedByInfo = { userId: string; email: string; };
@@ -189,9 +214,11 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
     const map = mapRef.current; const ml = markerLayerRef.current; if (!map || !ml || !activeDay) return;
     ml.clearLayers(); routeLayerRef.current?.remove(); routeLayerRef.current = null; markerRefs.current = {};
     const pts: L.LatLngExpression[] = [];
+    const anchorOffsets = getOverlapAnchorOffsets(activeDay.destinations);
     activeDay.destinations.forEach((dest, i) => {
       const isSel = dest.id === selectedDestinationId;
-      const m = L.marker([dest.lat, dest.lng], { icon: createMarkerIcon(i + 1, isSel) });
+      const offset = anchorOffsets.get(dest.id) ?? { x: 0, y: 0 };
+      const m = L.marker([dest.lat, dest.lng], { icon: createMarkerIcon(i + 1, isSel, offset) });
       m.bindPopup(renderPopup(dest, i + 1), { closeButton: false, offset: L.point(0, -10), className: "map-popup-shell" });
       m.on("click", () => setSelectedDestinationId(dest.id)); m.addTo(ml); markerRefs.current[dest.id] = m; pts.push([dest.lat, dest.lng]);
     });
