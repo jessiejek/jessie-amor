@@ -5206,8 +5206,13 @@ textarea::placeholder {
 
 .ja-map-swarm-wrap { position: relative; }
 
-.ja-map-container { height: 460px; width: 100%; }
-@media (min-width: 768px) { .ja-map-container { height: 560px; } }
+/* Leaflet's own root element — Leaflet mutates its className directly
+   (leaflet-container, leaflet-touch, etc). Never give this a dynamic
+   class; toggle fullscreen on .ja-map-container-frame instead. */
+.ja-map-container { height: 100%; width: 100%; }
+
+.ja-map-container-frame { position: relative; height: 460px; width: 100%; }
+@media (min-width: 768px) { .ja-map-container-frame { height: 560px; } }
 
 .ja-map-overlay-controls { position: absolute; left: 12px; top: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; max-width: calc(100% - 24px); }
 @media (max-width: 767px) { .ja-map-overlay-controls { top: 88px; } }
@@ -5216,7 +5221,7 @@ textarea::placeholder {
    the zoom/locate controls are cramped and hard to hit at that size, so
    they stay hidden until the map is expanded. Desktop is unaffected. */
 @media (max-width: 767px) {
-  .ja-map-container:not(.ja-map-container-expanded) { filter: blur(4px); pointer-events: none; }
+  .ja-map-container-frame:not(.ja-map-container-expanded) { filter: blur(4px); pointer-events: none; }
   .ja-map-swarm-wrap:not(.ja-map-swarm-wrap-expanded) .ja-map-overlay-controls { display: none; }
 }
 
@@ -5232,18 +5237,33 @@ textarea::placeholder {
   font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.28);
 }
 
+/* Ionic keeps each ion-page's content behind the persistent header/tab-bar
+   on purpose (via CSS containment on the page wrapper, which also makes it
+   a containing block for position:fixed descendants) — so a fixed element
+   in here can never actually cover that chrome no matter its z-index.
+   Filling the space between them (still nearly the whole screen) instead
+   of fighting that architecture. */
 .ja-map-collapse-btn {
-  position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 10001;
+  position: fixed;
+  top: calc(var(--ja-nav-height-mobile, 104px) + env(safe-area-inset-top, 0px) + 12px);
+  right: 12px; z-index: 1050;
   --background: rgba(11, 53, 48, 0.92); --border-radius: 999px;
 }
 
-.ja-map-container-expanded {
-  position: fixed !important; inset: 0 !important;
-  width: 100vw !important; height: 100vh !important;
-  z-index: 9999; border-radius: 0 !important;
+.ja-map-container-frame.ja-map-container-expanded {
+  position: fixed !important;
+  top: calc(var(--ja-nav-height-mobile, 104px) + env(safe-area-inset-top, 0px)) !important;
+  left: 0 !important; right: 0 !important;
+  bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+  width: auto !important; height: auto !important;
+  z-index: 900; border-radius: 0 !important;
 }
 
-.ja-map-swarm-wrap-expanded .ja-map-overlay-controls { position: fixed; z-index: 10000; }
+.ja-map-swarm-wrap-expanded .ja-map-overlay-controls {
+  position: fixed;
+  top: calc(var(--ja-nav-height-mobile, 104px) + env(safe-area-inset-top, 0px) + 12px);
+  z-index: 1000;
+}
 
 .ja-map-controls-row { display: flex; flex-wrap: wrap; gap: 8px; }
 

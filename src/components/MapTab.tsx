@@ -185,7 +185,8 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-    const map = L.map(mapContainerRef.current, { zoomControl: true, scrollWheelZoom: true, preferCanvas: true }).setView([3.139, 101.6869], 12);
+    const map = L.map(mapContainerRef.current, { zoomControl: false, scrollWheelZoom: true, preferCanvas: true }).setView([3.139, 101.6869], 12);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
     mapRef.current = map; markerLayerRef.current = L.layerGroup().addTo(map); userLocationLayerRef.current = L.layerGroup().addTo(map);
     setUserLocationLayerReady(true);
@@ -193,12 +194,22 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
     return () => { window.clearTimeout(to); if (locationWatchIdRef.current !== null && navigator.geolocation) { navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; } routeLayerRef.current?.remove(); markerLayerRef.current?.remove(); userLocationLayerRef.current?.remove(); map.remove(); mapRef.current = null; markerLayerRef.current = null; userLocationLayerRef.current = null; routeLayerRef.current = null; markerRefs.current = {}; setUserLocationLayerReady(false); setIsTrackingLocation(false); setIsTrackingPaused(false); locationPausedRef.current = false; locationShouldPanRef.current = false; };
   }, []);
 
-  // Recalculate Leaflet's internal size once the container finishes its
-  // CSS transition into/out of the fullscreen overlay, otherwise tiles
-  // render at the old (small) dimensions until the next interaction.
+  // Recalculate Leaflet's internal size once the container flips into/out
+  // of the fullscreen overlay. invalidateSize() alone only fixes the pan/
+  // zoom math — it does not force new tiles to load for the newly exposed
+  // area, so without an explicit re-center the map stays blank outside the
+  // old (small) viewport's tiles. Re-applying the current view forces
+  // Leaflet to fetch whatever tiles are missing for the new size.
   useEffect(() => {
     const map = mapRef.current; if (!map) return;
-    const to = window.setTimeout(() => map.invalidateSize(), 260);
+    map.invalidateSize();
+    const to = window.setTimeout(() => {
+      map.invalidateSize();
+      // Re-fit to the day's stops at the new container size — the old zoom
+      // level, applied to a much bigger container, would just reveal more
+      // of the world around the same point instead of framing the stops.
+      fitMapToActiveDay(false);
+    }, 260);
     return () => window.clearTimeout(to);
   }, [isMapExpanded]);
 
@@ -243,11 +254,16 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
     if (userLocation.accuracy !== null && Number.isFinite(userLocation.accuracy)) L.circle(ll, { radius: userLocation.accuracy, color: "#0B3530", weight: 1, opacity: 0.35, fillColor: "#0B3530", fillOpacity: 0.08 }).addTo(ul);
   }, [userLocation, userLocationLayerReady]);
 
-  useEffect(() => {
+  const fitMapToActiveDay = (animate: boolean) => {
     const map = mapRef.current; if (!map || !activeDay) return;
     const pts = activeDay.destinations.map((d) => [d.lat, d.lng] as L.LatLngTuple);
     if (pts.length === 0) return;
-    if (pts.length === 1) { map.setView(pts[0], 14, { animate: true }); } else { map.fitBounds(L.latLngBounds(pts), { padding: [36, 36] }); }
+    if (pts.length === 1) { map.setView(pts[0], 14, { animate }); } else { map.fitBounds(L.latLngBounds(pts), { padding: [36, 36], animate }); }
+  };
+
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !activeDay) return;
+    fitMapToActiveDay(true);
     const to = window.setTimeout(() => map.invalidateSize(), 50);
     return () => window.clearTimeout(to);
   }, [activeDay?.day, activeDay?.destinations.map((d) => `${d.id}:${d.lat},${d.lng}`).join("|")]);
@@ -300,7 +316,14 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
             <IonChip className="ja-map-stats-chip">{activeDay.label} | {activeDay.destinations.length} stops</IonChip>
           </div>
           <div className={`ja-map-swarm-wrap${isMapExpanded ? " ja-map-swarm-wrap-expanded" : ""}`}>
-            <div ref={mapContainerRef} className={`ja-map-container${isMapExpanded ? " ja-map-container-expanded" : ""}`} />
+            {/* This wrapper's class toggles for fullscreen; the inner div is
+                Leaflet's own root element (Leaflet adds "leaflet-container"
+                etc. to it directly via the DOM). Its className prop must
+                never change after mount — React would overwrite Leaflet's
+                own classes on every re-render, breaking size/tile math. */}
+            <div className={`ja-map-container-frame${isMapExpanded ? " ja-map-container-expanded" : ""}`}>
+              <div ref={mapContainerRef} className="ja-map-container" />
+            </div>
             {!isMapExpanded && (
               <div className="ja-map-blur-overlay">
                 <IonButton onClick={() => setIsMapExpanded(true)} className="ja-map-expand-btn">
