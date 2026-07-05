@@ -5212,6 +5212,39 @@ textarea::placeholder {
 .ja-map-overlay-controls { position: absolute; left: 12px; top: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; max-width: calc(100% - 24px); }
 @media (max-width: 767px) { .ja-map-overlay-controls { top: 88px; } }
 
+/* On mobile, the map starts blurred behind a "View Fullscreen" button —
+   the zoom/locate controls are cramped and hard to hit at that size, so
+   they stay hidden until the map is expanded. Desktop is unaffected. */
+@media (max-width: 767px) {
+  .ja-map-container:not(.ja-map-container-expanded) { filter: blur(4px); pointer-events: none; }
+  .ja-map-swarm-wrap:not(.ja-map-swarm-wrap-expanded) .ja-map-overlay-controls { display: none; }
+}
+
+.ja-map-blur-overlay {
+  position: absolute; inset: 0; z-index: 600;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+}
+@media (max-width: 767px) { .ja-map-blur-overlay { display: flex; } }
+
+.ja-map-expand-btn {
+  --background: #0B3530; --background-hover: #18534C; --border-radius: 999px;
+  font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+}
+
+.ja-map-collapse-btn {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 10001;
+  --background: rgba(11, 53, 48, 0.92); --border-radius: 999px;
+}
+
+.ja-map-container-expanded {
+  position: fixed !important; inset: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  z-index: 9999; border-radius: 0 !important;
+}
+
+.ja-map-swarm-wrap-expanded .ja-map-overlay-controls { position: fixed; z-index: 10000; }
+
 .ja-map-controls-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .ja-map-banner { border-radius: 12px; padding: 8px 12px; font-size: 11px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); backdrop-filter: blur(8px); }

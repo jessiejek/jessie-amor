@@ -5,7 +5,7 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonInput, IonTextarea, IonButton, IonIcon, IonSelect, IonSelectOption, IonChip, IonSpinner,
 } from "@ionic/react";
-import { addOutline, locateOutline, trailSignOutline, navigateOutline, stopCircleOutline, trashOutline, mapOutline } from "ionicons/icons";
+import { addOutline, locateOutline, trailSignOutline, navigateOutline, stopCircleOutline, trashOutline, mapOutline, expandOutline, closeOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
 import { buildInitialMapItinerary, resolveCoordinatesFromName, type MapDestination, type MapItineraryData, type MapDestinationRow, destinationToRow, rowToDestination, groupDestinationsByDay } from "../data/mapItinerary";
@@ -106,6 +106,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
   const pendingDeleteIdsRef = useRef<Set<string>>(new Set());
   const cachedRowsRef = useRef<MapDestinationRow[]>([]);
   const [mapLoaded, setMapLoaded] = useState<boolean>(!supabase);
+  const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);
   const currentSavedBy: SavedByInfo | null = session?.user ? { userId: session.user.id, email: session.user.email ?? "" } : null;
   const canManageDestination = (dest?: MapDestination | null) => { if (!currentUser || !dest) return false; const o = dest.createdBy ?? dest.savedByUserId ?? null; return currentUser.isAdmin || o === currentUser.userId; };
   const saveMapSnapshot = (nextData: MapItineraryData, dirty: boolean) => { mapDirtyRef.current = dirty; writeCachedDataset(mapCacheKey, { data: nextData, syncedSignature: "", dirty }); };
@@ -191,6 +192,15 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
     const to = window.setTimeout(() => map.invalidateSize(), 150);
     return () => { window.clearTimeout(to); if (locationWatchIdRef.current !== null && navigator.geolocation) { navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; } routeLayerRef.current?.remove(); markerLayerRef.current?.remove(); userLocationLayerRef.current?.remove(); map.remove(); mapRef.current = null; markerLayerRef.current = null; userLocationLayerRef.current = null; routeLayerRef.current = null; markerRefs.current = {}; setUserLocationLayerReady(false); setIsTrackingLocation(false); setIsTrackingPaused(false); locationPausedRef.current = false; locationShouldPanRef.current = false; };
   }, []);
+
+  // Recalculate Leaflet's internal size once the container finishes its
+  // CSS transition into/out of the fullscreen overlay, otherwise tiles
+  // render at the old (small) dimensions until the next interaction.
+  useEffect(() => {
+    const map = mapRef.current; if (!map) return;
+    const to = window.setTimeout(() => map.invalidateSize(), 260);
+    return () => window.clearTimeout(to);
+  }, [isMapExpanded]);
 
   useEffect(() => {
     const handleVisibilityChange = () => { if (document.hidden) { if (locationWatchIdRef.current !== null && navigator.geolocation) { locationPausedRef.current = true; setIsTrackingPaused(true); navigator.geolocation.clearWatch(locationWatchIdRef.current); locationWatchIdRef.current = null; setIsTrackingLocation(false); locationShouldPanRef.current = false; } return; } if (locationPausedRef.current) setIsTrackingPaused(true); };
@@ -284,13 +294,25 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
       </IonCard>
 
       <div className="ja-map-layout">
-        <section className="ja-map-panel">
+        <section className={`ja-map-panel${isMapExpanded ? " ja-map-panel-expanded" : ""}`}>
           <div className="ja-map-panel-top">
             <div><h4 className="ja-map-panel-title">Map panel</h4><p className="ja-map-panel-desc">OpenStreetMap tiles, numbered markers, and route line by day.</p></div>
             <IonChip className="ja-map-stats-chip">{activeDay.label} | {activeDay.destinations.length} stops</IonChip>
           </div>
-          <div className="ja-map-swarm-wrap">
-            <div ref={mapContainerRef} className="ja-map-container" />
+          <div className={`ja-map-swarm-wrap${isMapExpanded ? " ja-map-swarm-wrap-expanded" : ""}`}>
+            <div ref={mapContainerRef} className={`ja-map-container${isMapExpanded ? " ja-map-container-expanded" : ""}`} />
+            {!isMapExpanded && (
+              <div className="ja-map-blur-overlay">
+                <IonButton onClick={() => setIsMapExpanded(true)} className="ja-map-expand-btn">
+                  <IonIcon icon={expandOutline} slot="start" />View Fullscreen
+                </IonButton>
+              </div>
+            )}
+            {isMapExpanded && (
+              <IonButton size="small" fill="solid" onClick={() => setIsMapExpanded(false)} className="ja-map-collapse-btn">
+                <IonIcon icon={closeOutline} slot="start" />Close
+              </IonButton>
+            )}
             <div className="ja-map-overlay-controls">
               <div className="ja-map-controls-row">
                 <IonButton size="small" onClick={handleLocateMe} disabled={isLocating} className="ja-map-locate-btn">
