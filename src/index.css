@@ -3528,6 +3528,34 @@ textarea::placeholder {
   min-height: 0;
 }
 
+.ja-users-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.ja-users-row:last-of-type {
+  border-bottom: none;
+}
+
+.ja-users-row-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ja-users-row-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #292524;
+  word-break: break-all;
+}
+
 .ja-settings-warning {
   margin-top: 12px;
   font-size: 11px;

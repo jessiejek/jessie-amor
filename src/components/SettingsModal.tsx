@@ -23,6 +23,14 @@ import {
 } from "@ionic/react";
 import { FileText } from "lucide-react";
 import { closeOutline } from "ionicons/icons";
+import { supabase } from "../lib/supabase";
+
+interface RegisteredUser {
+  id: string;
+  email: string;
+  is_admin: boolean;
+  is_active: boolean;
+}
 
 interface SettingsModalProps {
   open: boolean;
@@ -80,8 +88,46 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialState(settings));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userActionError, setUserActionError] = useState("");
 
   useEffect(() => { if (!open) return; setForm(buildInitialState(settings)); setErrors({}); }, [open, settings]);
+
+  useEffect(() => {
+    if (!open || !supabase || !currentUser?.isAdmin) return;
+    let cancelled = false;
+    setLoadingUsers(true);
+    supabase
+      .from("user_profiles")
+      .select("id, email, is_admin, is_active")
+      .order("email", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Failed to load registered users:", error.message);
+          setUserActionError("Could not load the user list.");
+        } else {
+          setRegisteredUsers((data ?? []) as RegisteredUser[]);
+        }
+        setLoadingUsers(false);
+      });
+    return () => { cancelled = true; };
+  }, [open, currentUser?.isAdmin]);
+
+  const toggleUserActive = async (user: RegisteredUser) => {
+    if (!supabase) return;
+    const nextActive = !user.is_active;
+    setRegisteredUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, is_active: nextActive } : u)));
+    const { error } = await supabase.from("user_profiles").update({ is_active: nextActive }).eq("id", user.id);
+    if (error) {
+      console.warn("Failed to update user access:", error.message);
+      setUserActionError(`Could not update ${user.email}. Try again.`);
+      setRegisteredUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, is_active: user.is_active } : u)));
+    } else {
+      setUserActionError("");
+    }
+  };
 
   const additionalCurrencies = useMemo(() => form.currencies.filter((code) => code !== form.baseCurrency), [form.baseCurrency, form.currencies]);
   const maxAdditionalCurrencies = 2;
@@ -221,6 +267,34 @@ export default function SettingsModal({
               <p className="ja-settings-helper">When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.{budgetCapPhp > 0 ? <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</> : null}</p>
             </IonCardContent>
           </IonCard>
+
+          {currentUser?.isAdmin ? (
+            <IonCard className="ja-settings-card">
+              <IonCardContent>
+                <div className="ja-settings-card-header">
+                  <h4 className="ja-settings-card-title">Registered Users</h4>
+                  <p className="ja-settings-card-desc">Only you can see this. Deactivating an account signs it out and blocks it from opening the app.</p>
+                </div>
+                {loadingUsers ? <IonSpinner name="crescent" /> : (
+                  registeredUsers.map((user) => (
+                    <div key={user.id} className="ja-users-row">
+                      <div className="ja-users-row-main">
+                        <span className="ja-users-row-name">{user.email}</span>
+                        {user.is_admin ? <IonChip color="tertiary" className="ja-settings-cap-chip">Admin</IonChip> : null}
+                        <IonChip color={user.is_active ? "success" : "medium"} className="ja-settings-cap-chip">{user.is_active ? "Active" : "Blocked"}</IonChip>
+                      </div>
+                      {user.is_admin ? null : (
+                        <IonButton fill="outline" size="small" color={user.is_active ? "danger" : "success"} onClick={() => toggleUserActive(user)}>
+                          {user.is_active ? "Deactivate" : "Activate"}
+                        </IonButton>
+                      )}
+                    </div>
+                  ))
+                )}
+                {userActionError ? <p className="ja-settings-error">{userActionError}</p> : null}
+              </IonCardContent>
+            </IonCard>
+          ) : null}
 
           {onOpenPdfEditor ? (
             <IonCard className="ja-settings-card">

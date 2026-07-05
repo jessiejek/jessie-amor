@@ -655,7 +655,7 @@ function AppShell() {
     const loadProfile = async () => {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("is_admin")
+        .select("is_admin, is_active")
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -664,6 +664,14 @@ function AppShell() {
       if (error) {
         console.warn("Supabase profile load failed:", error.message);
         setIsAdmin(false);
+        return;
+      }
+
+      if (data?.is_active === false) {
+        setIsAdmin(false);
+        setAuthError("Access to this trip has been revoked. Contact the trip owner if this is a mistake.");
+        setShowAuthModal(true);
+        void supabase.auth.signOut();
         return;
       }
 
