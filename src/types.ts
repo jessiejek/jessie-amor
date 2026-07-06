@@ -173,6 +173,13 @@ export interface TripHotel {
 export interface PdfItineraryItem {
   time: string;
   title: string;
+  // Optional Itinerary+ spreadsheet columns. Left blank, these don't show
+  // up anywhere — the PDF only ever reads time/title, so the immigration
+  // document is unaffected by any of this.
+  destination?: string;
+  fees?: string;
+  ootdJessie?: string;
+  ootdAmor?: string;
 }
 
 export interface PdfItineraryDay {

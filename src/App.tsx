@@ -38,6 +38,7 @@ import {
   mapOutline,
   bookOutline,
   menuOutline,
+  gridOutline,
 } from "ionicons/icons";
 import { installKeyboardClass } from "./utils/keyboardClass";
 import type { Session } from "@supabase/supabase-js";
@@ -82,6 +83,7 @@ import AuthPanel from "./components/AuthPanel";
 import { useLiveExchangeRates } from "./lib/exchangeRates";
 import SettingsModal from "./components/SettingsModal";
 import PdfEditorPage from "./components/PdfEditorPage";
+import ItineraryPlusTab from "./components/ItineraryPlusTab";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -454,6 +456,7 @@ function AppShell() {
     if (pathname === "/account") return "/account";
     if (pathname === "/settings") return "/settings";
     if (pathname === "/pdf-editor") return "/pdf-editor";
+    if (pathname === "/itinerary-plus") return "/itinerary-plus";
     return "/";
   };
 
@@ -2548,6 +2551,17 @@ function AppShell() {
               { routeKey: "/pdf-editor" }
             )}
           </Route>
+          <Route exact path="/itinerary-plus">
+            {renderPage(
+              <ItineraryPlusTab
+                tripProfile={tripProfile}
+                onSave={handleSaveTripProfile}
+                isSaving={isSavingProfile}
+                canEdit={Boolean(session)}
+              />,
+              { routeKey: "/itinerary-plus" }
+            )}
+          </Route>
           <Redirect to="/" />
         </IonRouterOutlet>
 
@@ -2555,6 +2569,10 @@ function AppShell() {
           <IonTabButton tab="itinerary" href="/" onClick={(event) => { event.preventDefault(); navigateTo("/"); }}>
             <IonIcon icon={calendarOutline} />
             <IonLabel>Itinerary</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="itinerary-plus" href="/itinerary-plus" onClick={(event) => { event.preventDefault(); navigateTo("/itinerary-plus"); }}>
+            <IonIcon icon={gridOutline} />
+            <IonLabel>Itinerary+</IonLabel>
           </IonTabButton>
           <IonTabButton tab="budget" href="/budget" onClick={(event) => { event.preventDefault(); navigateTo("/budget"); }}>
             <IonIcon icon={walletOutline} />

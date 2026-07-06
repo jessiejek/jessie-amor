@@ -6,7 +6,7 @@ export function buildDefaultItineraryDays(): PdfItineraryDay[] {
   return itinerary.days.map((day) => ({
     day: day.day,
     title: day.title,
-    items: day.items.map((item) => ({ time: item.time, title: item.title })),
+    items: day.items.map((item) => ({ time: item.time, title: item.title, destination: item.mapQuery })),
   }));
 }
 
@@ -71,4 +71,120 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   }
 
   doc.save("Immigration_Document.pdf");
+}
+
+// Fill an OOTD value in on the first row of its range and leave rows after it
+// blank to extend the merge; type a lone "," to stop the merge at that row.
+// Mirrors the same rule used in ItineraryPlusTab's on-screen table.
+function computeOotdRowSpans(items: { ootdJessie?: string; ootdAmor?: string }[], field: "ootdJessie" | "ootdAmor"): number[] {
+  const spans = new Array(items.length).fill(1);
+  let activeStart = -1;
+  items.forEach((item, i) => {
+    const raw = (item[field] ?? "").trim();
+    if (raw === ",") {
+      spans[i] = 1;
+      activeStart = -1;
+    } else if (raw) {
+      activeStart = i;
+      spans[i] = 1;
+    } else if (activeStart !== -1) {
+      spans[activeStart] += 1;
+      spans[i] = 0;
+    }
+  });
+  return spans;
+}
+
+const ootdPdfValue = (raw: string | undefined) => ((raw ?? "").trim() === "," ? "" : raw ?? "");
+
+export function generateItineraryPlusPdf(tripProfile: TripProfile | null | undefined, columnVisibility?: Record<string, boolean>) {
+  const p = tripProfile;
+  const title = p?.documentTitle || "Jessie & Amor's Malaysia - Singapore Trip 2026";
+  const days = p?.itineraryDays?.length ? p.itineraryDays : buildDefaultItineraryDays();
+  const isVisible = (key: string) => columnVisibility?.[key] !== false;
+
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const M = 12, PAGE_W = 210, PAGE_H = 297, HEADER_H = 13, ROW_H = 7.5;
+  const allCols = [
+    { key: "time", label: "Time", width: 16 },
+    { key: "destination", label: "Destination", width: 27 },
+    { key: "title", label: "Activities", width: 51 },
+    { key: "fees", label: "Fees", width: 15 },
+    { key: "ootdJessie", label: "OOTD - Jessie", width: 30 },
+    { key: "ootdAmor", label: "OOTD - Amor", width: 30 },
+  ];
+  const shownCols = allCols.filter((c) => c.key === "time" || c.key === "title" || isVisible(c.key));
+  const shownWidth = shownCols.reduce((a, c) => a + c.width, 0);
+  const totalWidth = allCols.reduce((a, c) => a + c.width, 0);
+  const cols = shownCols.map((c) => ({ ...c, width: (c.width / shownWidth) * totalWidth }));
+  const clean = (s: string) => (s ?? "").replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
+  let y = 19;
+
+  const addRunningHeader = () => {
+    doc.setFillColor(11, 53, 48); doc.rect(0, 0, PAGE_W, HEADER_H, "F");
+    doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255); doc.text(clean(title), M, 8.5);
+  };
+  const drawTableHeader = () => {
+    doc.setFillColor(240, 238, 235);
+    doc.rect(M, y, cols.reduce((a, c) => a + c.width, 0), 6.5, "F");
+    doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48);
+    let cx = M;
+    cols.forEach((c) => { doc.text(clean(c.label).toUpperCase(), cx + 1.5, y + 4.4); cx += c.width; });
+    y += 6.5;
+  };
+  const ensureSpace = (neededRows: number) => {
+    if (y + neededRows * ROW_H > 280) { doc.addPage(); addRunningHeader(); y = 19; drawTableHeader(); }
+  };
+
+  addRunningHeader();
+  doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(title), M, y); y += 5.5;
+  doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 100, 100); doc.text("Day / Time / Destination / Activities / Fees / OOTD", M, y); y += 5.5;
+
+  days.forEach((day) => {
+    ensureSpace(2);
+    doc.setFillColor(11, 53, 48); doc.rect(M, y, cols.reduce((a, c) => a + c.width, 0), 6, "F");
+    doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255);
+    doc.text(clean(day.title).toUpperCase(), M + 2, y + 4.2);
+    y += 6;
+    drawTableHeader();
+
+    const jessieSpans = computeOotdRowSpans(day.items, "ootdJessie");
+    const amorSpans = computeOotdRowSpans(day.items, "ootdAmor");
+
+    day.items.forEach((item, itemIndex) => {
+      ensureSpace(1);
+      const rowTop = y;
+      let cx = M;
+      cols.forEach((c) => {
+        if (c.key === "ootdJessie" || c.key === "ootdAmor") {
+          const span = c.key === "ootdJessie" ? jessieSpans[itemIndex] : amorSpans[itemIndex];
+          if (span > 0) {
+            const cellH = span * ROW_H;
+            doc.setDrawColor(225, 223, 220); doc.setLineWidth(0.2); doc.rect(cx, rowTop, c.width, cellH);
+            doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26);
+            const value = clean(ootdPdfValue((item as any)[c.key]));
+            if (value) doc.text(value, cx + 1.5, rowTop + cellH / 2 + 1, { maxWidth: c.width - 3 });
+          }
+        } else {
+          doc.setDrawColor(225, 223, 220); doc.setLineWidth(0.2); doc.rect(cx, rowTop, c.width, ROW_H);
+          doc.setFontSize(7); doc.setFont("helvetica", c.key === "time" ? "bold" : "normal"); doc.setTextColor(26, 26, 26);
+          const value = clean((item as any)[c.key] ?? "") || "-";
+          doc.text(value, cx + 1.5, rowTop + ROW_H / 2 + 1, { maxWidth: c.width - 3 });
+        }
+        cx += c.width;
+      });
+      y += ROW_H;
+    });
+    y += 4;
+  });
+
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(140, 140, 140);
+    const pageText = `Page ${i} of ${totalPages}`;
+    doc.text(pageText, PAGE_W - M - doc.getTextWidth(pageText), PAGE_H - 8);
+  }
+
+  doc.save("Itinerary_Plus.pdf");
 }

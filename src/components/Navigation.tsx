@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X } from "lucide-react";
+import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X, Table } from "lucide-react";
 import { createAnimation, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
@@ -44,7 +44,7 @@ interface NavigationProps {
 }
 type NavTab = { label: string; path: string; icon?: React.ComponentType<{ size?: number; className?: string }>; showInBottom?: boolean; };
 const navItems: NavTab[] = [
-  { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true }, { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
+  { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true }, { label: "Itinerary+", path: "/itinerary-plus", icon: Table, showInBottom: true }, { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
   { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: false },
 ];
 
