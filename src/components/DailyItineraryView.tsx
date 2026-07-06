@@ -203,8 +203,8 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
         </div>
       </div>
 
-      <div className="ja-itinerary-mobile-articles">{selectedDay ? renderDayArticle(selectedDay, selectedDayIndex + 1, true) : null}</div>
-      <div className="ja-itinerary-desktop-articles">{days.map((day, i) => renderDayArticle(day, i + 1))}</div>
+      <div className="ja-itinerary-mobile-articles">{selectedDay ? renderDayArticle(selectedDay, selectedDayIndex, true) : null}</div>
+      <div className="ja-itinerary-desktop-articles">{days.map((day, i) => renderDayArticle(day, i))}</div>
     </section>
   );
 }

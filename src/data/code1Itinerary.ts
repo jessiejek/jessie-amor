@@ -727,7 +727,7 @@ const currentItinerary = {
   days: [
     {
       day: 11,
-      title: 'FLIGHT DAY · July 11',
+      title: 'DAY 0 · July 11',
       budgetLabel: 'Travel Day',
       outfitTip: {
         wear: {
