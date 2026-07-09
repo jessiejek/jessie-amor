@@ -4337,10 +4337,7 @@ textarea::placeholder {
   font-family: var(--font-sans);
   line-height: 1.625;
   margin-top: 8px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
 }
 
 .ja-notes-note-footer {
