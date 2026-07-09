@@ -4300,9 +4300,8 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 192px;
+  min-height: 192px;
   position: relative;
-  overflow: hidden;
   padding: 16px;
 }
 
