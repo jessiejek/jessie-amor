@@ -131,6 +131,20 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                           <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{item.title}</a>
                         </h4>
                         <p className="ja-itinerary-item-desc"><RichText segments={item.description} /></p>
+                        {item.warnings?.length ? (
+                          <div className="ja-item-warnings">
+                            {item.warnings.map((warning, wi) => (
+                              <div key={wi} className="ja-item-warning-badge">{warning}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {item.infoNotes?.length ? (
+                          <div className="ja-item-info-notes">
+                            {item.infoNotes.map((note, ni) => (
+                              <span key={ni} className="ja-item-info-note">{note}</span>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                       {item.tags.length > 0 ? (
                         <div className="ja-itinerary-tags">
@@ -155,6 +169,23 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                       ) : null}
                     </div>
                   </div>
+                  {item.alternates?.length ? (
+                    <div className="ja-item-alternates">
+                      {item.alternates.map((alt, ai) => (
+                        <div key={ai} className="ja-item-alternate-card">
+                          <div className="ja-item-alternate-label">{alt.label}</div>
+                          {alt.body?.length ? (
+                            <p className="ja-item-alternate-body"><RichText segments={alt.body} /></p>
+                          ) : null}
+                          {alt.steps?.length ? (
+                            <ol className="ja-item-alternate-steps">
+                              {alt.steps.map((step, si) => <li key={si}>{step}</li>)}
+                            </ol>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="ja-itinerary-item-maps-link">
                     <IonButton fill="clear" size="small" href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-action-btn">Open in Maps</IonButton>
                   </div>

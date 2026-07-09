@@ -4003,6 +4003,93 @@ textarea::placeholder {
   justify-content: flex-end;
 }
 
+/* Itinerary item warnings — bold, high-contrast, sits right under the description */
+.ja-item-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ja-item-warning-badge {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #9f1239;
+  background: var(--ja-danger-bg);
+  border-left: 3px solid var(--ja-danger);
+  border-radius: var(--ja-radius-sm);
+  padding: 8px 10px;
+}
+
+/* Itinerary item info notes — light, non-urgent cost/logistics callouts */
+.ja-item-info-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ja-item-info-note {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--ja-radius-full);
+  padding: 3px 10px;
+}
+
+/* Alternate route / option cards — visually distinct from warnings */
+.ja-item-alternates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ja-item-alternate-card {
+  background: var(--ja-card-alt);
+  border: 1px dashed var(--ja-line-dark);
+  border-radius: var(--ja-radius-md);
+  padding: 12px 14px;
+}
+
+.ja-item-alternate-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ja-green-600);
+  margin-bottom: 6px;
+}
+
+.ja-item-alternate-body {
+  font-size: 0.75rem;
+  line-height: 1.625;
+  color: var(--ja-text-secondary);
+}
+
+.ja-item-alternate-steps {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--ja-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ja-rt-strike {
+  color: var(--ja-muted);
+  text-decoration-color: var(--ja-danger);
+}
+
 /* Notes Tab */
 .ja-notes-page {
   max-width: 1280px;
@@ -7400,19 +7487,18 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
 .ja-itplus-day-band-text { font-weight: 700; font-size: 0.9rem; color: #1c1917; text-transform: uppercase; letter-spacing: 0.02em; }
 .ja-itplus-day-title-input { --background: #ffffff; border-radius: 8px; flex: 1; }
 
-.ja-itplus-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.ja-itplus-table { width: 100%; min-width: 900px; table-layout: fixed; border-collapse: collapse; font-size: 12.5px; }
-.ja-itplus-table th, .ja-itplus-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f0efed; vertical-align: top; word-wrap: break-word; }
-.ja-itplus-table th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #78716c; background: #fafaf9; white-space: nowrap; }
-.ja-itplus-table tbody tr:last-child td { border-bottom: none; }
-.ja-itplus-table tbody tr:hover td { background: #fafaf9; }
-.ja-itplus-table th:nth-child(1), .ja-itplus-table td:nth-child(1) { width: 8%; }
-.ja-itplus-table th:nth-child(2), .ja-itplus-table td:nth-child(2) { width: 14%; }
-.ja-itplus-table th:nth-child(3), .ja-itplus-table td:nth-child(3) { width: 27%; }
-.ja-itplus-table th:nth-child(4), .ja-itplus-table td:nth-child(4) { width: 9%; }
-.ja-itplus-table th:nth-child(5), .ja-itplus-table td:nth-child(5) { width: 16%; }
-.ja-itplus-table th:nth-child(6), .ja-itplus-table td:nth-child(6) { width: 16%; }
-.ja-itplus-table th:nth-child(7), .ja-itplus-table td:nth-child(7) { width: 10%; text-align: center; }
+/* Time/Destination/Fees/OOTD sit on one short row per item; Activities wraps
+   onto its own full-width line underneath — far less horizontal space needed
+   than a single 6-column row, so this fits an iPad without side-scrolling. */
+.ja-itplus-grid { display: grid; column-gap: 10px; padding: 8px 14px 4px; font-size: 12.5px; }
+.ja-itplus-grid-head { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #78716c; padding-bottom: 6px; border-bottom: 1px solid #efeeec; margin-bottom: 6px; }
+.ja-itplus-cell { padding: 6px 0; color: #1c1917; align-self: start; }
+.ja-itplus-cell-activities { grid-column: 1 / var(--ja-itplus-activities-end, -1); padding: 2px 0 12px; color: #1c1917; border-bottom: 1px solid #f0efed; }
+.ja-itplus-cell-activities:last-child { border-bottom: none; }
+.ja-itplus-cell-activities-edit { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #f0efed; }
+.ja-itplus-cell-activities-edit .ja-itplus-cell-input { flex: 1; }
+.ja-itplus-cell-activities-edit:last-child { border-bottom: none; }
+.ja-itplus-ootd-cell { background: #fdfcfb; border-radius: 6px; padding: 6px 8px; align-self: stretch; display: flex; align-items: center; }
 
 .ja-itplus-cell-input { --background: #ffffff; --padding-start: 6px; --padding-end: 6px; --padding-top: 4px; --padding-bottom: 4px; border: 1px solid #e7e5e4; border-radius: 6px; font-size: 12.5px; min-width: 110px; }
 .ja-itplus-table td.ja-itplus-ootd-cell { vertical-align: middle; background: #fdfcfb; }

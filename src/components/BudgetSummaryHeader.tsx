@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   IonCard,
   IonCardSubtitle,
@@ -62,11 +62,14 @@ export default function BudgetSummaryHeader({
   const resolvedSelectedMobileDay = selectedMobileDay ?? internalSelectedMobileDay;
   const setResolvedSelectedMobileDay = onSelectedMobileDayChange ?? setInternalSelectedMobileDay;
 
-  useEffect(() => {
-    if (!dayCards.some((dayCard) => dayCard.value === resolvedSelectedMobileDay)) {
-      setResolvedSelectedMobileDay(dayCards[0]?.value ?? fallbackDayCards[0]?.value ?? 12);
-    }
-  }, [dayCards, resolvedSelectedMobileDay, setResolvedSelectedMobileDay]);
+  // Some itinerary days (e.g. the arrival/flight day) have no budget card here.
+  // Fall back to the first budget day for *this component's own display* instead
+  // of overwriting the shared selected-day state — that state also drives the
+  // itinerary tab, and stomping on it would kick a valid itinerary day selection
+  // (like Day 0) back to whatever day this component defaults to.
+  const safeSelectedMobileDay = dayCards.some((dayCard) => dayCard.value === resolvedSelectedMobileDay)
+    ? resolvedSelectedMobileDay
+    : (dayCards[0]?.value ?? fallbackDayCards[0]?.value ?? 12);
 
   const getDayTotal = (dayNum: number) =>
     expenses.filter((expense) => expense.day === dayNum && (expense.paidWith === "Cash" || expense.paidWith === "Debit"))
@@ -136,7 +139,7 @@ export default function BudgetSummaryHeader({
     return { min: totals.reduce((sum, r) => sum + r.min, 0), max: totals.reduce((sum, r) => sum + r.max, 0) };
   }, [dayEntries]);
 
-  const mobileSelectedCardIndex = Math.max(0, dayEntries.findIndex((entry) => entry.dayMeta.value === resolvedSelectedMobileDay));
+  const mobileSelectedCardIndex = Math.max(0, dayEntries.findIndex((entry) => entry.dayMeta.value === safeSelectedMobileDay));
   const mobileSelectedEntry = dayEntries[mobileSelectedCardIndex] ?? dayEntries[0] ?? null;
 
   const renderDayCard = (dayMeta: { value: number; label: string }, card: BudgetCard | null, index: number) => {
@@ -198,7 +201,7 @@ export default function BudgetSummaryHeader({
 
       <div className="ja-budget-summary-mobile-days">
         {dayCards.map((dayCard) => {
-          const isActive = dayCard.value === resolvedSelectedMobileDay;
+          const isActive = dayCard.value === safeSelectedMobileDay;
           return (
             <IonButton key={dayCard.value} onClick={() => setResolvedSelectedMobileDay(dayCard.value)}
               fill={isActive ? "solid" : "outline"} color={isActive ? "primary" : undefined} size="small" className="ja-budget-day-btn">

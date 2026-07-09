@@ -14,6 +14,11 @@ export type StrongSegment = {
   value: string;
 };
 
+export type StrikeSegment = {
+  kind: 'strike';
+  value: string;
+};
+
 export type PlaceSegment = {
   kind: 'place';
   label: string;
@@ -21,11 +26,17 @@ export type PlaceSegment = {
   mapQuery: string;
 };
 
-export type Segment = TextSegment | StrongSegment | PlaceSegment;
+export type Segment = TextSegment | StrongSegment | StrikeSegment | PlaceSegment;
 
 export type ItemTag = {
   label: string;
   variant: TagVariant;
+};
+
+export type AlternateOption = {
+  label: string;
+  body?: Segment[];
+  steps?: string[];
 };
 
 export type BudgetCard = {
@@ -52,6 +63,9 @@ export type TimelineItemData = {
   image?: string;
   guideKey: GuideKey;
   foodGuideKey?: FoodGuideKey;
+  warnings?: string[];
+  infoNotes?: string[];
+  alternates?: AlternateOption[];
 };
 
 export type DaySectionData = {
@@ -141,6 +155,7 @@ const GUIDE_KEYS = {
   'grab-back-to-melaka-sentral': true,
   'grab-to-dutch-square': true,
   'grab-to-klia': true,
+  'grab-to-travelodge': true,
   'harmony-street-jonker-street': true,
   'jalan-alor': true,
   'klcc-park-suria-klcc': true,
@@ -218,6 +233,7 @@ export type ItineraryPlan = {
 
 const text = (value: string): TextSegment => ({ kind: 'text', value });
 const strong = (value: string): StrongSegment => ({ kind: 'strong', value });
+const strike = (value: string): StrikeSegment => ({ kind: 'strike', value });
 const place = (label: string, placeType: string | undefined, mapQuery: string): PlaceSegment => ({
   kind: 'place',
   label,
@@ -768,6 +784,20 @@ const currentItinerary = {
           ],
           mapQuery: 'KLIA',
         },
+        {
+          time: '12:15 AM',
+          id: 'day11-transit-hotel',
+          guideKey: 'grab-to-travelodge',
+          title: 'Transit to Travelodge KL City Centre',
+          category: 'bus',
+          description: [
+            text('Take a Grab or airport taxi directly to Travelodge KL City Centre (~RM90-120, expect late-night surge pricing — few drivers active at this hour. The fixed-fare airport taxi counter is a reliable backup if Grab wait times run long.)'),
+          ],
+          tags: [
+            tag('Grab', 'bus'),
+          ],
+          mapQuery: 'Travelodge Kuala Lumpur City Centre',
+        },
       ],
     },
     {
@@ -895,6 +925,17 @@ images: [
           category: 'spot',
           description: [
             text('Ascend the high-speed elevators to the iconic SkyBridge connecting the two towers, then continue up to the 86th Floor Observation Deck. At this time, you get brilliant, clear afternoon light to map out the city layout, which transitions beautifully toward golden hour.'),
+          ],
+          warnings: [
+            '⚠️ BOOK IN ADVANCE — Timed-entry ticketing system. Foreign visitor price ~RM150/person (~RM300 for two). July is peak season; book online at least a few days ahead via eticket.petronastwintowers.com.my to guarantee your 4:30 PM slot. Can\'t pay online? Tickets are also sold at the counter on arrival, but there\'s no guarantee your preferred time slot will still be available.',
+          ],
+          alternates: [
+            {
+              label: 'Alternative (free)',
+              body: [
+                text('Spend this time at Suria KLCC Mall (browse, air-conditioned break) and arrive early at KLCC Park for a longer golden-hour session by the towers — most travelers find the exterior view and fountain show just as memorable as the rushed 10-15 minute observation deck visit. For an aerial view without the Petronas ticket price, Heli Lounge Bar (rooftop, no entrance fee — pay only for a drink) offers open-air night views of the KL skyline, including the Petronas Towers themselves.'),
+              ],
+            },
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1060,26 +1101,35 @@ images: [
           title: 'Go to Genting Island',
           category: 'bus',
           description: [
-            text('Option A: Order a direct Grab car right from the Batu Caves lot straight to the Awana SkyCentral cable car station (approx. 35-45 mins). Option B: Take a 10-minute Grab to Gombak LRT Station and hop on a pre-booked express bus heading up the mountain.'),
+            text('Step 1: Get a Grab car from Batu Caves. Tell it to take you to "Terminal Bersepadu Gombak" (say "TBG" for short). This ride takes about 10-15 minutes and costs about RM10-15.'),
+            text(' Step 2: At TBG, walk up to the bus ticket counter (a real person at a desk). Buy one ticket for the "Genting Express Bus." Pay with cash or by tapping your card — no phone, no internet, no OTP code needed. It costs about RM10 for one person.'),
+            text(' Step 3: Get on that bus. It drives you all the way up the mountain to Genting. The ride takes about 45-60 minutes.'),
+          ],
+          warnings: [
+            '⚠️ Do NOT go to Awana SkyCentral. That cable car station is closed for repairs from July 13 to July 17, 2026 — the whole time we are there.',
           ],
           tags: [
             tag('Grab', 'bus'),
+            tag('Bus', 'bus'),
           ],
-          mapQuery: 'Awana SkyCentral',
+          mapQuery: 'Terminal Bersepadu Gombak',
         },
         {
           time: '9:30 AM',
           id: 'day13-cable-car',
           guideKey: 'chin-swee-caves-temple',
-          title: 'Cable Car & Misty Mountain Temple',
+          title: 'Cable Car to the Peak',
           category: 'spot',
           description: [
-            text('Board the Awana SkyWay cable car. Use the free midway stop to hop off at Chin Swee Station. Walk the peaceful, misty terraces of the Chin Swee Caves Temple and take photos by its iconic 9-story pagoda.'),
+            text('At Genting, ride the cable car called "Genting SkyWay" up to the top of the mountain. This is the cable car that is open and working.'),
+          ],
+          warnings: [
+            '⚠️ We are skipping Chin Swee Temple today. Only one cable car stops there (it is called "Awana SkyWay"), and that one is closed for repairs until July 17, 2026. Our cable car ("Genting SkyWay") does not stop at Chin Swee.',
           ],
           tags: [
             tag('Spot', 'spot'),
           ],
-          mapQuery: 'Chin Swee Caves Temple',
+          mapQuery: 'Genting SkyWay',
         },
         {
           time: '11:00 AM',
@@ -1160,14 +1210,14 @@ images: [
       title: 'DAY 3 · July 14',
       budgetLabel: 'WAKE UP TIME: 4:30 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are fine — bring your own sarong. The mosque provides wraps at the entrance but they charge for it. Your own sarong is free and faster.',
+        note: '💡 Shorts are OK today. Bring your own sarong (a cloth wrap) for the mosque. The mosque has wraps too, but you have to pay for those. Your own sarong is free.',
         wear: {
-          male: ['Long pants', 'T-shirt or light button-up', '👟 Birkenstocks today — cobblestone streets all day, and easy slip-off at the mosque', 'Hat or cap for the sun'],
-          female: ['Maxi skirt or loose pants', 'Top covering shoulders', 'Light scarf for hair at the mosque', '👟 Birkenstocks today — cobblestone streets and easy slip-off at the mosque entrance', 'Hat or small umbrella'],
+          male: ['Long pants', 'T-shirt or a light button-up shirt', '👟 Wear your Birkenstocks today — the streets are bumpy stones, and slip-on shoes are easy at the mosque', 'A hat or cap for the sun'],
+          female: ['A long skirt or loose pants', 'A top that covers your shoulders', 'A light scarf for your hair at the mosque', '👟 Wear your Birkenstocks today — the streets are bumpy stones, and slip-on shoes are easy at the mosque', 'A hat or a small umbrella'],
         },
         avoid: {
-          male: ['Shorts — you will be refused entry to the Melaka Straits Mosque, no exceptions', 'Sleeveless tops — mosque requires covered shoulders, staff will stop you at the gate'],
-          female: ['Short skirts or shorts — you will be refused entry to the mosque', 'Sleeveless tops — mosque requires covered shoulders', 'Bare hair inside the mosque — bring a light scarf or they\'ll hand you one at the entrance'],
+          male: ['No shorts — you cannot go inside the Melaka Straits Mosque wearing shorts', 'No sleeveless shirts — the mosque says you must cover your shoulders'],
+          female: ['No short skirts or shorts — you cannot go inside the mosque wearing these', 'No sleeveless tops — the mosque says you must cover your shoulders', 'Cover your hair inside the mosque — bring a scarf, or they will give you one at the door'],
         },
       },
       items: [
@@ -1178,7 +1228,7 @@ images: [
           title: 'Quick Morning Breakfast',
           category: 'food',
           description: [
-            text('Keep it fast, light, and cheap near Travelodge / Pasar Seni.'),
+            text('Eat a quick, simple breakfast near the hotel. Do not spend a lot of time or money here.'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1193,7 +1243,7 @@ images: [
           title: 'Transit to Melaka',
           category: 'bus',
           description: [
-            text('Walk behind your hotel into Pasar Seni Station. Take the rail link down to Terminal Bersepadu Selatan (TBS) and board your morning express bus straight down to Melaka (approx. 2 hours).'),
+            text('Walk behind the hotel to Pasar Seni train station. Take the train to a bus station called Terminal Bersepadu Selatan (say "TBS" for short). At TBS, get on the morning bus to Melaka. The bus ride takes about 2 hours.'),
           ],
           tags: [
             tag('Bus', 'bus'),
@@ -1207,7 +1257,10 @@ images: [
           title: 'The Historic Red Core & Sultanate Palace',
           category: 'spot',
           description: [
-            text('Explore Dutch Square, walk up St Paul\'s Hill, and tour the striking wooden architecture of the Melaka Sultanate Palace Museum.'),
+            text('Walk around Dutch Square. It is a group of old red buildings. Then walk up a hill called St Paul\'s Hill. At the top, go inside the Melaka Sultanate Palace Museum. It is a big wooden building shaped like an old palace.'),
+          ],
+          infoNotes: [
+            'Cost: about RM2 for one person — very cheap',
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1221,7 +1274,7 @@ images: [
           title: 'Jonker Street & Peranakan Lunch',
           category: 'food',
           description: [
-            text('Cross the river into the historic townhouse lanes of Jonker Street. Sit down at a heritage cafe for traditional Melaka chicken rice balls or an authentic Nyonya lunch. Afterward, tour the beautifully preserved Baba & Nyonya Heritage Museum to see the stunning inner courtyards and antique collections of an old affluent estate.'),
+            text('Cross the river to Jonker Street. Sit down and eat lunch — try chicken rice balls or Nyonya food (local Melaka food). After lunch, visit the Baba & Nyonya Heritage Museum. It is an old house with pretty rooms and old furniture.'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1236,7 +1289,10 @@ images: [
           title: 'Maritime Museum',
           category: 'spot',
           description: [
-            text('Exploration Walk back toward the river mouth to explore the Maritime Museum, uniquely housed entirely inside a massive, towering replica of the historic Portuguese ship Flor de la Mar.'),
+            text('Walk back toward the river. Visit the Maritime Museum. It is built inside a giant model of an old ship.'),
+          ],
+          infoNotes: [
+            'Cost: about RM5 or less for one person',
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1250,7 +1306,11 @@ images: [
           title: 'The Melaka River Cruise',
           category: 'spot',
           description: [
-            text('Step right onto the boat at the Melaka River Cruise Jetty located directly adjacent to the ship museum. This 45-minute round-trip boat ride provides a beautiful, breezy break from walking. You will glide up the clean river layout, passing underneath historic old bridges, spotting the traditional wooden houses of Kampung Morten, and taking in the sweeping, massive street-art murals that tell the story of the city\'s ancient trade roots.'),
+            text('Get on a boat right next to the Maritime Museum. The boat ride is 45 minutes there and back. You will see old bridges, wooden houses, and big wall paintings along the river.'),
+          ],
+          infoNotes: [
+            'Cost: about RM30-48 for one person (about RM60-96 for two people)',
+            'Buy the ticket at Muara Jetty, right next to the Maritime Museum. Pay with cash or by tapping your card — no internet or OTP code needed',
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1264,7 +1324,7 @@ images: [
           title: 'Riverside Walk & Coffee Break',
           category: 'food',
           description: [
-            text('Step off the boat and take a slow stroll along the clean, tree-shaded wooden boardwalks. Find a small, hidden riverside cafe to enjoy an ice-cold local drink or a signature Nyonya Cendol (shaved ice dessert with palm sugar and coconut milk) right next to the water.'),
+            text('Get off the boat and walk along the wooden path next to the river. Find a small cafe. Have a cold drink, or try cendol (a sweet iced dessert with coconut milk).'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1279,7 +1339,7 @@ images: [
           title: 'Golden Hour at the Floating Mosque',
           category: 'spot',
           description: [
-            text('Take a quick 10-minute Grab car over to the Melaka Straits Mosque on Malacca Island. Walking the perimeter platforms right as the late afternoon sun casts a warm glow over its gold-and-blue dome over the sea is the ultimate grand finale to your sightseeing.'),
+            text('Take a short Grab car (about 10 minutes) to the Melaka Straits Mosque. This mosque is built over the sea. Walk around it and watch the sun go down. The gold and blue dome looks pretty when the sky turns orange.'),
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1290,13 +1350,13 @@ images: [
           time: '5:30 PM',
           id: 'day14-transit-sentral',
           guideKey: 'bus-to-tbs',
-          title: 'Transit to Melaka Sentral',
+          title: 'Grab to Melaka Sentral',
           category: 'bus',
           description: [
-            text('Take your comfortable express bus transit from Melaka Sentral back to TBS terminal in KL, then hop onto the rail straight back to Pasar Seni Station.'),
+            text('Take a Grab car from the mosque to the Melaka Sentral bus station. This ride takes about 15-20 minutes.'),
           ],
           tags: [
-            tag('Bus', 'bus'),
+            tag('Grab', 'bus'),
           ],
           mapQuery: 'Melaka Sentral',
         },
@@ -1307,7 +1367,7 @@ images: [
           title: 'Return Bus to Kuala Lumpur',
           category: 'bus',
           description: [
-            text('Board your evening express bus for a smooth, air-conditioned ride back to the TBS terminal in KL, then catch the rail link straight back to Pasar Seni Station.'),
+            text('At Melaka Sentral, get on the evening bus back to Kuala Lumpur. It takes you to the TBS bus station. Then take the train from TBS back to Pasar Seni station, near the hotel.'),
           ],
           tags: [
             tag('Bus', 'bus'),
@@ -1321,7 +1381,7 @@ images: [
           title: 'Relaxed Late Dinner',
           category: 'food',
           description: [
-            text('Sit down for a comforting, easy late-night dinner right near the hotel to unwind from the travel day.'),
+            text('Eat dinner near the hotel. Pick something easy and relaxing after a long day.'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1336,7 +1396,7 @@ images: [
           title: 'Final Pack',
           category: 'hotel',
           description: [
-            text('Head up to your room at Travelodge to smoothly pack your things, double-check your passports, and get a great night\'s rest before your flight to Singapore the next morning!'),
+            text('Go up to your room. Pack your bags. Check that you have your passports. Then get a good night\'s sleep — tomorrow you fly to Singapore!'),
           ],
           tags: [
             tag('Hotel', 'hotel'),
@@ -1396,7 +1456,28 @@ images: [
           title: 'Transit to KLIA',
           category: 'train',
           description: [
-            text('Option 1 VIA TRAIN: 1-stop LRT to KL Sentral, then KLIA Ekspres (33 mins) to KLIA Terminal 1. Option 2 VIA GRAB: direct car from Travelodge to KLIA (approx. 50-60 mins).'),
+            strike('Option 1 VIA TRAIN: 1-stop LRT to KL Sentral, then KLIA Ekspres (33 mins) to KLIA Terminal 1.'),
+          ],
+          warnings: [
+            '⚠️ NOT VIABLE AT THIS HOUR — KLIA Ekspres\'s first train departs KL Sentral at 5:00 AM. Leaving your hotel at 4:00 AM means arriving at KL Sentral with no train running yet.',
+          ],
+          alternates: [
+            {
+              label: 'Option A — Grab (direct, door-to-door)',
+              steps: [
+                'Hotel → KLIA direct, estimated 50-60 minutes travel time',
+                'Fare: ~RM90-120 (expect night surge pricing at this hour)',
+              ],
+            },
+            {
+              label: 'Option B — Airport bus (Aerobus / SkyBus / Airport Coach)',
+              steps: [
+                'These operators run from KL Sentral starting as early as 3:00 AM, so this is genuinely available at your departure time',
+                'Estimated travel time: 60-90 minutes (bus is slower than Grab, no direct traffic-avoidance)',
+                'Fare: ~RM11-15/person, counter or online purchase',
+                'Note: still requires getting yourself to KL Sentral first (short LRT hop or walk), then the bus ride itself',
+              ],
+            },
           ],
           tags: [
             tag('Transit', 'train'),
@@ -1557,14 +1638,14 @@ images: [
       title: 'DAY 5 · July 16 — Singapore City & Departure',
       budgetLabel: 'WAKE UP TIME: 5:00 AM',
       outfitTip: {
-        note: '💡 Shorts and lighter clothes are fine — bring your own sarong for Buddha Tooth Relic Temple. They have wraps at the entrance but charge for them. Wrap it going in, take it off coming out.',
+        note: '💡 Shorts are OK today. Bring your own sarong (a cloth wrap) for the Buddha Tooth Relic Temple. They have wraps there too, but you have to pay for those. Wear yours going in, take it off coming out.',
         wear: {
-          male: ['Long pants', 'T-shirt or collared shirt', '👟 Birkenstocks for the morning — easy slip-off at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
-          female: ['Pants or midi skirt covering knees', 'Top covering shoulders', '👟 Birkenstocks for the morning — easy slip-off at Buddha Tooth Relic Temple', 'Light jacket for airport and flight'],
+          male: ['Long pants', 'T-shirt or a shirt with a collar', '👟 Wear your Birkenstocks in the morning — easy to slip off at the temple', 'A light jacket for the airport and the flight'],
+          female: ['Pants or a skirt that covers your knees', 'A top that covers your shoulders', '👟 Wear your Birkenstocks in the morning — easy to slip off at the temple', 'A light jacket for the airport and the flight'],
         },
         avoid: {
-          male: ['Shorts — Buddha Tooth Relic Temple requires knees covered, you\'ll be stopped at the door', 'Sleeveless tops — temple requires covered shoulders', 'Heavy or bulky clothes — you\'re changing into travel clothes at 8:30 AM anyway, no point layering up now'],
-          female: ['Short skirts or shorts — Buddha Tooth Relic Temple will turn you away or hand you a wrap', 'Sleeveless tops — temple requires covered shoulders'],
+          male: ['No shorts — the temple says your knees must be covered, or they will stop you at the door', 'No sleeveless shirts — the temple says you must cover your shoulders', 'No heavy or bulky clothes — you already change into travel clothes at 8:30 AM'],
+          female: ['No short skirts or shorts — the temple will stop you or give you a wrap to cover up', 'No sleeveless tops — the temple says you must cover your shoulders'],
         },
       },
       items: [
@@ -1575,7 +1656,7 @@ images: [
           title: 'Morning Prep Only',
           category: 'hotel',
           description: [
-            text('Wake up early while the air is crisp. Give yourself a relaxed 30 minutes to wash up, get dressed in your walking clothes, and lace up your shoes. No need to touch your suitcases yet, as you will return to pack later.'),
+            text('Wake up. Take about 30 minutes to wash up and put on your walking clothes. Do not touch your suitcases yet — you will pack them later.'),
           ],
           tags: [
             tag('Hotel', 'hotel'),
@@ -1589,7 +1670,7 @@ images: [
           title: 'Early Morning Transit to Downtown',
           category: 'train',
           description: [
-            text('Walk directly from the hotel to Paya Lebar MRT Station. Board the very first eastbound green line train heading towards downtown. Ride it 6 stops straight to Raffles Place Station.'),
+            text('Walk from the hotel to Paya Lebar train station (MRT). Get on the first train going toward the city. Ride it 6 stops to Raffles Place station.'),
           ],
           tags: [
             tag('MRT', 'train'),
@@ -1603,7 +1684,7 @@ images: [
           title: 'Merlion Sunrise Experience',
           category: 'spot',
           description: [
-            text('Walk out onto the completely empty waterfront boardwalk at Merlion Park. At this hour, the sky will transition from deep indigo to warm golden hues right over Marina Bay Sands. You will have the iconic concrete Merlion statue entirely to yourselves for pristine, crowd-free photos.'),
+            text('Walk to Merlion Park by the water. It will be very quiet here this early. Watch the sky turn gold as the sun comes up over Marina Bay. Take photos with the Merlion statue — a statue with a lion head and a fish body.'),
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1618,7 +1699,7 @@ images: [
           title: 'Traditional Kaya Toast Breakfast',
           category: 'food',
           description: [
-            text('Walk right off the boardwalk to a nearby local coffee branch like Ya Kun Kaya Toast or Toast Box right in the Raffles Place financial core. Enjoy hot charcoal toast slathered with coconut jam and thick slabs of cold butter, soft-boiled eggs, and a strong cup of hot Kopi or Teh.'),
+            text('Walk to a small cafe near Raffles Place, like Ya Kun Kaya Toast. Eat warm toast with coconut jam (called kaya) and butter. Try a soft-boiled egg and a hot cup of coffee or tea too.'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1633,7 +1714,7 @@ images: [
           title: 'Rail Transit Back to Hotel',
           category: 'train',
           description: [
-            text('Hop back onto the green MRT line at Raffles Place Station and take the direct train back to Paya Lebar Station.'),
+            text('Get back on the train at Raffles Place. Ride it back to Paya Lebar station, near the hotel.'),
           ],
           tags: [
             tag('MRT', 'train'),
@@ -1647,7 +1728,7 @@ images: [
           title: 'Freshen Up & Pack Things',
           category: 'hotel',
           description: [
-            text('Go back up to your room at Hotel Classic. Use this dedicated 1-hour block to take a relaxing shower, brush your teeth, change out of your walking clothes, do a final sweep for chargers, and zip up your suitcases. Check out completely at the front desk and leave your heavy bags for free with the lobby concierge.'),
+            text('Go back up to your room. Take a shower and change your clothes. Look around the room for chargers and other small things you might forget. Pack your suitcase. Do not check out yet — you still have the room for now.'),
           ],
           tags: [
             tag('Hotel', 'hotel'),
@@ -1661,7 +1742,7 @@ images: [
           title: 'Joo Chiat Historical Shophouse Roam',
           category: 'spot',
           description: [
-            text('Walk 5 minutes from the lobby over to Koon Seng Road. This famous strip features a row of 1920s heritage shophouses adorned with intricate geometric tiles, floral motifs, and ornate pillars. The bright morning light will hit the pastel pink, mint, and yellow facades beautifully. Wander past the classic corner architecture along Joo Chiat Road. Swing by Kim Choo Kueh Chang to look at traditional Nyonya crafts.'),
+            text('Walk 5 minutes to a street called Koon Seng Road. Look at the old houses here — they are painted pink, mint green, and yellow, with pretty patterns. Walk along Joo Chiat Road too. Stop by a shop called Kim Choo Kueh Chang to see traditional crafts.'),
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1676,7 +1757,7 @@ images: [
           title: 'Official Hotel Checkout',
           category: 'hotel',
           description: [
-            text('Head back up to your room, grab your zipped suitcases, and officially check out at the front desk well before the noon deadline. Leave your heavy bags for free with the hotel lobby concierge so you can travel hands-free.'),
+            text('Go back to your room and get your suitcase. Check out at the front desk — this is the real checkout. Leave your heavy bags at the front desk; the hotel will keep them safe and free while you explore more, so you do not have to carry them.'),
           ],
           tags: [
             tag('Hotel', 'hotel'),
@@ -1690,7 +1771,7 @@ images: [
           title: 'Chinatown Heritage Murals & Tooth Relic Temple',
           category: 'spot',
           description: [
-            text('Take the direct Downtown MRT line straight from your hotel area into Chinatown Station. Explore the magnificent, multi-story architecture of the Buddha Tooth Relic Temple (ensure shoulders and knees are covered). Take a slow stroll down Sago Street and Mohamed Ali Lane to spot the hand-painted heritage street murals. Keep an eye out for the traditional Ice Cream Uncles parked under the awnings!'),
+            text('Take the train to Chinatown station. Visit the Buddha Tooth Relic Temple — a big, fancy temple. (Remember: cover your shoulders and knees to go inside.) Walk down Sago Street and Mohamed Ali Lane to see colorful wall paintings. Look out for ice cream sellers pushing carts nearby!'),
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1705,7 +1786,7 @@ images: [
           title: 'Pre-Airport Hawker Lunch',
           category: 'food',
           description: [
-            text('Head straight into the bustling Chinatown Complex Food Centre for a cheap, fast, and intensely flavorful final local meal.'),
+            text('Eat lunch at Chinatown Complex Food Centre. It has many food stalls with cheap, tasty local food. This is your last meal in Singapore before the airport.'),
           ],
           tags: [
             tag('Food', 'food'),
@@ -1720,7 +1801,7 @@ images: [
           title: 'Collect Suitcases & Airport Run',
           category: 'train',
           description: [
-            text('Take the direct MRT from Chinatown back to Paya Lebar Station and walk into the hotel lobby to collect your stored luggage. Walk right back to the platform turnstiles and catch the green East-West Line train heading directly east toward Changi Airport.'),
+            text('Take the train from Chinatown back to Paya Lebar station. Walk into the hotel and pick up your suitcases from the front desk. Then go back to the train platform and get on the train heading to Changi Airport.'),
           ],
           tags: [
             tag('MRT', 'train'),
@@ -1734,7 +1815,7 @@ images: [
           title: 'Jewel Changi Rain Vortex Grand Finale',
           category: 'spot',
           description: [
-            text('Step off the train at Changi Airport station, tap out your card, and follow the terminal signs straight into the central glass dome. Spend your final 1.5 hours walking the terraced indoor rainforest pathways and watching the spectacular HSBC Rain Vortex indoor waterfall cascade seven stories down from the vaulted glass ceiling. It is completely free and makes for the ultimate farewell photos.'),
+            text('Get off the train at Changi Airport. Walk into the big glass dome called Jewel. Look at the tall indoor waterfall — it is called the Rain Vortex, and it falls from high up in the ceiling. Walk around the indoor gardens too. It is free to visit, and a fun way to say goodbye to the trip. You have about 1.5 hours here.'),
           ],
           tags: [
             tag('Spot', 'spot'),
@@ -1749,7 +1830,7 @@ images: [
           title: 'Flight Check-In & Departure',
           category: 'train',
           description: [
-            text('Walk right out of the central dome over to your departure terminal row to drop your bags, clear immigration smoothly, and easily stroll to your gate for your flight out!'),
+            text('Walk out of Jewel to your airline\'s check-in counter and drop off your bags. Go through passport control (called immigration). Then walk to your gate and get ready for your flight home.'),
           ],
           tags: [
             tag('Transit', 'train'),

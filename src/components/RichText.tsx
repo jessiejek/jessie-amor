@@ -17,6 +17,14 @@ export default function RichText({ segments }: RichTextProps) {
           return <strong key={`${segment.kind}-${index}`}>{segment.value}</strong>;
         }
 
+        if (segment.kind === "strike") {
+          return (
+            <s key={`${segment.kind}-${index}`} className="ja-rt-strike">
+              {segment.value}
+            </s>
+          );
+        }
+
         return (
           <span key={`${segment.kind}-${index}`} className="ja-rt-inline-wrap">
             <a

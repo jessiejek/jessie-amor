@@ -91,6 +91,19 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
     });
   };
 
+  // Grid columns are built dynamically so hidden columns don't leave dead
+  // space, and Activities always spans from column 1 up through the last
+  // non-OOTD column (or the whole row, if no OOTD columns are shown at all).
+  const EDIT_GRID_TEMPLATE = "1fr 1.8fr 0.9fr 1.3fr 1.3fr";
+  const viewGridTemplateColumns = [
+    "1fr",
+    columnVisibility.destination ? "1.8fr" : null,
+    columnVisibility.fees ? "0.9fr" : null,
+    columnVisibility.ootdJessie ? "1.3fr" : null,
+    columnVisibility.ootdAmor ? "1.3fr" : null,
+  ].filter(Boolean).join(" ");
+  const viewNonOotdColumnCount = 1 + (columnVisibility.destination ? 1 : 0) + (columnVisibility.fees ? 1 : 0);
+
   useEffect(() => {
     if (isEditing) return;
     setDays(tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays());
@@ -176,54 +189,53 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
             )}
           </div>
 
-          <div className="ja-itplus-table-wrap">
-            <table className="ja-itplus-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  {(isEditing || columnVisibility.destination) && <th>Destination</th>}
-                  <th>Activities</th>
-                  {(isEditing || columnVisibility.fees) && <th>Fees</th>}
-                  {(isEditing || columnVisibility.ootdJessie) && <th>OOTD — Jessie</th>}
-                  {(isEditing || columnVisibility.ootdAmor) && <th>OOTD — Amor</th>}
-                  {isEditing && <th></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const jessieSpans = computeOotdSpans(day.items, "ootdJessie");
-                  const amorSpans = computeOotdSpans(day.items, "ootdAmor");
-                  return day.items.map((item, itemIndex) => (
-                    <tr key={itemIndex}>
-                      {isEditing ? (
-                        <>
-                          <td><IonInput value={item.time} onIonInput={(e) => updateItem(dayIndex, itemIndex, "time", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="8:00 AM" /></td>
-                          <td><IonInput value={item.destination ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "destination", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" /></td>
-                          <td><IonInput value={item.title} onIonInput={(e) => updateItem(dayIndex, itemIndex, "title", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" /></td>
-                          <td><IonInput value={item.fees ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "fees", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" /></td>
-                          <td><IonInput value={item.ootdJessie ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "ootdJessie", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="blank continues above, , stops" /></td>
-                          <td><IonInput value={item.ootdAmor ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "ootdAmor", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="blank continues above, , stops" /></td>
-                          <td><IonButton fill="clear" color="danger" size="small" onClick={() => removeItem(dayIndex, itemIndex)}><IonIcon icon={trashOutline} /></IonButton></td>
-                        </>
-                      ) : (
-                        <>
-                          <td>{item.time || "—"}</td>
-                          {columnVisibility.destination && <td>{item.destination || "—"}</td>}
-                          <td>{item.title || "—"}</td>
-                          {columnVisibility.fees && <td>{item.fees || "—"}</td>}
-                          {columnVisibility.ootdJessie && jessieSpans[itemIndex] > 0 && (
-                            <td rowSpan={jessieSpans[itemIndex]} className="ja-itplus-ootd-cell">{ootdDisplayValue(item.ootdJessie)}</td>
-                          )}
-                          {columnVisibility.ootdAmor && amorSpans[itemIndex] > 0 && (
-                            <td rowSpan={amorSpans[itemIndex]} className="ja-itplus-ootd-cell">{ootdDisplayValue(item.ootdAmor)}</td>
-                          )}
-                        </>
+          <div
+            className="ja-itplus-grid"
+            style={{
+              gridTemplateColumns: isEditing ? EDIT_GRID_TEMPLATE : viewGridTemplateColumns,
+              ["--ja-itplus-activities-end" as any]: isEditing ? -1 : viewNonOotdColumnCount + 1,
+            }}
+          >
+            <div className="ja-itplus-grid-head">Time</div>
+            {(isEditing || columnVisibility.destination) && <div className="ja-itplus-grid-head">Destination</div>}
+            {(isEditing || columnVisibility.fees) && <div className="ja-itplus-grid-head">Fees</div>}
+            {(isEditing || columnVisibility.ootdJessie) && <div className="ja-itplus-grid-head">OOTD — Jessie</div>}
+            {(isEditing || columnVisibility.ootdAmor) && <div className="ja-itplus-grid-head">OOTD — Amor</div>}
+
+            {(() => {
+              const jessieSpans = computeOotdSpans(day.items, "ootdJessie");
+              const amorSpans = computeOotdSpans(day.items, "ootdAmor");
+              return day.items.map((item, itemIndex) => (
+                <React.Fragment key={itemIndex}>
+                  {isEditing ? (
+                    <>
+                      <div className="ja-itplus-cell"><IonInput value={item.time} onIonInput={(e) => updateItem(dayIndex, itemIndex, "time", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="8:00 AM" /></div>
+                      <div className="ja-itplus-cell"><IonInput value={item.destination ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "destination", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" /></div>
+                      <div className="ja-itplus-cell"><IonInput value={item.fees ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "fees", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" /></div>
+                      <div className="ja-itplus-cell"><IonInput value={item.ootdJessie ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "ootdJessie", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="blank continues above, , stops" /></div>
+                      <div className="ja-itplus-cell"><IonInput value={item.ootdAmor ?? ""} onIonInput={(e) => updateItem(dayIndex, itemIndex, "ootdAmor", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="blank continues above, , stops" /></div>
+                      <div className="ja-itplus-cell-activities ja-itplus-cell-activities-edit">
+                        <IonInput value={item.title} onIonInput={(e) => updateItem(dayIndex, itemIndex, "title", String(e.detail.value ?? ""))} className="ja-itplus-cell-input" placeholder="Activities" />
+                        <IonButton fill="clear" color="danger" size="small" onClick={() => removeItem(dayIndex, itemIndex)}><IonIcon icon={trashOutline} /></IonButton>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="ja-itplus-cell">{item.time || "—"}</div>
+                      {columnVisibility.destination && <div className="ja-itplus-cell">{item.destination || "—"}</div>}
+                      {columnVisibility.fees && <div className="ja-itplus-cell">{item.fees || "—"}</div>}
+                      {columnVisibility.ootdJessie && jessieSpans[itemIndex] > 0 && (
+                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdJessie) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${jessieSpans[itemIndex] * 2}` }}>{ootdDisplayValue(item.ootdJessie)}</div>
                       )}
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
+                      {columnVisibility.ootdAmor && amorSpans[itemIndex] > 0 && (
+                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdAmor) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${amorSpans[itemIndex] * 2}` }}>{ootdDisplayValue(item.ootdAmor)}</div>
+                      )}
+                      <div className="ja-itplus-cell-activities">{item.title || "—"}</div>
+                    </>
+                  )}
+                </React.Fragment>
+              ));
+            })()}
           </div>
           {isEditing && <IonButton fill="outline" size="small" onClick={() => addItem(dayIndex)}><IonIcon icon={addOutline} slot="start" />Add row</IonButton>}
         </div>
