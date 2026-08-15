@@ -720,7 +720,7 @@ const currentItinerary = {
   hero: {
     eyebrow: 'Travel Itinerary',
     title: "J&A Malaysia · Singapore Trip 2026",
-    subtitle: 'July 11–14 · Malaysia & Singapore',
+    subtitle: 'July 11–16 · Malaysia & Singapore',
     meta: [],
     note: [],
   } satisfies HeroData,
@@ -1103,10 +1103,11 @@ images: [
           description: [
             text('Step 1: Get a Grab car from Batu Caves. Tell it to take you to "Terminal Bersepadu Gombak" (say "TBG" for short). This ride takes about 10-15 minutes and costs about RM10-15.'),
             text(' Step 2: At TBG, walk up to the bus ticket counter (a real person at a desk). Buy one ticket for the "Genting Express Bus." Pay with cash or by tapping your card — no phone, no internet, no OTP code needed. It costs about RM10 for one person.'),
-            text(' Step 3: Get on that bus. It drives you all the way up the mountain to Genting. The ride takes about 45-60 minutes.'),
+            text(' Step 3: Get on that bus. It drives up the mountain and stops at Gohtong Jaya — a small town partway up, NOT the resort at the very top. This is the correct, final stop for this bus. The ride takes about 45-60 minutes.'),
           ],
           warnings: [
             '⚠️ Do NOT go to Awana SkyCentral. That cable car station is closed for repairs from July 13 to July 17, 2026 — the whole time we are there.',
+            '⚠️ The bus stopping does not mean you have arrived at the resort. You still need one more ride — a cable car — to reach the actual peak. See the next step.',
           ],
           tags: [
             tag('Grab', 'bus'),
@@ -1121,7 +1122,7 @@ images: [
           title: 'Cable Car to the Peak',
           category: 'spot',
           description: [
-            text('At Genting, ride the cable car called "Genting SkyWay" up to the top of the mountain. This is the cable car that is open and working.'),
+            text('At Gohtong Jaya, walk to the "Genting SkyWay" cable car station (it is called Gohtong Sentral Station). Buy a one-way ticket at the counter and ride straight up to the top. This cable car does not stop anywhere along the way — it goes directly from Gohtong Jaya to the peak (the top station is called Resorts World Station) in about 15 minutes.'),
           ],
           warnings: [
             '⚠️ We are skipping Chin Swee Temple today. Only one cable car stops there (it is called "Awana SkyWay"), and that one is closed for repairs until July 17, 2026. Our cable car ("Genting SkyWay") does not stop at Chin Swee.',
@@ -1153,7 +1154,7 @@ images: [
           title: 'Return to Kuala Lumpur & Refresh',
           category: 'bus',
           description: [
-            text('Take the cable car back down to the base and grab an express bus or a Grab car straight back to Travelodge to quickly drop off any mountain gear, freshen up, and prepare for your night out.'),
+            text('Take the Genting SkyWay cable car back down from the peak to Gohtong Jaya, then grab the express bus (or a Grab car) straight back to Travelodge to quickly drop off any mountain gear, freshen up, and prepare for your night out.'),
           ],
           tags: [
             tag('Grab', 'bus'),
@@ -3009,32 +3010,32 @@ function buildFallbackGuideForItem(item: TimelineItemData): DestinationGuide {
     case 'awana-skyway':
       return genericPlaceGuide(
         item,
-        'This is the transfer from Batu Caves up to Genting. You are getting a Grab or bus to the Awana SkyCentral cable car base.',
-        'Grab Car or Pre-Booked Express Bus',
-        'Option A: Book a Grab car directly from the Batu Caves lot to Awana SkyCentral (35–45 mins). Option B: Take a short Grab to Gombak LRT, then board a pre-booked Genting express bus.',
-        ['Grab app (book from Batu Caves lot)', 'Genting Highlands express bus (pre-booked online)', 'Gombak LRT if taking the bus option'],
+        'This is the transfer from Batu Caves up to Genting. You are taking a Grab to Terminal Bersepadu Gombak (TBG), then a bus up the mountain to Gohtong Jaya — the town at the foot of the Genting SkyWay cable car.',
+        'Grab Car + Genting Express Bus',
+        'Grab from Batu Caves to TBG (10-15 mins), then buy a Genting Express Bus ticket at the TBG counter (about RM10, no pre-booking needed). The bus stops at Gohtong Jaya — this is correct, it is not the resort itself.',
+        ['Grab app (book from Batu Caves lot)', 'Genting Express Bus ticket counter at TBG (cash or card)'],
         [
-          'From the Batu Caves lot, open Grab and set destination to Awana SkyCentral.',
-          'For the bus option, take a quick Grab to Gombak LRT first, then walk to the Genting bus platform.',
-          'Show your pre-booked bus ticket on your phone if using that option.',
-          'The ride up is winding — sit back and enjoy the mountain view.',
-          'Arrive at Awana SkyCentral and head inside to find the SkyWay cable car entrance.',
+          'From the Batu Caves lot, open Grab and set destination to "Terminal Bersepadu Gombak."',
+          'At TBG, walk to the bus ticket counter and buy one Genting Express Bus ticket.',
+          'Board the bus. The ride up is winding — sit back and enjoy the mountain view.',
+          'Get off when the bus stops at Gohtong Jaya. This is the end of the bus ride, not the resort peak.',
+          'Walk to the Genting SkyWay cable car station (Gohtong Sentral) to continue up — see the next step.',
         ],
-        ['Book the express bus in advance online — it sells out on weekends.', 'The mountain road is curvy; skip heavy meals right before the ride.']
+        ['Do not look for Awana SkyCentral — that station is closed for repairs July 13-17, 2026.', 'The mountain road is curvy; skip heavy meals right before the ride.']
       );
 
     case 'chin-swee-caves-temple':
       return genericPlaceGuide(
         item,
-        'Chin Swee Caves Temple sits on the misty mountain slopes midway up Genting. It is a peaceful stop with a 9-story pagoda, cave shrines, and sweeping views — board the SkyWay and hop off at Chin Swee Station.',
+        'This is the Genting SkyWay cable car — a direct, non-stop ride from Gohtong Jaya up to the peak. We are skipping Chin Swee Temple today because that stop only exists on the Awana SkyWay, which is closed for repairs.',
         [
-          'Board the Awana SkyWay cable car at Awana SkyCentral.',
-          'Get off at the midway Chin Swee Station stop — do not ride to the top yet.',
-          'Walk up the terraced steps slowly and look at the cave shrines.',
-          'Find the 9-story pagoda for the best mountain view photos.',
-          'After exploring, walk back to the station and board the next cable car going to the peak.',
+          'At Gohtong Jaya, walk to the Genting SkyWay station (Gohtong Sentral Station).',
+          'Buy a one-way cable car ticket at the counter.',
+          'Board the cabin and enjoy the ride — it goes straight to the top with no stops.',
+          'Get off at Resorts World Station, the top station at the peak.',
+          'Follow the signs to SkyAvenue Mall for lunch and exploring.',
         ],
-        ['The temple is cool and misty — a light jacket helps.', 'The ride from Awana to Chin Swee takes about 10 minutes.']
+        ['This ride is about 15 minutes and does not stop at Chin Swee Temple — that is normal and expected today.', 'It can be cool and misty at the top — a light jacket helps.']
       );
 
     case 'skyavenue-mall':
@@ -3054,13 +3055,13 @@ function buildFallbackGuideForItem(item: TimelineItemData): DestinationGuide {
     case 'genting-island-transfer':
       return genericPlaceGuide(
         item,
-        'This is the trip back down from Genting to Kuala Lumpur. You are taking the cable car to the base, then a bus or Grab back to the hotel.',
-        'Express Bus or Grab Car',
-        'Book a Grab or board the Genting express bus at the Awana SkyCentral bus terminal. Bus tickets can be purchased at the counter if not pre-booked.',
-        ['Awana SkyCentral bus terminal counter', 'Grab app (book from Awana SkyCentral drop-off)', 'Pre-booked return bus ticket if you bought a round trip'],
+        'This is the trip back down from Genting to Kuala Lumpur. You are taking the Genting SkyWay cable car down to Gohtong Jaya, then a bus or Grab back to the hotel.',
+        'Genting SkyWay + Express Bus or Grab Car',
+        'Ride the Genting SkyWay cable car down from Resorts World Station to Gohtong Jaya, then board the Genting Express Bus or a Grab car back to KL.',
+        ['Genting SkyWay ticket counter at Resorts World Station', 'Genting Express Bus ticket counter at Gohtong Jaya', 'Grab app (book from Gohtong Jaya)'],
         [
-          'Take the SkyWay cable car back down to Awana SkyCentral.',
-          'Head to the bus terminal or Grab pick-up point at the base.',
+          'Take the Genting SkyWay cable car back down to Gohtong Jaya.',
+          'Head to the bus ticket counter or Grab pick-up point at Gohtong Jaya.',
           'Board the express bus or get into the Grab car heading back to KL.',
           'The ride back to KL takes about 45–60 minutes depending on traffic.',
           'Drop off at Travelodge to freshen up before the evening.',
