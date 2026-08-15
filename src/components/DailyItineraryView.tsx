@@ -206,7 +206,7 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
           <p className="ja-itinerary-subtitle">Detailed timeline and excursion checkpoints</p>
         </div>
         <div className="ja-itinerary-stats">
-          <IonChip className="ja-itinerary-stats-chip ja-itinerary-stats-chip-dark">4 Days</IonChip>
+          <IonChip className="ja-itinerary-stats-chip ja-itinerary-stats-chip-dark">5 Days</IonChip>
           <IonChip className="ja-itinerary-stats-chip">2 Cities</IonChip>
         </div>
       </div>
