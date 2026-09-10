@@ -9,6 +9,7 @@ import {
 import { addCircleOutline, cashOutline, cardOutline, micOutline, micCircleOutline, funnelOutline, alertCircleOutline, imageOutline, cameraOutline, closeOutline, createOutline, checkmarkCircleOutline } from "ionicons/icons";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { CurrentUserInfo, Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus, UserTripSettings } from "../types";
+import { tripDayCards } from "../lib/activeTrip";
 
 type TransactionRow = {
   id: string; name: string; date: string; dayValue: number; time: string;
@@ -135,7 +136,7 @@ interface BudgetTabProps {
 export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected = false, isOnline = true, canEdit = false, currentUser = null, exchangeRates, budgetCapPhp, userSettings = null, getReceiptSignedUrl }: BudgetTabProps) {
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
-  const fallbackDayOptions = [{ value: 12, label: "July 12" }, { value: 13, label: "July 13" }, { value: 14, label: "July 14" }, { value: 15, label: "July 15" }];
+  const fallbackDayOptions = tripDayCards;
   const currencyOptions = userSettings?.currencies?.length ? userSettings.currencies : ["MYR", "PHP", "SGD"];
   const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>(currencyOptions[0] ?? "MYR");
   const [day, setDay] = useState<number>(12);

@@ -9,6 +9,7 @@ import {
 import { informationCircleOutline } from "ionicons/icons";
 import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
+import { activeTrip } from "../lib/activeTrip";
 import RichText from "./RichText";
 
 interface DailyItineraryViewProps {
@@ -206,8 +207,8 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
           <p className="ja-itinerary-subtitle">Detailed timeline and excursion checkpoints</p>
         </div>
         <div className="ja-itinerary-stats">
-          <IonChip className="ja-itinerary-stats-chip ja-itinerary-stats-chip-dark">5 Days</IonChip>
-          <IonChip className="ja-itinerary-stats-chip">2 Cities</IonChip>
+          <IonChip className="ja-itinerary-stats-chip ja-itinerary-stats-chip-dark">{days.length} Days</IonChip>
+          {activeTrip?.slug === "mysg" && <IonChip className="ja-itinerary-stats-chip">2 Cities</IonChip>}
         </div>
       </div>
 

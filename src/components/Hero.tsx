@@ -2,6 +2,7 @@ import React from "react";
 import { IonChip } from "@ionic/react";
 import type { HeroData } from "../data/code1Itinerary";
 import RichText from "./RichText";
+import { activeTrip } from "../lib/activeTrip";
 import heroImage from "../assets/images/malaysia_singapore_hero.webp";
 
 interface HeroProps {
@@ -9,15 +10,24 @@ interface HeroProps {
 }
 
 export default function Hero({ hero }: HeroProps) {
+  const usePhoto = activeTrip?.slug !== "khaoshiong";
   return (
     <div className="ja-hero">
       <div className="ja-hero-image-wrap">
-        <img
-          src={heroImage}
-          alt="Malaysia and Singapore skyline at sunset"
-          className="ja-hero-image"
-          referrerPolicy="no-referrer"
-        />
+        {usePhoto ? (
+          <img
+            src={heroImage}
+            alt="Malaysia and Singapore skyline at sunset"
+            className="ja-hero-image"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div
+            className="ja-hero-image"
+            aria-hidden="true"
+            style={{ background: "linear-gradient(135deg, #1D4E89 0%, #123a63 55%, #0b2540 100%)" }}
+          />
+        )}
         <div className="ja-hero-overlay" />
         <div className="ja-hero-info-card">
           <div className="ja-hero-card-header">

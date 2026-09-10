@@ -5,10 +5,19 @@ import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } fr
 import type { Session } from "@supabase/supabase-js";
 import type { Expense, TripProfile } from "../types";
 import { generateImmigrationPdf } from "../utils/generateImmigrationPdf";
+import { activeTrip } from "../lib/activeTrip";
 
-const TRIP_COUNTDOWN_TARGET = new Date(2026, 6, 11, 0, 0, 0, 0); // July 11 — countdown ends here
-const TRIP_END = new Date(2026, 6, 17, 0, 0, 0, 0);             // July 17 — trip over after this
-const HEADER_TITLE = "J&A Malaysia · Singapore Trip 2026";
+// Per-trip countdown windows. Countdown ends when the trip starts; the trip is
+// "over" after the end date.
+const TRIP_COUNTDOWN_TARGET =
+  activeTrip?.slug === "khaoshiong"
+    ? new Date(2026, 9, 17, 0, 0, 0, 0) // October 17
+    : new Date(2026, 6, 11, 0, 0, 0, 0); // July 11
+const TRIP_END =
+  activeTrip?.slug === "khaoshiong"
+    ? new Date(2026, 9, 22, 0, 0, 0, 0) // October 22
+    : new Date(2026, 6, 17, 0, 0, 0, 0); // July 17
+const HEADER_TITLE = activeTrip?.headline ?? "J&A Malaysia · Singapore Trip 2026";
 
 type CountdownState = { days: number; hours: number; minutes: number; seconds: number; };
 const getCountdownState = (): CountdownState => { const d = Math.max(0, TRIP_COUNTDOWN_TARGET.getTime() - Date.now()); const ts = Math.floor(d / 1000); return { days: Math.floor(ts / 86400), hours: Math.floor((ts % 86400) / 3600), minutes: Math.floor((ts % 3600) / 60), seconds: ts % 60 }; };
@@ -269,7 +278,7 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
           <IonButtons slot="end"><IonButton onClick={() => setShowShareModal(false)}><IonIcon icon={closeOutline} /></IonButton></IonButtons>
         </IonToolbar></IonHeader>
         <IonContent className="ja-nav-share-body" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
-          <p className="ja-nav-share-desc">Share Jessie and Amor's exclusive Malaysia itinerary with others. Both web preview and responsive modes are supported.</p>
+          <p className="ja-nav-share-desc">Share Jessie and Amor's {activeTrip?.name ?? "travel"} itinerary with others. Both web preview and responsive modes are supported.</p>
           <div className="ja-nav-share-card"><div className="ja-nav-share-grid"><div className="ja-nav-share-grid-inner"><div className="ja-nav-share-block" /><div className="ja-nav-share-block ja-nav-share-block-tr" /><div className="ja-nav-share-dot" /><div className="ja-nav-share-block ja-nav-share-block-bl" /><div className="ja-nav-share-fill" /><div className="ja-nav-share-fill ja-nav-share-fill-2" /><div className="ja-nav-share-fill ja-nav-share-fill-3" /><div className="ja-nav-share-fill ja-nav-share-fill-4" /></div></div><span className="ja-nav-share-label">SCAN FOR MOBILE VIEW</span></div>
           <div className="ja-nav-share-copy-row"><input type="text" readOnly value={window.location.href} className="ja-nav-share-input" /><IonButton onClick={copyUrlToClipboard} className="ja-nav-copy-btn">{copied ? <Check size={16} style={{ color: "#88B04B" }} /> : <Copy size={16} />}</IonButton></div>
         </IonContent>

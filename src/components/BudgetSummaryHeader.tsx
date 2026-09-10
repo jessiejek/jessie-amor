@@ -10,6 +10,7 @@ import { informationCircleOutline } from "ionicons/icons";
 import type { BudgetCard } from "../data/code1Itinerary";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { Expense, UserTripSettings } from "../types";
+import { tripDayCards } from "../lib/activeTrip";
 
 interface BudgetSummaryHeaderProps {
   cards: BudgetCard[];
@@ -22,12 +23,7 @@ interface BudgetSummaryHeaderProps {
   onSelectedMobileDayChange?: (day: number) => void;
 }
 
-const fallbackDayCards = [
-  { value: 12, label: "July 12" },
-  { value: 13, label: "July 13" },
-  { value: 14, label: "July 14" },
-  { value: 15, label: "July 15" },
-];
+const fallbackDayCards = tripDayCards;
 
 const parseAmountRange = (value: string) => {
   const matches = value.match(/\d+(?:\.\d+)?/g);

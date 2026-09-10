@@ -67,6 +67,8 @@ import {
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
 
+import { activeTrip } from "./lib/activeTrip";
+import TripPicker from "./components/TripPicker";
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
 import BudgetSummaryHeader from "./components/BudgetSummaryHeader";
@@ -614,6 +616,10 @@ function AppShell() {
     });
   };
 
+
+  useEffect(() => {
+    if (activeTrip) document.title = activeTrip.headline;
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -2062,7 +2068,7 @@ function AppShell() {
   }, [activeRoute]);
 
   const metadata = {
-    title: "J&A Malaysia · Singapore Trip 2026",
+    title: activeTrip?.headline ?? "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
   
@@ -2418,25 +2424,29 @@ function AppShell() {
                 />
                 <AlertBox alert={itinerary.alert} />
 
-                <section className="ja-app-section">
-                  <div className="ja-app-section-header"><div><h3 className="ja-app-section-title">Trip Tips</h3><p className="ja-app-section-desc">Code 1's itinerary reminders, folded into Code 2's visual system.</p></div></div>
-                  <div className="ja-app-tips-grid">
-                    {itinerary.tips.map((tip, index) => (
-                      <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
-                    ))}
-                  </div>
-                </section>
-
-                <section className="ja-app-insights">
-                  <div className="ja-app-insights-inner">
-                    <div className="ja-app-insights-header"><h3 className="ja-app-section-title">Pro-Traveler Insights</h3><p className="ja-app-section-desc">Smart hacks and safety strategies recommended by our logistics team</p></div>
-                    <div className="ja-app-insights-grid">
-                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><CreditCard size={20} /></div><h4 className="ja-app-insight-title">Touch 'n Go Card</h4><p className="ja-app-section-desc">The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.</p></div>
-                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Ticket size={20} /></div><h4 className="ja-app-insight-title">Advance Booking</h4><p className="ja-app-section-desc">Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.</p></div>
-                      <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Utensils size={20} /></div><h4 className="ja-app-insight-title">Street Food Strategy</h4><p className="ja-app-section-desc">At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.</p></div>
+                {itinerary.tips.length > 0 && (
+                  <section className="ja-app-section">
+                    <div className="ja-app-section-header"><div><h3 className="ja-app-section-title">Trip Tips</h3><p className="ja-app-section-desc">Code 1's itinerary reminders, folded into Code 2's visual system.</p></div></div>
+                    <div className="ja-app-tips-grid">
+                      {itinerary.tips.map((tip, index) => (
+                        <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
+                      ))}
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
+
+                {activeTrip?.slug === "mysg" && (
+                  <section className="ja-app-insights">
+                    <div className="ja-app-insights-inner">
+                      <div className="ja-app-insights-header"><h3 className="ja-app-section-title">Pro-Traveler Insights</h3><p className="ja-app-section-desc">Smart hacks and safety strategies recommended by our logistics team</p></div>
+                      <div className="ja-app-insights-grid">
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><CreditCard size={20} /></div><h4 className="ja-app-insight-title">Touch 'n Go Card</h4><p className="ja-app-section-desc">The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.</p></div>
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Ticket size={20} /></div><h4 className="ja-app-insight-title">Advance Booking</h4><p className="ja-app-section-desc">Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.</p></div>
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Utensils size={20} /></div><h4 className="ja-app-insight-title">Street Food Strategy</h4><p className="ja-app-section-desc">At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.</p></div>
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 <section className="ja-app-section">
                   <div onClick={() => navigateTo("/map")} className="ja-app-map-card">
@@ -2444,7 +2454,7 @@ function AppShell() {
                     <div className="ja-app-map-dot ja-app-map-dot-1" /><div className="ja-app-map-dot ja-app-map-dot-2" /><div className="ja-app-map-dot ja-app-map-dot-3" /><div className="ja-app-map-dot ja-app-map-dot-4" />
                     <div className="ja-app-map-card-inner">
                       <Compass className="ja-app-compass" size={24} />
-                      <h4 className="ja-app-map-card-title">Explore Kuala Lumpur</h4>
+                      <h4 className="ja-app-map-card-title">Explore {activeTrip?.slug === "khaoshiong" ? "Kaohsiung" : "Kuala Lumpur"}</h4>
                       <p className="ja-app-map-card-badge">INTERACTIVE MAP NOW ACTIVE</p>
                       <p className="ja-app-map-card-desc">Click to browse custom plotted transit markers</p>
                     </div>
@@ -2660,10 +2670,21 @@ function AppShell() {
 }
 
 export default function App() {
+  // No trip selected in the URL -> show the trip picker landing page.
+  if (!activeTrip) {
+    return (
+      <IonApp>
+        <TripPicker />
+      </IonApp>
+    );
+  }
+
+  // Mount the whole itinerary app under the active trip's URL prefix
+  // (/mysg or /khaoshiong) so every inner route stays relative.
   return (
     <IonApp>
       {/* @ts-expect-error IonReactRouterProps children type gap with React 19 JSX */}
-      <IonReactRouter>
+      <IonReactRouter basename={activeTrip.routeBase}>
         <AppShell />
       </IonReactRouter>
     </IonApp>

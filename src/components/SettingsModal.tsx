@@ -24,6 +24,7 @@ import {
 import { FileText } from "lucide-react";
 import { closeOutline } from "ionicons/icons";
 import { supabase } from "../lib/supabase";
+import { activeTrip } from "../lib/activeTrip";
 
 interface RegisteredUser {
   id: string;
@@ -189,6 +190,17 @@ export default function SettingsModal({
 
       <div className="ja-settings-scroll-body" style={{ background: "#f5f5f4" }}>
         <div className="ja-settings-content">
+          {activeTrip ? (
+            <IonCard className="ja-settings-card">
+              <IonCardContent>
+                <div className="ja-settings-card-header">
+                  <h4 className="ja-settings-card-title">Current Trip</h4>
+                  <p className="ja-settings-card-desc">{activeTrip.name} · {activeTrip.dateLabel}</p>
+                </div>
+                <a href="/" className="ja-settings-helper" style={{ display: "inline-block", fontWeight: 600, textDecoration: "underline", color: "#0B3530" }}>← Switch to a different trip</a>
+              </IonCardContent>
+            </IonCard>
+          ) : null}
           <IonCard className="ja-settings-card">
             <IonCardContent>
               <div className="ja-settings-card-header">

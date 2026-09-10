@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { activeTrip } from "./activeTrip";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -14,7 +15,10 @@ export const supabaseReceiptBucket = import.meta.env.VITE_SUPABASE_RECEIPT_BUCKE
 export const supabaseBudgetSettingsTable = import.meta.env.VITE_SUPABASE_BUDGET_SETTINGS_TABLE || "trip_settings";
 export const supabaseSettingsTable = import.meta.env.VITE_SUPABASE_SETTINGS_TABLE || "user_trip_settings";
 export const supabaseTripProfileTable = import.meta.env.VITE_SUPABASE_TRIP_PROFILE_TABLE || "trip_profile";
-export const tripKey = import.meta.env.VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
+// Which trip's data this page reads/writes. Derived from the URL (/mysg,
+// /khaoshiong); falls back to the Malaysia - Singapore key elsewhere.
+export const tripKey =
+  activeTrip?.tripKey || import.meta.env.VITE_TRIP_KEY || "jessie-amor-malaysia-singapore";
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = hasSupabaseConfig

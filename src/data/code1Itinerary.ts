@@ -1,6 +1,9 @@
 ﻿export const TRAVELER_1 = "Jessie Jay Q. Rubi";
 export const TRAVELER_2 = "Rizza Amor L. Caguco";
 
+import { activeTrip } from "../lib/activeTrip";
+import { kaohsiungPlan } from "./kaohsiungItinerary";
+
 export type Category = 'train' | 'bus' | 'food' | 'spot' | 'hotel' | 'walk' | 'free';
 export type TagVariant = 'train' | 'bus' | 'food' | 'walk' | 'spot' | 'hotel' | 'free';
 
@@ -69,7 +72,7 @@ export type TimelineItemData = {
 };
 
 export type DaySectionData = {
-  day: 11 | 12 | 13 | 14 | 15 | 16;
+  day: number;
   title: string;
   budgetLabel: string;
   outfitTip?: {
@@ -3229,14 +3232,6 @@ const GUIDES_BY_KEY: Record<GuideKey, DestinationGuide> = Object.fromEntries(
   )
 ) as Record<GuideKey, DestinationGuide>;
 
-export const hero = currentItinerary.hero;
-export const budgetSummary = currentItinerary.budgetSummary;
-export const legend = currentItinerary.legend;
-export const days = currentItinerary.days;
-export const alert = currentItinerary.alert;
-export const tips = currentItinerary.tips;
-export const footer = currentItinerary.footer;
-
 export const currentHero = currentItinerary.hero;
 export const currentBudgetSummary = currentItinerary.budgetSummary;
 export const currentLegend = currentItinerary.legend;
@@ -3245,34 +3240,38 @@ export const currentAlert = currentItinerary.alert;
 export const currentTips = currentItinerary.tips;
 export const currentFooter = currentItinerary.footer;
 
+const malaysiaSingaporePlan = {
+  id: 'main',
+  label: 'Malaysia · Singapore',
+  description: 'Kuala Lumpur, Malacca, Singapore plan',
+  hero: currentHero,
+  budgetSummary: currentBudgetSummary,
+  legend: currentLegend,
+  days: currentDays,
+  alert: currentAlert,
+  tips: currentTips,
+  footer: currentFooter,
+} satisfies ItineraryPlan;
+
 export const ITINERARIES_BY_ID = {
-  main: {
-    id: 'main',
-    label: 'Main itinerary',
-    description: 'Current Kuala Lumpur, Malacca, Singapore plan',
-    hero: currentHero,
-    budgetSummary: currentBudgetSummary,
-    legend: currentLegend,
-    days: currentDays,
-    alert: currentAlert,
-    tips: currentTips,
-    footer: currentFooter,
-  },
-  partner: {
-    id: 'partner',
-    label: 'Partner itinerary',
-    description: 'Placeholder itinerary for future replacement',
-    hero: currentHero,
-    budgetSummary: currentBudgetSummary,
-    legend: currentLegend,
-    days: currentDays,
-    alert: currentAlert,
-    tips: currentTips,
-    footer: currentFooter,
-  },
+  main: malaysiaSingaporePlan,
+  partner: kaohsiungPlan,
 } satisfies Record<ItineraryId, ItineraryPlan>;
 
 export const DEFAULT_ITINERARY_ID: ItineraryId = 'main';
-export const selectedItinerary = ITINERARIES_BY_ID[DEFAULT_ITINERARY_ID];
-export const itinerary = selectedItinerary;
+
+// The plan for whichever trip the URL selected (see lib/activeTrip).
+export const activePlan: ItineraryPlan =
+  activeTrip?.slug === 'khaoshiong' ? kaohsiungPlan : malaysiaSingaporePlan;
+
+export const selectedItinerary = activePlan;
+export const itinerary = activePlan;
+
+export const hero = activePlan.hero;
+export const budgetSummary = activePlan.budgetSummary;
+export const legend = activePlan.legend;
+export const days = activePlan.days;
+export const alert = activePlan.alert;
+export const tips = activePlan.tips;
+export const footer = activePlan.footer;
 

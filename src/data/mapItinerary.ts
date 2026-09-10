@@ -1,5 +1,6 @@
 import type { ItineraryItem } from "../types";
 import type { SyncStatus } from "../types";
+import { activeTrip } from "../lib/activeTrip";
 
 export interface MapDestination {
   id: string;
@@ -326,6 +327,21 @@ export const buildEmptyMapItinerary = (): MapItineraryData => ({
   }),
 });
 
+const buildKaohsiungMapItinerary = (): MapItineraryData => ({
+  version: MAP_ITINERARY_VERSION,
+  updatedAt: new Date().toISOString(),
+  days: [17, 18, 19, 20, 21].map((day, index) => ({
+    day,
+    label: `October ${day}`,
+    title: `Day ${index + 1} - October ${day}`,
+    destinations: [],
+  })),
+});
+
+/** Trip-aware starting skeleton for the map tab (empty for Kaohsiung). */
+export const buildBaseMapItinerary = (): MapItineraryData =>
+  activeTrip?.slug === "khaoshiong" ? buildKaohsiungMapItinerary() : buildInitialMapItinerary();
+
 const hasValidDays = (value: unknown): value is MapItineraryData =>
   Boolean(
     value &&
@@ -339,7 +355,7 @@ const toNumber = (value: unknown, fallback: number) => {
 };
 
 export const normalizeMapItinerary = (raw: unknown): MapItineraryData => {
-  if (!hasValidDays(raw)) return buildInitialMapItinerary();
+  if (!hasValidDays(raw)) return buildBaseMapItinerary();
 
   const days = raw.days
     .filter((day) => day && typeof day === "object")

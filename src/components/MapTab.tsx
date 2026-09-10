@@ -8,8 +8,9 @@ import {
 import { addOutline, locateOutline, trailSignOutline, navigateOutline, stopCircleOutline, trashOutline, mapOutline, expandOutline, closeOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
 import type { Map as LeafletMap, Marker, LayerGroup } from "leaflet";
-import { buildInitialMapItinerary, resolveCoordinatesFromName, type MapDestination, type MapItineraryData, type MapDestinationRow, destinationToRow, rowToDestination, groupDestinationsByDay } from "../data/mapItinerary";
+import { buildBaseMapItinerary, resolveCoordinatesFromName, type MapDestination, type MapItineraryData, type MapDestinationRow, destinationToRow, rowToDestination, groupDestinationsByDay } from "../data/mapItinerary";
 import { supabase, supabaseMapDestinationsTable, tripKey } from "../lib/supabase";
+import { activeTrip } from "../lib/activeTrip";
 import { makeOfflineCacheKey, readCachedDataset, writeCachedDataset } from "../lib/offlineCache";
 import type { SyncStatus, UserTripSettings } from "../types";
 
@@ -77,7 +78,7 @@ const formatMapDayLabel = (dayNumber: number, travelDates: string[] | undefined)
 
 export default function MapTab({ session, canEdit = false, isOnline = true, isActive = true, userSettings = null, currentUser = null }: MapTabProps) {
   const [initialMapCache] = useState(() => readCachedDataset<MapItineraryData>(mapCacheKey) ?? null);
-  const [initialMapData] = useState(() => applyMapSyncStatus(initialMapCache?.data ?? buildInitialMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"));
+  const [initialMapData] = useState(() => applyMapSyncStatus(initialMapCache?.data ?? buildBaseMapItinerary(), initialMapCache?.dirty ? "pending" : "synced"));
   const [itineraryData, setItineraryData] = useState<MapItineraryData>(() => initialMapData);
   const [selectedDay, setSelectedDay] = useState<number>(() => initialMapData.days[0]?.day ?? 11);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(() => initialMapData.days[0]?.destinations[0]?.id ?? "");
@@ -144,7 +145,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
       const { data, error } = await supabase.from(supabaseMapDestinationsTable).select("*").eq("trip_key", tripKey);
       if (c) return; if (error) { console.warn("Supabase map load failed:", error.message); setMapLoaded(true); return; }
       const rows = (data ?? []) as MapDestinationRow[]; cachedRowsRef.current = rows;
-      if (rows.length > 0 && !mapDirtyRef.current) { const d = rows.map(rowToDestination); const days = groupDestinationsByDay(d, (dd) => rows.find((r) => r.id === dd.id)?.day ?? 12); setItineraryData({ ...buildInitialMapItinerary(), days }); saveMapSnapshot({ ...buildInitialMapItinerary(), days }, false); }
+      if (rows.length > 0 && !mapDirtyRef.current) { const d = rows.map(rowToDestination); const days = groupDestinationsByDay(d, (dd) => rows.find((r) => r.id === dd.id)?.day ?? 12); setItineraryData({ ...buildBaseMapItinerary(), days }); saveMapSnapshot({ ...buildBaseMapItinerary(), days }, false); }
       setMapLoaded(true);
     };
     const handleRealtimeEvent = (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
@@ -185,7 +186,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-    const map = L.map(mapContainerRef.current, { zoomControl: false, scrollWheelZoom: true, preferCanvas: true }).setView([3.139, 101.6869], 12);
+    const map = L.map(mapContainerRef.current, { zoomControl: false, scrollWheelZoom: true, preferCanvas: true }).setView(activeTrip?.mapCenter ?? [3.139, 101.6869], 12);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
     mapRef.current = map; markerLayerRef.current = L.layerGroup().addTo(map); userLocationLayerRef.current = L.layerGroup().addTo(map);
@@ -365,7 +366,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
                     <span className="ja-map-field-label">Name</span>
                     <input value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value, lat: "", lng: "" }))} disabled={!canEdit}
                       onKeyDown={(e) => { if (!suggestions.length) return; if (e.key === "ArrowDown") { e.preventDefault(); setActiveSuggestionIndex((i) => (i + 1) % suggestions.length); } if (e.key === "ArrowUp") { e.preventDefault(); setActiveSuggestionIndex((i) => (i - 1 + suggestions.length) % suggestions.length); } if (e.key === "Enter" && activeSuggestionIndex >= 0) { e.preventDefault(); selectSuggestion(suggestions[activeSuggestionIndex]); } }}
-                      className="ja-map-search-input" placeholder="Central Market Kuala Lumpur" autoComplete="off" />
+                      className="ja-map-search-input" placeholder={activeTrip?.mapPlaceholder ?? "Central Market Kuala Lumpur"} autoComplete="off" />
                     {(isSearching || suggestions.length > 0) && (
                       <div className="ja-map-autocomplete">
                         {isSearching && <div className="ja-map-autocomplete-loading">Searching places...</div>}
