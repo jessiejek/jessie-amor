@@ -24,7 +24,7 @@ import {
 import { FileText } from "lucide-react";
 import { closeOutline } from "ionicons/icons";
 import { supabase } from "../lib/supabase";
-import { activeTrip } from "../lib/activeTrip";
+import { activeTrip, isKaohsiung } from "../lib/activeTrip";
 
 interface RegisteredUser {
   id: string;
@@ -53,6 +53,7 @@ type FormState = { baseCurrency: string; currencies: string[]; startDate: string
 
 const currencyOptions = [
   { code: "MYR", name: "Malaysian Ringgit" }, { code: "SGD", name: "Singapore Dollar" },
+  { code: "TWD", name: "New Taiwan Dollar" },
   { code: "PHP", name: "Philippine Peso" }, { code: "USD", name: "US Dollar" },
   { code: "EUR", name: "Euro" }, { code: "JPY", name: "Japanese Yen" },
   { code: "AUD", name: "Australian Dollar" }, { code: "GBP", name: "British Pound" },
@@ -60,8 +61,10 @@ const currencyOptions = [
 ];
 
 const buildInitialState = (settings: UserTripSettings | null): FormState => {
-  const baseCurrency = settings?.baseCurrency ?? "MYR";
-  const currencies = settings?.currencies?.length ? settings.currencies : ["MYR", "SGD"];
+  const baseCurrency = settings?.baseCurrency ?? (isKaohsiung ? "TWD" : "MYR");
+  const currencies = settings?.currencies?.length
+    ? settings.currencies
+    : (isKaohsiung ? ["TWD", "PHP"] : ["MYR", "SGD"]);
   const startDate = settings?.travelDates?.[0] ?? "";
   const endDate = settings?.travelDates?.[settings.travelDates.length - 1] ?? "";
   return { baseCurrency, currencies, startDate, endDate };

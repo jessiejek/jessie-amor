@@ -67,7 +67,7 @@ import {
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
 
-import { activeTrip } from "./lib/activeTrip";
+import { activeTrip, isKaohsiung } from "./lib/activeTrip";
 import TripPicker from "./components/TripPicker";
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
@@ -446,7 +446,7 @@ function AppShell() {
   const requestedRateSymbols = React.useMemo(
     () => (userSettings?.currencies?.length
       ? Array.from(new Set(["MYR", ...userSettings.currencies.filter((code) => code !== "MYR")]))
-      : ["MYR", "SGD"]),
+      : (isKaohsiung ? ["MYR", "TWD", "PHP"] : ["MYR", "SGD"])),
     [userSettings],
   );
   const exchangeRates = useLiveExchangeRates(requestedRateSymbols);

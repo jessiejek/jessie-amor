@@ -3,6 +3,7 @@ import { DayPlan, Expense } from "../types";
 export const exchangeRates = {
   php: 15.1449, // 1 RM = 15.1449 PHP
   sgd: 0.31601, // 1 RM = 0.31601 SGD
+  twd: 7.1, // 1 RM ≈ 7.1 TWD — approximate static rate (ECB/Frankfurter does not publish TWD)
 } as const;
 
 export const exchangeRate = exchangeRates.php;

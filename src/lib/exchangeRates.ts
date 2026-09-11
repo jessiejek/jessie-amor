@@ -11,13 +11,22 @@ export type ExchangeRates = {
 
 const CACHE_KEY = "ja-exchange-rates";
 
-const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => ({
-  rates,
-  php: rates.PHP ?? fallbackRates.php,
-  sgd: rates.SGD ?? fallbackRates.sgd,
-  updatedAt,
-  source,
-});
+// Currencies our upstream (Frankfurter / ECB) does not publish. We keep an
+// approximate static rate so conversions still work instead of showing "N/A".
+const STATIC_RATES: Record<string, number> = {
+  TWD: fallbackRates.twd,
+};
+
+const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => {
+  const merged = { ...STATIC_RATES, ...rates };
+  return {
+    rates: merged,
+    php: merged.PHP ?? fallbackRates.php,
+    sgd: merged.SGD ?? fallbackRates.sgd,
+    updatedAt,
+    source,
+  };
+};
 
 const readCachedRates = (): ExchangeRates | null => {
   try {
@@ -53,6 +62,7 @@ export const staticExchangeRates: ExchangeRates = {
   rates: {
     PHP: fallbackRates.php,
     SGD: fallbackRates.sgd,
+    TWD: fallbackRates.twd,
   },
   php: fallbackRates.php,
   sgd: fallbackRates.sgd,

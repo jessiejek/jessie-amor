@@ -18,3 +18,5 @@ export const tripDayCards: { value: number; label: string }[] =
     ? [17, 18, 19, 20, 21].map((d) => ({ value: d, label: `October ${d}` }))
     : [12, 13, 14, 15].map((d) => ({ value: d, label: `July ${d}` }));
 
+export const isKaohsiung = activeTripSlug === "khaoshiong";
+

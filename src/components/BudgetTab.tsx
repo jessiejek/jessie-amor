@@ -9,7 +9,7 @@ import {
 import { addCircleOutline, cashOutline, cardOutline, micOutline, micCircleOutline, funnelOutline, alertCircleOutline, imageOutline, cameraOutline, closeOutline, createOutline, checkmarkCircleOutline } from "ionicons/icons";
 import type { ExchangeRates } from "../lib/exchangeRates";
 import type { CurrentUserInfo, Expense, ExpenseCategory, ExpenseCurrency, PaymentMethod, SyncStatus, UserTripSettings } from "../types";
-import { tripDayCards } from "../lib/activeTrip";
+import { tripDayCards, isKaohsiung } from "../lib/activeTrip";
 
 type TransactionRow = {
   id: string; name: string; date: string; dayValue: number; time: string;
@@ -137,7 +137,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
   const [desc, setDesc] = useState("");
   const [amountText, setAmountText] = useState("");
   const fallbackDayOptions = tripDayCards;
-  const currencyOptions = userSettings?.currencies?.length ? userSettings.currencies : ["MYR", "PHP", "SGD"];
+  const currencyOptions = userSettings?.currencies?.length ? userSettings.currencies : (isKaohsiung ? ["TWD", "PHP"] : ["MYR", "PHP", "SGD"]);
   const [amountCurrency, setAmountCurrency] = useState<ExpenseCurrency>(currencyOptions[0] ?? "MYR");
   const [day, setDay] = useState<number>(12);
   const [category, setCategory] = useState<ExpenseCategory>("Food");
@@ -175,7 +175,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
   const handleDaySelection = (dv: number) => { setDay(dv); syncRegistryDateForDay(dv); };
   const handleRegistryDateSelection = (dl: string) => { setSelectedRegistryDate(dl); if (dl === "All") return; const md = activeDayOptions.find((o) => o.label === dl); if (md) setDay(md.value); };
   const voiceCurrencyAliases = useMemo(() => { const a: Record<string, string[]> = {}; currencyOptions.forEach((c) => { a[c] = defaultVoiceCurrencyAliases[c] ?? [c.toLowerCase()]; }); return a; }, [currencyOptions]);
-  const selectedDisplayCurrencies = useMemo(() => Array.from(new Set(userSettings?.currencies?.length ? userSettings.currencies : ["PHP", "MYR", "SGD"])), [userSettings]);
+  const selectedDisplayCurrencies = useMemo(() => Array.from(new Set(userSettings?.currencies?.length ? userSettings.currencies : (isKaohsiung ? ["TWD", "PHP"] : ["PHP", "MYR", "SGD"]))), [userSettings]);
   const primaryDisplayCurrency = userSettings?.baseCurrency ?? selectedDisplayCurrencies[0] ?? "PHP";
   const secondaryDisplayCurrencies = selectedDisplayCurrencies.filter((c) => c !== primaryDisplayCurrency);
 
