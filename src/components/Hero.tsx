@@ -3,31 +3,31 @@ import { IonChip } from "@ionic/react";
 import type { HeroData } from "../data/code1Itinerary";
 import RichText from "./RichText";
 import { activeTrip } from "../lib/activeTrip";
-import heroImage from "../assets/images/malaysia_singapore_hero.webp";
+import mySgHero from "../assets/images/malaysia_singapore_hero.webp";
+import kaohsiungHero from "../assets/images/kaohsiung_hero.svg";
 
 interface HeroProps {
   hero: HeroData;
 }
 
+const HERO_BY_TRIP: Record<string, { src: string; alt: string }> = {
+  khaoshiong: { src: kaohsiungHero, alt: "Kaohsiung harbour skyline at golden hour" },
+};
+
 export default function Hero({ hero }: HeroProps) {
-  const usePhoto = activeTrip?.slug !== "khaoshiong";
+  const heroArt = (activeTrip && HERO_BY_TRIP[activeTrip.slug]) ?? {
+    src: mySgHero,
+    alt: "Malaysia and Singapore skyline at sunset",
+  };
   return (
     <div className="ja-hero">
       <div className="ja-hero-image-wrap">
-        {usePhoto ? (
-          <img
-            src={heroImage}
-            alt="Malaysia and Singapore skyline at sunset"
-            className="ja-hero-image"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div
-            className="ja-hero-image"
-            aria-hidden="true"
-            style={{ background: "linear-gradient(135deg, #1D4E89 0%, #123a63 55%, #0b2540 100%)" }}
-          />
-        )}
+        <img
+          src={heroArt.src}
+          alt={heroArt.alt}
+          className="ja-hero-image"
+          referrerPolicy="no-referrer"
+        />
         <div className="ja-hero-overlay" />
         <div className="ja-hero-info-card">
           <div className="ja-hero-card-header">
