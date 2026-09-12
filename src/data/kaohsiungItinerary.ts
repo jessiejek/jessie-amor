@@ -1,9 +1,14 @@
 // Kaohsiung, Taiwan — October 17–21, 2026.
 // Land Oct 17 at night, leave Oct 21 in the afternoon, so Oct 18–20 are the
-// three full free days. Meteor Garden's real filming location, National Chung
-// Cheng University, is in Chiayi (not Kaohsiung) — it's folded into Day 2
-// (Oct 18) as an early morning trip, with the harbor district moved to the
-// evening to make room for it.
+// three full free days.
+// - Day 2 (Oct 18): Meteor Garden's real filming location, National Chung
+//   Cheng University, is in Chiayi (not Kaohsiung) — done as an early
+//   morning round trip, then an easy harbor-district city walk back in
+//   Kaohsiung that afternoon/evening.
+// - Day 3 (Oct 19): half day at Cijin Island, then a hotel switch to
+//   Zuoying and Lotus Pond for the rest of the afternoon/evening.
+// - Day 4 (Oct 20): Amor's birthday — kept deliberately light, with a
+//   fancy dinner in the evening.
 
 import type {
   AlertBoxData,
@@ -41,6 +46,8 @@ const item = (input: {
   tags: ItemTag[];
   mapQuery: string;
   guideKey: GuideKey;
+  warnings?: string[];
+  infoNotes?: string[];
 }): TimelineItemData => {
   itemCounter += 1;
   return {
@@ -52,6 +59,8 @@ const item = (input: {
     tags: input.tags,
     mapQuery: input.mapQuery,
     guideKey: input.guideKey,
+    warnings: input.warnings,
+    infoNotes: input.infoNotes,
   };
 };
 
@@ -59,10 +68,10 @@ const hero: HeroData = {
   eyebrow: "Travel Itinerary",
   title: "J&A Kaohsiung Trip 2026",
   subtitle: "October 17–21 · Kaohsiung, Taiwan",
-  meta: ["Land Oct 17 night", "Leave Oct 21 afternoon"],
+  meta: ["Land Oct 17 night", "Leave Oct 21 afternoon", "Oct 20 — Amor's birthday 🎂"],
   note: [
     text(
-      "Meteor Garden's real-life campus, National Chung Cheng University, is in Chiayi — about 1.5–2h from Kaohsiung each way. It's built into Day 2's morning, so the harbor district shifted to that evening instead.",
+      "Meteor Garden's real-life campus, National Chung Cheng University, is in Chiayi — about 1.5–2h from Kaohsiung each way. It's built into Day 2's morning, with an easy city walk back in Kaohsiung that afternoon/evening. Day 3 splits between Cijin Island and Lotus Pond. Day 4 is kept light for Amor's birthday, with a fancy dinner that evening.",
     ),
   ],
 };
@@ -79,10 +88,10 @@ const legend: LegendItem[] = [
 const budgetSummary: BudgetCard[] = [];
 
 const alert: AlertBoxData = {
-  title: "Two things to confirm before this trip",
+  title: "Three things to confirm before this trip",
   body: [
     text(
-      "1) The Meteor Garden day trip to Chiayi takes ~5–6 hours round trip — Day 2's harbor evening is compressed to make room for it. 2) Day 3 assumes a hotel switch to Kindness Hotel near Zuoying — confirm the check-in time so the Lotus Pond order doesn't slip.",
+      "1) The Meteor Garden day trip to Chiayi takes ~5–6 hours round trip — Day 2's city walk back in Kaohsiung is kept short on purpose. 2) Day 3 packs Cijin Island (half day) and Lotus Pond into one day, with a hotel switch to Kindness Hotel near Zuoying in between — confirm the check-in time so the order doesn't slip. 3) Day 4 is Amor's birthday — book the fancy dinner a few days ahead so there's no scrambling for a table that night.",
     ),
   ],
 };
@@ -132,8 +141,8 @@ const days: DaySectionData[] = [
   },
   {
     day: 18,
-    title: "DAY 2 · October 18 — Meteor Garden (AM) + Harbor District (PM)",
-    budgetLabel: "Chiayi day trip + harbor evening",
+    title: "DAY 2 · October 18 — Meteor Garden (AM) + City Walk (PM)",
+    budgetLabel: "Chiayi day trip + evening city walk",
     items: [
       item({
         time: "7:00 AM",
@@ -196,74 +205,34 @@ const days: DaySectionData[] = [
         time: "1:00 PM",
         title: "Lunch near the harbor",
         category: "food",
-        description: [text("Casual lunch before the Pier-2 / harbor district walk.")],
+        description: [text("Casual lunch before the Pier-2 city walk.")],
         tags: [tag("Food", "food")],
         mapQuery: "restaurant near Pier-2 Art Center Kaohsiung",
         guideKey: "kh-harbor-lunch",
       }),
       item({
         time: "2:30 PM",
-        title: "Pier-2 Art Center",
-        category: "spot",
+        title: "City walk: Pier-2 Art Center",
+        category: "walk",
         description: [
           place("Pier-2 Art Center", "art district", "Pier-2 Art Center Kaohsiung"),
-          text(" — converted warehouses, murals, and installations along the water."),
+          text(" — converted warehouses, murals, and installations along the water. No fixed route, just wander at an easy pace after the Chiayi trip."),
         ],
-        tags: [tag("Tourist spot", "spot")],
+        tags: [tag("Walk / Free", "walk")],
         mapQuery: "Pier-2 Art Center Kaohsiung",
         guideKey: "kh-pier2-art-center",
       }),
       item({
-        time: "3:15 PM",
-        title: "Hamasen Museum of Railway",
-        category: "spot",
-        description: [place("Hamasen Museum of Railway", "museum", "Hamasen Museum of Railway Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Hamasen Museum of Railway Kaohsiung",
-        guideKey: "kh-hamasen-railway-museum",
-      }),
-      item({
-        time: "4:00 PM",
-        title: "Great Harbour Bridge",
-        category: "spot",
-        description: [place("Great Harbour Bridge", "landmark", "Great Harbour Bridge Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Great Harbour Bridge Kaohsiung",
-        guideKey: "kh-great-harbour-bridge",
-      }),
-      item({
-        time: "4:30 PM",
-        title: "Dayi Wharf: Pier 2, warehouse, park",
-        category: "spot",
-        description: [
-          text("Walk through "),
-          place("Dayi Pier 2, warehouse and park", "waterfront", "Dayi Wharf Kaohsiung"),
-          text(", all within the same stretch."),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Dayi Wharf Kaohsiung",
-        guideKey: "kh-dayi-wharf",
-      }),
-      item({
-        time: "5:15 PM",
-        title: "Kaohsiung Music Center",
-        category: "spot",
-        description: [place("Kaohsiung Music Center", "landmark", "Kaohsiung Music Center")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Kaohsiung Music Center",
-        guideKey: "kh-kaohsiung-music-center",
-      }),
-      item({
-        time: "6:00 PM",
+        time: "5:30 PM",
         title: "Love Pier at sunset",
         category: "spot",
-        description: [place("Love Pier", "pier", "Love Pier Kaohsiung"), text(" — good sunset/night view of the harbor.")],
+        description: [place("Love Pier", "pier", "Love Pier Kaohsiung"), text(" — good sunset/night view of the harbor, a short walk from Pier-2.")],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Love Pier Kaohsiung",
         guideKey: "kh-love-pier",
       }),
       item({
-        time: "7:00 PM",
+        time: "6:30 PM",
         title: "Dinner near the harbor",
         category: "food",
         description: [text("Dinner around the Pier-2 / Yancheng area before heading back to the hotel.")],
@@ -275,126 +244,8 @@ const days: DaySectionData[] = [
   },
   {
     day: 19,
-    title: "DAY 3 · October 19 — Zuoying / Lotus Pond",
-    budgetLabel: "Full day, Zuoying district",
-    items: [
-      item({
-        time: "9:00 AM",
-        title: "Check out, transfer to Kindness Hotel",
-        category: "hotel",
-        description: [text("Move to "), place("Kindness Hotel", "hotel", "Kindness Hotel Kaohsiung Zuoying"), text(", closer to Zuoying.")],
-        tags: [tag("Hotel / Taxi", "hotel")],
-        mapQuery: "Kindness Hotel Kaohsiung Zuoying",
-        guideKey: "kh-transfer-kindness-hotel",
-      }),
-      item({
-        time: "10:00 AM",
-        title: "Lotus Pond: Dragon and Tiger Pagodas",
-        category: "spot",
-        description: [
-          text("Enter through the "),
-          place("Dragon and Tiger Pagodas", "pagoda", "Dragon and Tiger Pagodas Lotus Pond Kaohsiung"),
-          text(" — dragon's mouth in, tiger's mouth out, for good luck."),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Dragon and Tiger Pagodas Lotus Pond Kaohsiung",
-        guideKey: "kh-dragon-tiger-pagodas",
-      }),
-      item({
-        time: "10:50 AM",
-        title: "Spring and Autumn Pavilion + Statue of Xuantian",
-        category: "spot",
-        description: [
-          place("Spring and Autumn Pavilion", "pavilion", "Spring and Autumn Pavilion Kaohsiung"),
-          text(" and the "),
-          place("Statue of Xuantian Shangdi", "statue", "Statue of Xuantian Shangdi Lotus Pond"),
-          text(" nearby."),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Spring and Autumn Pavilion Kaohsiung",
-        guideKey: "kh-spring-autumn-pavilion",
-      }),
-      item({
-        time: "11:40 AM",
-        title: "Chingshui Temple",
-        category: "spot",
-        description: [place("Chingshui Temple", "temple", "Chingshui Temple Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Chingshui Temple Kaohsiung",
-        guideKey: "kh-chingshui-temple",
-      }),
-      item({
-        time: "12:30 PM",
-        title: "Lunch near Lotus Pond",
-        category: "food",
-        description: [text("Lunch break around Lotus Pond before the museum/art stops.")],
-        tags: [tag("Food", "food")],
-        mapQuery: "restaurant Lotus Pond Kaohsiung",
-        guideKey: "kh-lotus-pond-lunch",
-      }),
-      item({
-        time: "1:45 PM",
-        title: "Neiwei Art Center",
-        category: "spot",
-        description: [place("Neiwei Art Center", "art center", "Neiwei Art Center Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Neiwei Art Center Kaohsiung",
-        guideKey: "kh-neiwei-art-center",
-      }),
-      item({
-        time: "2:30 PM",
-        title: "Neiwei Cultural Park",
-        category: "spot",
-        description: [place("Neiwei Cultural Park", "park", "Neiwei Cultural Park Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Neiwei Cultural Park Kaohsiung",
-        guideKey: "kh-neiwei-cultural-park",
-      }),
-      item({
-        time: "3:15 PM",
-        title: "Kaohsiung Museum of Fine Arts",
-        category: "spot",
-        description: [place("Kaohsiung Museum of Fine Arts", "museum", "Kaohsiung Museum of Fine Arts")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Kaohsiung Museum of Fine Arts",
-        guideKey: "kh-museum-of-fine-arts",
-      }),
-      item({
-        time: "4:30 PM",
-        title: "LRT Green Tunnel",
-        category: "spot",
-        description: [
-          place("LRT Green Tunnel", "photo spot", "Kaohsiung LRT Green Tunnel"),
-          text(" — the banyan-canopy stretch of the light rail line, good for photos."),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Kaohsiung LRT Green Tunnel",
-        guideKey: "kh-lrt-green-tunnel",
-      }),
-      item({
-        time: "5:15 PM",
-        title: "Sunfong Temple",
-        category: "spot",
-        description: [place("Sunfong Temple", "temple", "Sunfong Temple Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Sunfong Temple Kaohsiung",
-        guideKey: "kh-sunfong-temple",
-      }),
-      item({
-        time: "6:30 PM",
-        title: "Dinner: Ruifeng Night Market",
-        category: "food",
-        description: [place("Ruifeng Night Market", "night market", "Ruifeng Night Market Kaohsiung")],
-        tags: [tag("Food", "food")],
-        mapQuery: "Ruifeng Night Market Kaohsiung",
-        guideKey: "kh-ruifeng-night-market",
-      }),
-    ],
-  },
-  {
-    day: 20,
-    title: "DAY 4 · October 20 — Cijin Island",
-    budgetLabel: "Full day, Cijin",
+    title: "DAY 3 · October 19 — Cijin Island (half day) + Lotus Pond",
+    budgetLabel: "Cijin morning, Lotus Pond evening",
     items: [
       item({
         time: "9:00 AM",
@@ -457,73 +308,160 @@ const days: DaySectionData[] = [
         time: "2:15 PM",
         title: "Rainbow Church",
         category: "spot",
-        description: [place("Rainbow Church", "landmark", "Rainbow Church Cijin Kaohsiung")],
+        description: [
+          place("Rainbow Church", "landmark", "Rainbow Church Cijin Kaohsiung"),
+          text(" — last stop on Cijin before heading back; skip the rest of the island to keep this a half day."),
+        ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Rainbow Church Cijin Kaohsiung",
         guideKey: "kh-rainbow-church",
       }),
       item({
-        time: "2:45 PM",
-        title: "Coastal Park",
-        category: "spot",
-        description: [place("Coastal Park", "park", "Cijin Coastal Park Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Cijin Coastal Park Kaohsiung",
-        guideKey: "kh-coastal-park",
-      }),
-      item({
-        time: "3:15 PM",
-        title: "Coral Reef Cliff",
-        category: "spot",
-        description: [place("Coral Reef Cliff", "cliff", "Cijin Coral Reef Cliff Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Cijin Coral Reef Cliff Kaohsiung",
-        guideKey: "kh-coral-reef-cliff",
-      }),
-      item({
-        time: "3:45 PM",
-        title: "Cijin Tunnel of Stars",
-        category: "spot",
-        description: [place("Cijin Tunnel of Stars", "tunnel", "Cijin Tunnel of Stars Kaohsiung")],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Cijin Tunnel of Stars Kaohsiung",
-        guideKey: "kh-cijin-tunnel-of-stars",
-      }),
-      item({
-        time: "4:15 PM",
-        title: "Mount Cihou + Kaohsiung Lighthouse",
-        category: "spot",
-        description: [
-          place("Mount Cihou", "hill", "Mount Cihou Kaohsiung"),
-          text(" up to the "),
-          place("Kaohsiung Lighthouse", "lighthouse", "Kaohsiung Lighthouse"),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Kaohsiung Lighthouse",
-        guideKey: "kh-cihou-lighthouse",
-      }),
-      item({
-        time: "5:00 PM",
-        title: "Cihou Fort + British Consulate at Takao",
-        category: "spot",
-        description: [
-          place("Cihou Fort", "fort", "Cihou Fort Kaohsiung"),
-          text(" and the "),
-          place("British Consulate at Takao", "landmark", "British Consulate at Takao"),
-          text(" — same hill, good for sunset."),
-        ],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "British Consulate at Takao",
-        guideKey: "kh-cihou-fort-consulate",
-      }),
-      item({
-        time: "6:30 PM",
+        time: "3:00 PM",
         title: "Ferry back to Gushan",
         category: "bus",
-        description: [text("Ferry back across to the mainland side for dinner.")],
+        description: [text("Ferry back across to the mainland side.")],
         tags: [tag("Bus", "bus")],
         mapQuery: "Cijin Ferry Pier Kaohsiung",
         guideKey: "kh-ferry-back-to-gushan",
+      }),
+      item({
+        time: "3:45 PM",
+        title: "Check out, transfer to Kindness Hotel",
+        category: "hotel",
+        description: [text("Move to "), place("Kindness Hotel", "hotel", "Kindness Hotel Kaohsiung Zuoying"), text(", closer to Zuoying — drop bags before Lotus Pond.")],
+        tags: [tag("Hotel / Taxi", "hotel")],
+        mapQuery: "Kindness Hotel Kaohsiung Zuoying",
+        guideKey: "kh-transfer-kindness-hotel",
+      }),
+      item({
+        time: "4:45 PM",
+        title: "Lotus Pond: Dragon and Tiger Pagodas",
+        category: "spot",
+        description: [
+          text("Enter through the "),
+          place("Dragon and Tiger Pagodas", "pagoda", "Dragon and Tiger Pagodas Lotus Pond Kaohsiung"),
+          text(" — dragon's mouth in, tiger's mouth out, for good luck."),
+        ],
+        tags: [tag("Tourist spot", "spot")],
+        mapQuery: "Dragon and Tiger Pagodas Lotus Pond Kaohsiung",
+        guideKey: "kh-dragon-tiger-pagodas",
+      }),
+      item({
+        time: "5:30 PM",
+        title: "Spring and Autumn Pavilion + Statue of Xuantian",
+        category: "spot",
+        description: [
+          place("Spring and Autumn Pavilion", "pavilion", "Spring and Autumn Pavilion Kaohsiung"),
+          text(" and the "),
+          place("Statue of Xuantian Shangdi", "statue", "Statue of Xuantian Shangdi Lotus Pond"),
+          text(" nearby."),
+        ],
+        tags: [tag("Tourist spot", "spot")],
+        mapQuery: "Spring and Autumn Pavilion Kaohsiung",
+        guideKey: "kh-spring-autumn-pavilion",
+      }),
+      item({
+        time: "6:15 PM",
+        title: "LRT Green Tunnel",
+        category: "spot",
+        description: [
+          place("LRT Green Tunnel", "photo spot", "Kaohsiung LRT Green Tunnel"),
+          text(" — the banyan-canopy stretch of the light rail line, good for dusk photos on the way to dinner."),
+        ],
+        tags: [tag("Tourist spot", "spot")],
+        mapQuery: "Kaohsiung LRT Green Tunnel",
+        guideKey: "kh-lrt-green-tunnel",
+      }),
+      item({
+        time: "7:00 PM",
+        title: "Dinner: Ruifeng Night Market",
+        category: "food",
+        description: [place("Ruifeng Night Market", "night market", "Ruifeng Night Market Kaohsiung")],
+        tags: [tag("Food", "food")],
+        mapQuery: "Ruifeng Night Market Kaohsiung",
+        guideKey: "kh-ruifeng-night-market",
+      }),
+    ],
+  },
+  {
+    day: 20,
+    title: "DAY 4 · October 20 — Amor's Birthday: Relax Day",
+    budgetLabel: "Relax day + fancy dinner 🎂",
+    outfitTip: {
+      note: "It's the birthday dinner tonight — dress a little nicer than the rest of the trip for it.",
+      wear: {
+        male: ["Collared shirt or smart casual top for dinner", "Comfortable clothes the rest of the day"],
+        female: ["A dress or an outfit you'd want in the birthday photos", "Comfortable clothes the rest of the day"],
+      },
+      avoid: {
+        male: ["Flip-flops or beach sandals at dinner"],
+        female: ["Flip-flops or beach sandals at dinner"],
+      },
+    },
+    items: [
+      item({
+        time: "9:30 AM",
+        title: "Slow morning — happy birthday, Amor!",
+        category: "free",
+        description: [text("No alarms, no itinerary. Sleep in and take breakfast slow — this day is intentionally empty.")],
+        tags: [tag("Walk / Free", "free")],
+        mapQuery: "breakfast near hotel Kaohsiung",
+        guideKey: "kh-birthday-breakfast",
+      }),
+      item({
+        time: "11:00 AM",
+        title: "Relax time: spa, hotel pool, or a slow café",
+        category: "free",
+        description: [text("Whatever \"relax\" means to the two of you today — hotel amenities, a nearby spa, or just a café with nowhere to be.")],
+        tags: [tag("Walk / Free", "free")],
+        mapQuery: "cafe near hotel Kaohsiung",
+        guideKey: "kh-birthday-relax",
+      }),
+      item({
+        time: "1:30 PM",
+        title: "Optional: 85 Sky Tower observatory",
+        category: "spot",
+        description: [
+          place("85 Sky Tower", "observatory", "85 Sky Tower Kaohsiung"),
+          text(" — indoor, low-effort, great harbor views. Easy to skip if the day is running slower than planned."),
+        ],
+        tags: [tag("Tourist spot", "spot")],
+        mapQuery: "85 Sky Tower Kaohsiung",
+        guideKey: "kh-85-sky-tower",
+      }),
+      item({
+        time: "4:00 PM",
+        title: "Get ready at the hotel",
+        category: "hotel",
+        description: [text("Head back, rest, and get changed for the birthday dinner.")],
+        tags: [tag("Hotel / Taxi", "hotel")],
+        mapQuery: "hotel Kaohsiung",
+        guideKey: "kh-birthday-get-ready",
+        infoNotes: ["Confirm the dinner reservation is still on before leaving the hotel."],
+      }),
+      item({
+        time: "6:30 PM",
+        title: "Fancy Birthday Dinner",
+        category: "food",
+        description: [
+          text(
+            "Reserve a nicer restaurant ahead of time — a hotel fine-dining room, a rooftop restaurant, or a steakhouse all work well in Kaohsiung. Pick one and book it a few days before, not the morning of.",
+          ),
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "fine dining restaurant Kaohsiung",
+        guideKey: "kh-birthday-dinner",
+        warnings: ["Book this table a few days ahead — it's the birthday dinner, don't leave it to chance."],
+      }),
+      item({
+        time: "8:30 PM",
+        title: "Birthday dessert / cake",
+        category: "food",
+        description: [text("A dessert bar, cake shop, or night-market sweet stall to cap off the night.")],
+        tags: [tag("Food", "food")],
+        mapQuery: "dessert shop Kaohsiung",
+        guideKey: "kh-birthday-dessert",
       }),
     ],
   },
