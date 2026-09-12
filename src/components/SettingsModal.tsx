@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { CurrentUserInfo, UserTripSettings } from "../types";
 import {
@@ -92,11 +92,13 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialState(settings));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userActionError, setUserActionError] = useState("");
 
-  useEffect(() => { if (!open) return; setForm(buildInitialState(settings)); setErrors({}); }, [open, settings]);
+  useEffect(() => { if (!open) return; setForm(buildInitialState(settings)); setErrors({}); setFormError(""); }, [open, settings]);
 
   useEffect(() => {
     if (!open || !supabase || !currentUser?.isAdmin) return;
@@ -169,14 +171,27 @@ export default function SettingsModal({
   };
 
   const handleSubmit = async () => {
-    if (!validate()) return;
+    setFormError("");
+    if (!validate()) {
+      // The date/currency fields that failed can be scrolled out of view
+      // (e.g. after checking the admin panel further down) — without this,
+      // clicking Save silently does nothing and looks broken.
+      scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      setFormError("Please fix the highlighted fields above before saving.");
+      return;
+    }
     const travelDates = expandDateRange(form.startDate, form.endDate);
-    await onSave({
-      id: settings?.id ?? crypto.randomUUID(), userId: currentUser?.userId ?? session?.user.id ?? "",
-      tripKey: settings?.tripKey ?? "", baseCurrency: form.baseCurrency,
-      currencies: [form.baseCurrency, ...additionalCurrencies], travelDates,
-      createdAt: settings?.createdAt, updatedAt: settings?.updatedAt,
-    });
+    try {
+      await onSave({
+        id: settings?.id ?? crypto.randomUUID(), userId: currentUser?.userId ?? session?.user.id ?? "",
+        tripKey: settings?.tripKey ?? "", baseCurrency: form.baseCurrency,
+        currencies: [form.baseCurrency, ...additionalCurrencies], travelDates,
+        createdAt: settings?.createdAt, updatedAt: settings?.updatedAt,
+      });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not save settings. Check your connection and try again.");
+      scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
@@ -191,8 +206,13 @@ export default function SettingsModal({
         </div>
       </IonHeader>
 
-      <div className="ja-settings-scroll-body" style={{ background: "#f5f5f4" }}>
+      <div className="ja-settings-scroll-body" ref={scrollBodyRef} style={{ background: "#f5f5f4" }}>
         <div className="ja-settings-content">
+          {formError ? (
+            <div className="ja-settings-card" style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 12, padding: "12px 16px", color: "#991b1b", fontWeight: 600 }}>
+              {formError}
+            </div>
+          ) : null}
           {activeTrip ? (
             <IonCard className="ja-settings-card">
               <IonCardContent>
@@ -323,6 +343,7 @@ export default function SettingsModal({
             </IonCard>
           ) : null}
 
+          {formError ? <p className="ja-settings-error" style={{ textAlign: "right" }}>{formError}</p> : null}
           <div className="ja-settings-actions">
             {!isFirstSetup && <IonButton fill="outline" onClick={onClose}>Cancel</IonButton>}
             <IonButton disabled={isSaving} onClick={handleSubmit} className="ja-settings-save-btn">

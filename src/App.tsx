@@ -2135,7 +2135,12 @@ function AppShell() {
   };
 
   const handleSaveSettings = async (incoming: UserTripSettings) => {
-    if (!supabase || !session) return;
+    if (!supabase) {
+      throw new Error("Cloud sync isn't configured, so settings can't be saved right now.");
+    }
+    if (!session) {
+      throw new Error("Sign in first — trip settings are saved per account.");
+    }
 
     setIsSavingSettings(true);
     const nextSettings: UserTripSettings = {
@@ -2151,7 +2156,7 @@ function AppShell() {
     if (error) {
       console.warn("Supabase user settings save failed:", error.message);
       setIsSavingSettings(false);
-      return;
+      throw new Error("Could not save settings. Check your connection and try again.");
     }
 
     setUserSettings(nextSettings);
