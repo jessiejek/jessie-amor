@@ -73,25 +73,48 @@ export const rowToDestination = (row: MapDestinationRow): MapDestination => ({
   syncStatus: "synced",
 });
 
+const MALAYSIA_DAY_RANGE = { start: 11, end: 16 };
+const MALAYSIA_DAY_LABELS: Record<number, string> = {
+  11: "July 11", 12: "July 12", 13: "July 13", 14: "July 14", 15: "July 15", 16: "July 16",
+};
+const MALAYSIA_DAY_TITLES: Record<number, string> = {
+  11: "Arrival day", 12: "Chinatown, KLCC and dinner", 13: "Batu Caves, Genting and Jalan Alor",
+  14: "Melaka day trip", 15: "KL to Singapore travel day", 16: "Singapore city day and departure",
+};
+
+const KAOHSIUNG_DAY_RANGE = { start: 17, end: 21 };
+const KAOHSIUNG_DAY_LABELS: Record<number, string> = {
+  17: "October 17", 18: "October 18", 19: "October 19", 20: "October 20", 21: "October 21",
+};
+const KAOHSIUNG_DAY_TITLES: Record<number, string> = {
+  17: "Day 1 - October 17 - Arrival",
+  18: "Day 2 - October 18 - Cijin Island",
+  19: "Day 3 - October 19 - Meteor Garden University (Chiayi)",
+  20: "Day 4 - October 20 - Amor's Birthday: Slow Day, City Side",
+  21: "Day 5 - October 21 - Morning/Early Afternoon + Evening Departure",
+};
+
+// groupDestinationsByDay rebuilds the full day skeleton on every Supabase
+// sync/realtime event, so it must know which trip's day range to use -
+// hardcoding Malaysia's July 11-16 here would silently drop every Kaohsiung
+// destination (Oct 17-21) the moment a sync event fired.
 export const groupDestinationsByDay = (destinations: MapDestination[], dayGetter?: (d: MapDestination) => number): MapDay[] => {
   const dayMap = new Map<number, MapDestination[]>();
+  const fallbackDay = activeTrip?.slug === "khaoshiong" ? 19 : 12;
   for (const dest of destinations) {
-    const day = dayGetter ? dayGetter(dest) : 12;
+    const day = dayGetter ? dayGetter(dest) : fallbackDay;
     if (!dayMap.has(day)) dayMap.set(day, []);
     dayMap.get(day)!.push(dest);
   }
-  const labels: Record<number, string> = {
-    11: "July 11", 12: "July 12", 13: "July 13", 14: "July 14", 15: "July 15", 16: "July 16",
-  };
-  const titles: Record<number, string> = {
-    11: "Arrival day", 12: "Chinatown, KLCC and dinner", 13: "Batu Caves, Genting and Jalan Alor",
-    14: "Melaka day trip", 15: "KL to Singapore travel day", 16: "Singapore city day and departure",
-  };
+  const isKh = activeTrip?.slug === "khaoshiong";
+  const range = isKh ? KAOHSIUNG_DAY_RANGE : MALAYSIA_DAY_RANGE;
+  const labels = isKh ? KAOHSIUNG_DAY_LABELS : MALAYSIA_DAY_LABELS;
+  const titles = isKh ? KAOHSIUNG_DAY_TITLES : MALAYSIA_DAY_TITLES;
   const days: MapDay[] = [];
-  for (let d = 11; d <= 16; d++) {
+  for (let d = range.start; d <= range.end; d++) {
     days.push({
       day: d,
-      label: labels[d] || `July ${d}`,
+      label: labels[d] || `Day ${d}`,
       title: titles[d] || `Day ${d}`,
       destinations: dayMap.get(d) || [],
     });
