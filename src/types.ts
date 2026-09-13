@@ -20,6 +20,8 @@ export interface Expense {
   paidWith: PaymentMethod;
   originalAmount?: number;
   originalCurrency?: ExpenseCurrency;
+  receiptPath?: string; // Supabase Storage path for the receipt photo
+  receiptUrl?: string; // local data: URL before upload, signed URL after
   createdBy?: string;
   savedByUserId?: string;
   savedByEmail?: string;
@@ -157,6 +159,101 @@ export function rowToSettings(row: UserTripSettingsRow): UserTripSettings {
     currencies: row.currencies,
     travelDates: row.travel_dates,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export interface TripHotel {
+  hotel: string;
+  location: string;
+  checkIn: string;
+  checkOut: string;
+}
+
+export interface PdfItineraryItem {
+  time: string;
+  title: string;
+  // Optional Itinerary+ spreadsheet columns. Left blank, these don't show
+  // up anywhere — the PDF only ever reads time/title, so the immigration
+  // document is unaffected by any of this.
+  destination?: string;
+  fees?: string;
+  ootdJessie?: string;
+  ootdAmor?: string;
+}
+
+export interface PdfItineraryDay {
+  day: number;
+  title: string;
+  items: PdfItineraryItem[];
+}
+
+export interface PdfFlightLeg {
+  label: string;
+  dateTime: string;
+  airport: string;
+}
+
+export interface TripProfile {
+  id: string;
+  tripKey: string;
+  documentTitle: string;
+  traveler1: string;
+  traveler2: string;
+  purpose: string;
+  duration: string;
+  route: string;
+  flightLegs: PdfFlightLeg[];
+  hotels: TripHotel[];
+  itineraryDays: PdfItineraryDay[];
+  updatedAt?: string;
+}
+
+export interface TripProfileRow {
+  id: string;
+  trip_key: string;
+  document_title: string;
+  traveler_1: string;
+  traveler_2: string;
+  purpose: string;
+  duration: string;
+  route: string;
+  flight_legs: PdfFlightLeg[] | null;
+  hotels: TripHotel[];
+  itinerary_days: PdfItineraryDay[] | null;
+  updated_at?: string;
+}
+
+export function profileToRow(p: TripProfile): TripProfileRow {
+  return {
+    id: p.id,
+    trip_key: p.tripKey,
+    document_title: p.documentTitle,
+    traveler_1: p.traveler1,
+    traveler_2: p.traveler2,
+    purpose: p.purpose,
+    duration: p.duration,
+    route: p.route,
+    flight_legs: p.flightLegs,
+    hotels: p.hotels,
+    itinerary_days: p.itineraryDays,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function rowToProfile(row: TripProfileRow): TripProfile {
+  return {
+    id: row.id,
+    tripKey: row.trip_key,
+    documentTitle: row.document_title,
+    traveler1: row.traveler_1,
+    traveler2: row.traveler_2,
+    purpose: row.purpose,
+    duration: row.duration,
+    route: row.route,
+    flightLegs: row.flight_legs ?? [],
+    hotels: row.hotels,
+    itineraryDays: row.itinerary_days ?? [],
     updatedAt: row.updated_at,
   };
 }

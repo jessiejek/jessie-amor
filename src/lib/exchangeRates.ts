@@ -11,13 +11,22 @@ export type ExchangeRates = {
 
 const CACHE_KEY = "ja-exchange-rates";
 
-const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => ({
-  rates,
-  php: rates.PHP ?? fallbackRates.php,
-  sgd: rates.SGD ?? fallbackRates.sgd,
-  updatedAt,
-  source,
-});
+// Currencies our upstream (Frankfurter / ECB) does not publish. We keep an
+// approximate static rate so conversions still work instead of showing "N/A".
+const STATIC_RATES: Record<string, number> = {
+  TWD: fallbackRates.twd,
+};
+
+const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => {
+  const merged = { ...STATIC_RATES, ...rates };
+  return {
+    rates: merged,
+    php: merged.PHP ?? fallbackRates.php,
+    sgd: merged.SGD ?? fallbackRates.sgd,
+    updatedAt,
+    source,
+  };
+};
 
 const readCachedRates = (): ExchangeRates | null => {
   try {
@@ -53,6 +62,7 @@ export const staticExchangeRates: ExchangeRates = {
   rates: {
     PHP: fallbackRates.php,
     SGD: fallbackRates.sgd,
+    TWD: fallbackRates.twd,
   },
   php: fallbackRates.php,
   sgd: fallbackRates.sgd,
@@ -109,13 +119,21 @@ export async function fetchExchangeRates(
   return buildRatesSnapshot(normalizedRates, "live", payload.date);
 }
 
+// Refresh interval while the app stays open and online (30 minutes).
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
 export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"]) => {
   const [rates, setRates] = useState<ExchangeRates>(getInitialRates);
 
   useEffect(() => {
     let cancelled = false;
 
+    // Always try for the freshest rates. On success we persist them so the
+    // last-known values survive going offline; on failure we keep whatever we
+    // already have (cached or fallback) and try again on the next trigger.
     const loadRates = async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const live = await fetchExchangeRates("PHP", ["MYR", ...additionalSymbols]);
         if (cancelled) return;
@@ -126,10 +144,21 @@ export const useLiveExchangeRates = (additionalSymbols: string[] = ["MYR", "SGD"
       }
     };
 
+    // Fetch on mount / when the requested currencies change.
     void loadRates();
+
+    // Refetch the moment connectivity returns, so a session that started
+    // offline upgrades to live rates without needing a reload.
+    const handleOnline = () => void loadRates();
+    window.addEventListener("online", handleOnline);
+
+    // Keep rates fresh during a long-running session.
+    const interval = window.setInterval(() => void loadRates(), REFRESH_INTERVAL_MS);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("online", handleOnline);
+      window.clearInterval(interval);
     };
   }, [additionalSymbols]);
 

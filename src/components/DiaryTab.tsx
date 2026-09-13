@@ -1,19 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BookOpen,
-  CalendarDays,
-  Camera,
-  CloudUpload,
-  Image as ImageIcon,
-  LoaderCircle,
-  MapPin,
-  PencilLine,
-  Plus,
-  Search,
-  Star,
-  Tag,
-  Trash2,
-} from "lucide-react";
+  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
+  IonInput, IonTextarea, IonButton, IonIcon, IonSelect, IonSelectOption,
+  IonSegment, IonSegmentButton, IonChip, IonLabel, IonSpinner,
+} from "@ionic/react";
+import {
+  addOutline, bookOutline, cameraOutline, calendarOutline, cloudUploadOutline,
+  createOutline, imageOutline, locateOutline, mapOutline, pencilOutline,
+  searchOutline, starOutline, trashOutline,
+} from "ionicons/icons";
 import type { DiaryEntry, DiaryEntryType, SyncStatus } from "../types";
 
 interface DiaryTabProps {
@@ -21,351 +16,105 @@ interface DiaryTabProps {
   setDiaryEntries: React.Dispatch<React.SetStateAction<DiaryEntry[]>>;
   isOnline?: boolean;
   canEdit?: boolean;
-  currentUser?: {
-    userId: string;
-    email: string;
-    isAdmin: boolean;
-  } | null;
+  currentUser?: { userId: string; email: string; isAdmin: boolean; } | null;
+  onRetryPhotoUpload?: () => void;
 }
 
 type DiaryFormState = {
-  title: string;
-  description: string;
-  type: DiaryEntryType;
-  rating: number;
-  dateVisited: string;
-  locationName: string;
-  cityOrCountry: string;
-  tagsText: string;
-  wouldRevisit: boolean;
-  photoUrl: string;
-  photoPath?: string;
-  photoChanged: boolean;
+  title: string; description: string; type: DiaryEntryType; rating: number;
+  dateVisited: string; locationName: string; cityOrCountry: string;
+  tagsText: string; wouldRevisit: boolean; photoUrl: string; photoPath?: string; photoChanged: boolean;
 };
 
-const diaryTypes: DiaryEntryType[] = [
-  "Food",
-  "Landmark",
-  "Hotel",
-  "Transport",
-  "Shopping",
-  "Moment",
-  "Other",
-];
-
+const diaryTypes: DiaryEntryType[] = ["Food", "Landmark", "Hotel", "Transport", "Shopping", "Moment", "Other"];
 const starScale = [1, 2, 3, 4, 5];
 
-const getLocalDateInputValue = (value = new Date()) => {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+const getLocalDateInputValue = (value = new Date()) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 
 const createEmptyForm = (): DiaryFormState => ({
-  title: "",
-  description: "",
-  type: "Moment",
-  rating: 5,
-  dateVisited: getLocalDateInputValue(),
-  locationName: "",
-  cityOrCountry: "",
-  tagsText: "",
-  wouldRevisit: false,
-  photoUrl: "",
-  photoPath: undefined,
-  photoChanged: false,
+  title: "", description: "", type: "Moment", rating: 5, dateVisited: getLocalDateInputValue(),
+  locationName: "", cityOrCountry: "", tagsText: "", wouldRevisit: false, photoUrl: "", photoPath: undefined, photoChanged: false,
 });
 
-const normalizeDiaryRating = (rating: number) => {
-  const numericRating = Number.isFinite(rating) ? rating : 0;
-  const clampedRating = Math.max(1, Math.min(5, numericRating));
-  return Math.round(clampedRating * 10) / 10;
-};
-
-const formatDiaryRating = (rating: number) => {
-  const normalized = normalizeDiaryRating(rating);
-  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
-};
+const normalizeDiaryRating = (rating: number) => Math.round(Math.max(1, Math.min(5, Number.isFinite(rating) ? rating : 0)) * 10) / 10;
+const formatDiaryRating = (rating: number) => { const n = normalizeDiaryRating(rating); return Number.isInteger(n) ? String(n) : n.toFixed(1); };
 
 const compressImageFileToDataUrl = async (file: File) => {
-  const objectUrl = URL.createObjectURL(file);
-
+  // createImageBitmap with imageOrientation:'from-image' respects iPhone EXIF rotation
+  // so portrait photos no longer come out sideways after canvas compression
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const nextImage = new Image();
-      nextImage.onload = () => resolve(nextImage);
-      nextImage.onerror = () => reject(new Error("The selected image could not be read."));
-      nextImage.src = objectUrl;
-    });
-
-    const maxDimension = 1600;
-    const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw new Error("Canvas compression is not supported in this browser.");
-    }
-
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-    context.drawImage(image, 0, 0, width, height);
-
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas compression is not supported in this browser.");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/jpeg", 0.8);
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    bitmap.close();
   }
 };
 
-const formatSavedBy = (email?: string, userId?: string) => {
-  if (email) return email.split("@")[0];
-  if (userId) return userId.slice(0, 8);
-  return "Unknown";
-};
-
-const formatDateLabel = (value: string) => {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
+const formatSavedBy = (email?: string, userId?: string) => { if (email) return email.split("@")[0]; if (userId) return userId.slice(0, 8); return "Unknown"; };
+const formatDateLabel = (value: string) => { const p = new Date(`${value}T00:00:00`); return Number.isNaN(p.getTime()) ? value : p.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }); };
 const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
+const formatNominatimDisplayName = (dn: string) => dn.split(",").map((p) => p.trim()).filter(Boolean).slice(0, 3).join(", ");
+const formatNominatimCountryOrCity = (addr: Record<string, string | undefined>) => { const c = addr.city || addr.town || addr.state; const co = addr.country; return c && co ? `${c}, ${co}` : c || co || ""; };
 
-const formatNominatimDisplayName = (displayName: string) =>
-  displayName
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(", ");
-
-const formatNominatimCountryOrCity = (address: Record<string, string | undefined>) => {
-  const cityOrRegion = address.city || address.town || address.state;
-  const country = address.country;
-
-  if (cityOrRegion && country) return `${cityOrRegion}, ${country}`;
-  return cityOrRegion || country || "";
-};
-//test
-const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
-  const url = `${NOMINATIM_REVERSE_URL}?lat=${encodeURIComponent(String(latitude))}&lon=${encodeURIComponent(String(longitude))}&format=json&addressdetails=1`;
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "TravelItineraryApp/1.0",
-    } as HeadersInit,
-  });
-
-  if (!response.ok) {
-    throw new Error("The location lookup service returned an unexpected response.");
-  }
-
-  const payload = (await response.json()) as {
-    display_name?: string;
-    address?: Record<string, string | undefined>;
-  };
-
-  if (!payload.display_name) {
-    throw new Error("The location lookup service did not return a usable address.");
-  }
-
-  return {
-    locationName: formatNominatimDisplayName(payload.display_name),
-    cityOrCountry: formatNominatimCountryOrCity(payload.address ?? {}),
-  };
+const reverseGeocodeLocation = async (lat: number, lng: number) => {
+  const url = `${NOMINATIM_REVERSE_URL}?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&addressdetails=1`;
+  const r = await fetch(url, { headers: { "User-Agent": "TravelItineraryApp/1.0" } as HeadersInit });
+  if (!r.ok) throw new Error("The location lookup service returned an unexpected response.");
+  const p = (await r.json()) as { display_name?: string; address?: Record<string, string | undefined> };
+  if (!p.display_name) throw new Error("The location lookup service did not return a usable address.");
+  return { locationName: formatNominatimDisplayName(p.display_name), cityOrCountry: formatNominatimCountryOrCity(p.address ?? {}) };
 };
 
-const formatTimestamp = (value: string) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Unknown time";
-  return parsed.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
+const formatTimestamp = (value: string) => { const p = new Date(value); return Number.isNaN(p.getTime()) ? "Unknown time" : p.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); };
 
-const getSyncDotClass = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
-  if (value === "syncing") {
-    return "inline-block h-2.5 w-2.5 rounded-full bg-slate-500 align-middle";
-  }
+const getSyncDotColor = (v?: SyncStatus | "syncing" | "dirty" | "unsynced") => { if (v === "syncing") return "#64748b"; if (v === "synced") return "#10b981"; return "#f59e0b"; };
+const getSyncDotLabel = (v?: SyncStatus | "syncing" | "dirty" | "unsynced") => { if (v === "syncing") return "Syncing"; if (v === "synced") return "Synced"; return "Pending sync"; };
 
-  if (value === "synced") {
-    return "inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle";
-  }
-
-  return "inline-block h-2.5 w-2.5 rounded-full bg-amber-500 align-middle";
-};
-
-const getSyncDotLabel = (value?: SyncStatus | "syncing" | "dirty" | "unsynced") => {
-  if (value === "syncing") return "Syncing";
-  if (value === "synced") return "Synced";
-  return "Pending sync";
-};
-
-const getTypePillClass = (value: DiaryEntryType) => {
+const getTypePillColors = (value: DiaryEntryType) => {
   switch (value) {
-    case "Food":
-      return "border-amber-200 bg-amber-50 text-amber-800";
-    case "Landmark":
-      return "border-sky-200 bg-sky-50 text-sky-800";
-    case "Hotel":
-      return "border-violet-200 bg-violet-50 text-violet-800";
-    case "Transport":
-      return "border-cyan-200 bg-cyan-50 text-cyan-800";
-    case "Shopping":
-      return "border-rose-200 bg-rose-50 text-rose-800";
-    case "Moment":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
-    default:
-      return "border-stone-200 bg-stone-100 text-stone-700";
+    case "Food": return { bg: "#fffbeb", text: "#92400e", border: "#fde68a" };
+    case "Landmark": return { bg: "#f0f9ff", text: "#075985", border: "#bae6fd" };
+    case "Hotel": return { bg: "#f5f3ff", text: "#5b21b6", border: "#ddd6fe" };
+    case "Transport": return { bg: "#ecfeff", text: "#155e75", border: "#a5f3fc" };
+    case "Shopping": return { bg: "#fff1f2", text: "#9f1239", border: "#fecdd3" };
+    case "Moment": return { bg: "#ecfdf5", text: "#065f46", border: "#a7f3d0" };
+    default: return { bg: "#fafaf9", text: "#44403c", border: "#e7e5e4" };
   }
 };
 
-const getRevisitPillClass = (value: boolean) =>
-  value
-    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-    : "border-stone-200 bg-stone-100 text-stone-600";
+const getRevisitPillColors = (value: boolean) => value ? { bg: "#ecfdf5", text: "#065f46", border: "#a7f3d0" } : { bg: "#fafaf9", text: "#57534e", border: "#e7e5e4" };
+const getRatingLabel = (rating: number) => { if (rating <= 1) return "Terrible"; if (rating <= 2) return "Poor"; if (rating <= 3) return "Average"; if (rating <= 4) return "Good"; return "Excellent"; };
 
-const getRatingLabel = (rating: number) => {
-  if (rating <= 1) return "Terrible";
-  if (rating <= 2) return "Poor";
-  if (rating <= 3) return "Average";
-  if (rating <= 4) return "Good";
-  return "Excellent";
+// Rating tone classes (no Tailwind - mapped to CSS)
+const getRatingScoreClass = (r: number) => { if (r <= 1) return "ja-diary-score-terrible"; if (r <= 2) return "ja-diary-score-poor"; if (r <= 3) return "ja-diary-score-avg"; if (r <= 4) return "ja-diary-score-good"; return "ja-diary-score-excel"; };
+const getRatingLabelClass = (r: number) => { if (r <= 1) return "ja-diary-label-terrible"; if (r <= 2) return "ja-diary-label-poor"; if (r <= 3) return "ja-diary-label-avg"; if (r <= 4) return "ja-diary-label-good"; return "ja-diary-label-excel"; };
+const getRatingStarClass = (r: number) => { if (r <= 1) return "ja-diary-star-terrible"; if (r <= 2) return "ja-diary-star-poor"; if (r <= 3) return "ja-diary-star-avg"; if (r <= 4) return "ja-diary-star-good"; return "ja-diary-star-excel"; };
+const getRatingInactiveStarClass = (r: number) => { if (r <= 1) return "ja-diary-star-inactive-terrible"; if (r <= 2) return "ja-diary-star-inactive-poor"; if (r <= 3) return "ja-diary-star-inactive-avg"; if (r <= 4) return "ja-diary-star-inactive-good"; return "ja-diary-star-inactive-excel"; };
+const getStarFillWidth = (rating: number, index: number) => `${Math.max(0, Math.min(1, (Number.isFinite(rating) ? rating : 3) - index)) * 100}%`;
+
+// Rating star tone CSS class for the star cell background/border
+const getRatingCellClass = (r: number, filled: boolean) => {
+  if (filled) {
+    if (r <= 1) return "ja-diary-star-cell-terrible";
+    if (r <= 2) return "ja-diary-star-cell-poor";
+    if (r <= 3) return "ja-diary-star-cell-avg";
+    if (r <= 4) return "ja-diary-star-cell-good";
+    return "ja-diary-star-cell-excel";
+  }
+  return "ja-diary-star-cell-empty";
 };
 
-const getRatingTone = (rating: number) => {
-  if (rating <= 0) {
-    return {
-      scoreText: "text-stone-500",
-      fillText: "text-stone-400",
-      fillBg: "bg-stone-100",
-      border: "border-stone-200",
-      labelText: "text-stone-500",
-    };
-  }
-
-  if (rating <= 1) {
-    return {
-      scoreText: "text-rose-700",
-      fillText: "text-rose-700",
-      fillBg: "bg-rose-50",
-      border: "border-rose-200",
-      labelText: "text-rose-600",
-    };
-  }
-
-  if (rating <= 2) {
-    return {
-      scoreText: "text-orange-700",
-      fillText: "text-orange-700",
-      fillBg: "bg-orange-50",
-      border: "border-orange-200",
-      labelText: "text-orange-600",
-    };
-  }
-
-  if (rating <= 3) {
-    return {
-      scoreText: "text-amber-700",
-      fillText: "text-amber-700",
-      fillBg: "bg-amber-50",
-      border: "border-amber-200",
-      labelText: "text-amber-600",
-    };
-  }
-
-  if (rating <= 4) {
-    return {
-      scoreText: "text-lime-700",
-      fillText: "text-lime-700",
-      fillBg: "bg-lime-50",
-      border: "border-lime-200",
-      labelText: "text-lime-600",
-    };
-  }
-
-  return {
-    scoreText: "text-emerald-700",
-    fillText: "text-emerald-700",
-    fillBg: "bg-emerald-50",
-    border: "border-emerald-200",
-    labelText: "text-emerald-600",
-  };
-};
-
-const getRatingStarTone = (rating: number) => {
-  if (rating <= 1) {
-    return {
-      border: "border-rose-200",
-      activeBg: "bg-rose-50",
-      activeText: "text-rose-600",
-    };
-  }
-
-  if (rating <= 2) {
-    return {
-      border: "border-orange-200",
-      activeBg: "bg-orange-50",
-      activeText: "text-orange-600",
-    };
-  }
-
-  if (rating <= 3) {
-    return {
-      border: "border-amber-200",
-      activeBg: "bg-amber-50",
-      activeText: "text-amber-600",
-    };
-  }
-
-  if (rating <= 4) {
-    return {
-      border: "border-lime-200",
-      activeBg: "bg-lime-50",
-      activeText: "text-lime-600",
-    };
-  }
-
-  return {
-    border: "border-emerald-200",
-    activeBg: "bg-emerald-50",
-    activeText: "text-emerald-600",
-  };
-};
-
-const renderStars = (rating: number, className = "h-4 w-4") =>
-  starScale.map((starValue) => {
-    const starTone = getRatingStarTone(rating);
-    return (
-      <span key={starValue} className={starValue <= rating ? starTone.activeText : "text-stone-300"}>
-        <Star
-          size={14}
-          className={className}
-          fill={starValue <= rating ? "currentColor" : "none"}
-          strokeWidth={starValue <= rating ? 0 : 2}
-        />
-      </span>
-    );
-  });
-
-export default function DiaryTab({
-  diaryEntries,
-  setDiaryEntries,
-  isOnline = true,
-  canEdit = false,
-  currentUser = null,
-}: DiaryTabProps) {
+// --- COMPONENT ---
+export default function DiaryTab({ diaryEntries, setDiaryEntries, isOnline = true, canEdit = false, currentUser = null, onRetryPhotoUpload }: DiaryTabProps) {
   const [form, setForm] = useState<DiaryFormState>(() => createEmptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -375,926 +124,396 @@ export default function DiaryTab({
   const [photoError, setPhotoError] = useState("");
   const [locationLookupError, setLocationLookupError] = useState("");
   const [isLocating, setIsLocating] = useState(false);
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+  const [shakingFields, setShakingFields] = useState<Set<string>>(new Set());
+  const titleInputRef = useRef<HTMLIonInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const ratingTrackRef = useRef<HTMLDivElement | null>(null);
   const isRatingDraggingRef = useRef(false);
+  const titleFieldRef = useRef<HTMLDivElement | null>(null);
+  const dateFieldRef = useRef<HTMLDivElement | null>(null);
+  const locationFieldRef = useRef<HTMLDivElement | null>(null);
+  const descriptionFieldRef = useRef<HTMLDivElement | null>(null);
 
-  const editingEntry = editingId ? diaryEntries.find((entry) => entry.id === editingId) ?? null : null;
-  const canManageEntry = (entry?: DiaryEntry | null) => {
-    if (!currentUser || !entry) return false;
-    const ownerId = entry.createdBy ?? entry.savedByUserId ?? null;
-    return currentUser.isAdmin || ownerId === currentUser.userId;
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => { const next = new Set(prev); next.delete(field); return next; });
   };
+
+  const editingEntry = editingId ? diaryEntries.find((e) => e.id === editingId) ?? null : null;
+  const canManageEntry = (entry?: DiaryEntry | null) => { if (!currentUser || !entry) return false; const o = entry.createdBy ?? entry.savedByUserId ?? null; return currentUser.isAdmin || o === currentUser.userId; };
   const editableEntry = editingEntry && canManageEntry(editingEntry) ? editingEntry : null;
-  const setRatingFromValue = (rating: number) => {
-    if (!canEdit) return;
-    setForm((current) => ({ ...current, rating: normalizeDiaryRating(rating) }));
-  };
 
-  const getRatingFromClientX = (clientX: number) => {
-    const track = ratingTrackRef.current;
-    if (!track) return null;
-
-    const rect = track.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-
-    const ratio = (clientX - rect.left) / rect.width;
-    const clampedRatio = Math.max(0, Math.min(1, ratio));
-    return normalizeDiaryRating(1 + clampedRatio * 4);
-  };
+  const setRatingFromValue = (rating: number) => { if (!canEdit) return; setForm((c) => ({ ...c, rating: normalizeDiaryRating(rating) })); };
+  const getRatingFromClientX = (clientX: number) => { const t = ratingTrackRef.current; if (!t) return null; const r = t.getBoundingClientRect(); if (r.width <= 0) return null; return normalizeDiaryRating(1 + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * 4); };
 
   const handleRatingPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!canEdit) return;
-    const rating = getRatingFromClientX(event.clientX);
-    if (rating === null) return;
-
-    isRatingDraggingRef.current = true;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setRatingFromValue(rating);
-    event.preventDefault();
+    if (!canEdit) return; const r = getRatingFromClientX(event.clientX); if (r === null) return;
+    isRatingDraggingRef.current = true; event.currentTarget.setPointerCapture(event.pointerId); setRatingFromValue(r); event.preventDefault();
   };
+  const handleRatingPointerMove = (event: React.PointerEvent<HTMLDivElement>) => { if (!canEdit || !isRatingDraggingRef.current) return; const r = getRatingFromClientX(event.clientX); if (r === null) return; setRatingFromValue(r); event.preventDefault(); };
+  const stopRatingDrag = () => { isRatingDraggingRef.current = false; };
 
-  const handleRatingPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!canEdit || !isRatingDraggingRef.current) return;
-    const rating = getRatingFromClientX(event.clientX);
-    if (rating === null) return;
-    setRatingFromValue(rating);
-    event.preventDefault();
-  };
-
-  const stopRatingDrag = () => {
-    isRatingDraggingRef.current = false;
-  };
-
-  const pendingPhotoCount = diaryEntries.filter((entry) => entry.syncStatus === "pending" && entry.photoUrl?.startsWith("data:")).length;
-  const ratingTone = getRatingTone(form.rating);
+  const pendingPhotoCount = diaryEntries.filter((e) => e.syncStatus === "pending" && e.photoUrl?.startsWith("data:")).length;
   const draftLocationSummary = form.locationName.trim() || "Pending";
   const draftDateSummary = form.dateVisited ? formatDateLabel(form.dateVisited) : "Pending";
   const draftRevisitSummary = form.wouldRevisit ? "Yes" : "No";
 
   const filteredEntries = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return [...diaryEntries]
-      .filter((entry) => {
-        if (filterType !== "All" && entry.type !== filterType) {
-          return false;
-        }
-
-        if (filterRating !== "All" && entry.rating !== Number(filterRating)) {
-          return false;
-        }
-
-        if (ownerFilter === "mine" && currentUser) {
-          const ownerId = entry.createdBy ?? entry.savedByUserId ?? null;
-          if (ownerId !== currentUser.userId) return false;
-        }
-
-        if (!normalizedSearch) {
-          return true;
-        }
-
-        const searchableText = [
-          entry.title,
-          entry.description,
-          entry.locationName,
-          entry.cityOrCountry ?? "",
-          entry.tags.join(" "),
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(normalizedSearch);
-      })
-      .sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        if (aTime !== bTime) return bTime - aTime;
-        return b.id.localeCompare(a.id);
-      });
+    const ns = searchTerm.trim().toLowerCase();
+    return [...diaryEntries].filter((e) => {
+      if (filterType !== "All" && e.type !== filterType) return false;
+      if (filterRating !== "All" && e.rating !== Number(filterRating)) return false;
+      if (ownerFilter === "mine" && currentUser) { const o = e.createdBy ?? e.savedByUserId ?? null; if (o !== currentUser.userId) return false; }
+      return !ns || [e.title, e.description, e.locationName, e.cityOrCountry ?? "", e.tags.join(" ")].join(" ").toLowerCase().includes(ns);
+    }).sort((a, b) => { const at = new Date(a.createdAt).getTime(); const bt = new Date(b.createdAt).getTime(); return at !== bt ? bt - at : b.id.localeCompare(a.id); });
   }, [diaryEntries, filterRating, filterType, searchTerm, ownerFilter, currentUser]);
 
-  const resetForm = () => {
-    setEditingId(null);
-    setForm(createEmptyForm());
-    setPhotoError("");
-    setLocationLookupError("");
-  };
-
-  const focusForm = () => {
-    if (!canEdit) return;
-    titleInputRef.current?.focus();
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const resetForm = () => { setEditingId(null); setForm(createEmptyForm()); setPhotoError(""); setLocationLookupError(""); setFieldErrors(new Set()); setShakingFields(new Set()); };
+  const focusForm = () => { if (!canEdit) return; void titleInputRef.current?.setFocus(); formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!canEdit) return;
-
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setPhotoError("");
-
-    try {
-      const previewUrl = await compressImageFileToDataUrl(file);
-      setForm((current) => ({
-        ...current,
-        photoUrl: previewUrl,
-        photoChanged: true,
-      }));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "The selected photo could not be processed.";
-      setPhotoError(message);
-    } finally {
-      event.target.value = "";
-    }
+    if (!canEdit) return; const file = event.target.files?.[0]; if (!file) return; setPhotoError("");
+    try { const previewUrl = await compressImageFileToDataUrl(file); setForm((c) => ({ ...c, photoUrl: previewUrl, photoChanged: true })); }
+    catch (err) { setPhotoError(err instanceof Error ? err.message : "The selected photo could not be processed."); }
+    finally { event.target.value = ""; }
   };
 
   const handleLocateMe = () => {
     if (!canEdit || isLocating) return;
-
-    const geolocation = navigator.geolocation;
-    if (!geolocation) {
-      setLocationLookupError("Geolocation is not supported by this browser.");
-      return;
-    }
-
-    const hostname = window.location.hostname;
-    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-    if (!window.isSecureContext && !isLocalhost) {
-      setLocationLookupError("Location requires HTTPS or localhost.");
-      return;
-    }
-
-    setIsLocating(true);
-    setLocationLookupError("");
-
-    geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const located = await reverseGeocodeLocation(position.coords.latitude, position.coords.longitude);
-          setForm((current) => ({
-            ...current,
-            locationName: located.locationName,
-            cityOrCountry: located.cityOrCountry,
-          }));
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "The location lookup failed.";
-          setLocationLookupError(message);
-        } finally {
-          setIsLocating(false);
-        }
-      },
-      (error) => {
-        const message =
-          error.code === error.PERMISSION_DENIED
-            ? "Location access was denied. Please allow location permissions and try again."
-            : "Unable to get your current location right now.";
-        setLocationLookupError(message);
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
+    const gl = navigator.geolocation; if (!gl) { setLocationLookupError("Geolocation is not supported by this browser."); return; }
+    const hn = window.location.hostname; const isLocal = hn === "localhost" || hn === "127.0.0.1";
+    if (!window.isSecureContext && !isLocal) { setLocationLookupError("Location requires HTTPS or localhost."); return; }
+    setIsLocating(true); setLocationLookupError("");
+    gl.getCurrentPosition(
+      async (pos) => { try { const loc = await reverseGeocodeLocation(pos.coords.latitude, pos.coords.longitude); setForm((c) => ({ ...c, locationName: loc.locationName, cityOrCountry: loc.cityOrCountry })); } catch (err) { setLocationLookupError(err instanceof Error ? err.message : "The location lookup failed."); } finally { setIsLocating(false); } },
+      (err) => { setLocationLookupError(err.code === err.PERMISSION_DENIED ? "Location access was denied." : "Unable to get your current location."); setIsLocating(false); },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   };
 
   const startEdit = (entry: DiaryEntry) => {
     if (!canManageEntry(entry)) return;
-    setEditingId(entry.id);
-    setPhotoError("");
-    setLocationLookupError("");
-    setForm({
-      title: entry.title,
-      description: entry.description,
-      type: entry.type,
-      rating: normalizeDiaryRating(entry.rating),
-      dateVisited: entry.dateVisited,
-      locationName: entry.locationName,
-      cityOrCountry: entry.cityOrCountry ?? "",
-      tagsText: entry.tags.join(", "),
-      wouldRevisit: entry.wouldRevisit,
-      photoUrl: entry.photoUrl ?? "",
-      photoPath: entry.photoPath,
-      photoChanged: false,
-    });
-    window.setTimeout(() => {
-      titleInputRef.current?.focus();
-    }, 0);
+    setEditingId(entry.id); setPhotoError(""); setLocationLookupError("");
+    setForm({ title: entry.title, description: entry.description, type: entry.type, rating: normalizeDiaryRating(entry.rating), dateVisited: entry.dateVisited, locationName: entry.locationName, cityOrCountry: entry.cityOrCountry ?? "", tagsText: entry.tags.join(", "), wouldRevisit: entry.wouldRevisit, photoUrl: entry.photoUrl ?? "", photoPath: entry.photoPath, photoChanged: false });
+    window.setTimeout(() => void titleInputRef.current?.setFocus(), 0);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canEdit) return;
-    if (editingId && !editableEntry) return;
+    if (!canEdit) return; if (editingId && !editableEntry) return;
+    const tt = form.title.trim(); const td = form.description.trim(); const tl = form.locationName.trim(); const tags = form.tagsText.split(",").map((t) => t.trim()).filter(Boolean);
 
-    const trimmedTitle = form.title.trim();
-    const trimmedDescription = form.description.trim();
-    const trimmedLocation = form.locationName.trim();
-    const tags = form.tagsText
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    const errors = new Set<string>();
+    if (!tt) errors.add("title");
+    if (!form.dateVisited) errors.add("date");
+    if (!tl) errors.add("location");
+    if (!td) errors.add("description");
 
-    if (!trimmedTitle || !trimmedDescription || !trimmedLocation || !form.dateVisited) {
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      setShakingFields(new Set(errors));
+      setTimeout(() => setShakingFields(new Set()), 600);
+
+      const firstRef = !tt ? titleFieldRef : !form.dateVisited ? dateFieldRef : !tl ? locationFieldRef : descriptionFieldRef;
+      firstRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    const existingEntry = editableEntry;
-    const now = new Date().toISOString();
-    const ownerId = existingEntry ? (existingEntry.createdBy ?? existingEntry.savedByUserId ?? null) : currentUser?.userId ?? null;
-    const ownerEmail = existingEntry ? existingEntry.savedByEmail ?? null : currentUser?.email ?? null;
-    const nextEntry: DiaryEntry = {
-      id: existingEntry?.id ?? `diary-${Date.now()}`,
-      title: trimmedTitle,
-      description: trimmedDescription,
-      type: form.type,
-      rating: normalizeDiaryRating(form.rating),
-      dateVisited: form.dateVisited,
-      locationName: trimmedLocation,
-      cityOrCountry: form.cityOrCountry.trim() || undefined,
-      tags,
-      wouldRevisit: form.wouldRevisit,
-      photoPath: existingEntry?.photoPath,
-      photoUrl: form.photoChanged ? form.photoUrl : existingEntry?.photoUrl,
-      createdBy: ownerId ?? undefined,
-      savedByUserId: ownerId ?? undefined,
-      savedByEmail: ownerEmail ?? undefined,
-      createdAt: existingEntry?.createdAt ?? now,
-      updatedAt: now,
-      syncStatus: "pending",
+    setFieldErrors(new Set());
+    const ex = editableEntry; const now = new Date().toISOString();
+    const oid = ex ? (ex.createdBy ?? ex.savedByUserId ?? null) : currentUser?.userId ?? null;
+    const oe = ex ? ex.savedByEmail ?? null : currentUser?.email ?? null;
+    const next: DiaryEntry = {
+      id: ex?.id ?? `diary-${Date.now()}`, title: tt, description: td, type: form.type, rating: normalizeDiaryRating(form.rating),
+      dateVisited: form.dateVisited, locationName: tl, cityOrCountry: form.cityOrCountry.trim() || undefined,
+      tags, wouldRevisit: form.wouldRevisit, photoPath: ex?.photoPath, photoUrl: form.photoChanged ? form.photoUrl : ex?.photoUrl,
+      createdBy: oid ?? undefined, savedByUserId: oid ?? undefined, savedByEmail: oe ?? undefined,
+      createdAt: ex?.createdAt ?? now, updatedAt: now, syncStatus: "pending",
     };
-
-    setDiaryEntries((current) => {
-      if (existingEntry) {
-        return current.map((entry) => (entry.id === existingEntry.id ? nextEntry : entry));
-      }
-      return [nextEntry, ...current];
-    });
-
+    setDiaryEntries((c) => ex ? c.map((e) => e.id === ex.id ? next : e) : [next, ...c]);
     resetForm();
   };
 
-  useEffect(() => {
-    if (editingId && editingEntry && !editableEntry) {
-      resetForm();
-    }
-  }, [editingEntry, editableEntry, editingId]);
+  useEffect(() => { if (editingId && editingEntry && !editableEntry) resetForm(); }, [editingEntry, editableEntry, editingId]);
 
   const handleDelete = (entryId: string) => {
-    if (!canEdit) return;
-    const target = diaryEntries.find((entry) => entry.id === entryId);
-    if (!canManageEntry(target)) return;
-    setDiaryEntries((current) => current.filter((entry) => entry.id !== entryId));
-    if (editingId === entryId) {
-      resetForm();
-    }
+    if (!canEdit) return; const target = diaryEntries.find((e) => e.id === entryId);
+    if (!canManageEntry(target)) return; setDiaryEntries((c) => c.filter((e) => e.id !== entryId));
+    if (editingId === entryId) resetForm();
   };
 
   const formPreview = form.photoUrl ? (
-    <img
-      src={form.photoUrl}
-      alt={form.title || "Travel diary preview"}
-      className="h-full w-full object-cover"
-    />
+    <img src={form.photoUrl} alt={form.title || "Travel diary preview"} className="ja-diary-preview-img" />
   ) : (
-    <div className="flex h-full min-h-[180px] flex-col items-center justify-center bg-gradient-to-br from-stone-100 to-stone-200 text-stone-400">
-      <ImageIcon size={28} />
-      <span className="mt-2 text-[12px] font-medium">Photo preview</span>
-    </div>
+    <div className="ja-diary-preview-placeholder"><IonIcon icon={imageOutline} className="ja-diary-preview-icon" /><span className="ja-diary-preview-label">Photo preview</span></div>
   );
 
   return (
-    <div
-      className="mx-auto w-full max-w-6xl animate-in fade-in duration-300 px-4 py-4 md:px-8"
-      style={{ fontFamily: '"Plus Jakarta Sans", var(--font-sans)' }}
-    >
-      <section className="mb-4 rounded-[14px] border border-stone-200 bg-white p-5 shadow-[0_10px_30px_rgba(6,45,39,0.06)]">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
-              <BookOpen size={12} />
-              Travel diary
+    <div className="ja-diary-page">
+      <IonCard className="ja-diary-hero-card">
+        <IonCardContent>
+          <div className="ja-diary-hero-row">
+            <div className="ja-diary-hero-text-col">
+              <div className="ja-diary-section-eyebrow"><IonIcon icon={bookOutline} className="ja-diary-eyebrow-icon" />Travel diary</div>
+              <h2 className="ja-diary-hero-main-title">Save the Malaysia and Singapore memories we want to remember.</h2>
+              <p className="ja-diary-hero-desc">Capture meals, landmarks, hotel stays, transport wins, and little trip moments with photos, ratings, and tags that sync with the rest of the itinerary when you are online.</p>
             </div>
-            <h2 className="mt-2 text-[38px] font-extrabold leading-[1.02] tracking-[-0.04em] text-[#0b1f1c] md:max-w-[820px]">
-              Save the Malaysia and Singapore memories we want to remember.
-            </h2>
-            <p className="mt-3 max-w-3xl text-[13px] leading-6 text-[#7a8785]">
-              Capture meals, landmarks, hotel stays, transport wins, and little trip moments with photos, ratings, and tags that sync with the rest of the itinerary when you are online.
-            </p>
+            {!canEdit && <div className="ja-diary-banner ja-diary-banner-amber" style={{ marginTop: "12px", marginBottom: 0 }}>Sign in to add memories and sync photos.</div>}
+            <IonButton onClick={focusForm} disabled={!canEdit} className="ja-diary-hero-btn"><IonIcon icon={addOutline} slot="start" />Add memory</IonButton>
           </div>
-
-          <button
-            type="button"
-            onClick={focusForm}
-            disabled={!canEdit}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-[14px] font-bold transition-colors md:w-auto md:min-w-[136px] ${
-              canEdit
-                ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
-                : "cursor-not-allowed bg-stone-100 text-stone-400"
-            }`}
-          >
-            <Plus size={16} />
-            Add memory
-          </button>
-        </div>
-      </section>
-
-      {!canEdit && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 shadow-xs">
-          Sign in to add memories and sync photos.
-        </div>
-      )}
-
-      {!isOnline && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800 shadow-xs">
-          Offline mode is active. Text changes stay on this device and photos upload when the connection returns.
-        </div>
-      )}
-
+        </IonCardContent>
+      </IonCard>
+      {!isOnline && <div className="ja-diary-banner ja-diary-banner-amber">Offline mode is active. Text changes stay on this device and photos upload when the connection returns.</div>}
       {pendingPhotoCount > 0 && (
-        <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-[13px] text-sky-800 shadow-xs">
-          {pendingPhotoCount} photo{pendingPhotoCount === 1 ? "" : "s"} still need an online sync before they can
-          be fully shared from Supabase Storage.
+        <div className="ja-diary-banner ja-diary-banner-sky" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{pendingPhotoCount} photo{pendingPhotoCount === 1 ? "" : "s"} still need an online sync before they can be fully shared from Supabase Storage.</span>
+          {onRetryPhotoUpload && (
+            <IonButton size="small" fill="outline" onClick={onRetryPhotoUpload} style={{ flexShrink: 0 }}>Retry</IonButton>
+          )}
         </div>
       )}
 
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        className="mb-5 rounded-[14px] border border-stone-200 bg-white p-4 shadow-[0_10px_30px_rgba(6,45,39,0.06)]"
-      >
-        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
-              <Camera size={12} />
-              Add memory
-            </div>
-            <h3 className="mt-2 text-[24px] font-bold tracking-[-0.03em] text-[#0b1f1c]">
-              {editingId ? "Refine this trip memory" : "Create a new diary entry"}
-            </h3>
-          </div>
-
-          <button
-            type="button"
-            onClick={focusForm}
-            disabled={!canEdit}
-            className={`hidden items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-[14px] font-semibold transition-colors md:inline-flex ${
-              canEdit
-                ? "bg-stone-100 text-stone-700 hover:bg-stone-200"
-                : "cursor-not-allowed bg-stone-100 text-stone-400"
-            }`}
-          >
-            <Plus size={14} />
-            Add memory
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)] md:items-start">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Title</span>
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                disabled={!canEdit}
-                placeholder="Kaya toast at sunrise, Batu Caves, Marina Bay walk..."
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-                maxLength={120}
-                required
-              />
-            </label>
-
-            <label>
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Type</span>
-              <select
-                value={form.type}
-                onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as DiaryEntryType }))}
-                disabled={!canEdit}
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-              >
-                {diaryTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Date visited</span>
-              <input
-                type="date"
-                value={form.dateVisited}
-                onChange={(event) => setForm((current) => ({ ...current, dateVisited: event.target.value }))}
-                disabled={!canEdit}
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-                required
-              />
-            </label>
-
-            <div className="md:col-span-2">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <span className="block text-[12px] font-semibold text-stone-600">Location name</span>
-                <button
-                  type="button"
-                  onClick={handleLocateMe}
-                  disabled={!canEdit || isLocating}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                    canEdit && !isLocating
-                      ? "bg-[#0b3b34] text-white hover:bg-[#062d27]"
-                      : "cursor-not-allowed bg-stone-100 text-stone-400"
-                  }`}
-                >
-                  {isLocating ? <LoaderCircle size={14} className="animate-spin" /> : <MapPin size={14} />}
-                  {isLocating ? "Locating..." : "Locate Me"}
-                </button>
-              </div>
-              <input
-                type="text"
-                value={form.locationName}
-                onChange={(event) => setForm((current) => ({ ...current, locationName: event.target.value }))}
-                disabled={!canEdit}
-                placeholder="Jalan Alor, Marina Bay Sands, KL Sentral..."
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-                maxLength={120}
-                required
-              />
-            </div>
-
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Country or city</span>
-              <input
-                type="text"
-                value={form.cityOrCountry}
-                onChange={(event) => setForm((current) => ({ ...current, cityOrCountry: event.target.value }))}
-                disabled={!canEdit}
-                placeholder="Kuala Lumpur, Malaysia"
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-                maxLength={80}
-              />
-            </label>
-
-            {locationLookupError && <p className="md:col-span-2 -mt-1 text-[12px] text-rose-600">{locationLookupError}</p>}
-
-            <div className="md:col-span-2">
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Rating</span>
-              <div className="space-y-3">
-                <div className="flex items-end justify-between gap-2">
-                  <div className="flex items-end gap-2">
-                    <span className={`text-3xl font-semibold ${ratingTone.scoreText}`}>{formatDiaryRating(form.rating)}</span>
-                    <span className="pb-0.5 text-[13px] text-stone-400">/ 5</span>
-                  </div>
-                  <span className={`text-[11px] font-semibold ${ratingTone.labelText}`}>{getRatingLabel(form.rating)}</span>
-                </div>
-                <div
-                  ref={ratingTrackRef}
-                  className="relative grid w-full grid-cols-5 gap-2 select-none touch-none"
-                  role="slider"
-                  tabIndex={canEdit ? 0 : -1}
-                  aria-label="Diary rating"
-                  aria-valuemin={1}
-                  aria-valuemax={5}
-                  aria-valuenow={Number(form.rating.toFixed(1))}
-                  aria-valuetext={`${formatDiaryRating(form.rating)} out of 5`}
-                  onPointerDown={handleRatingPointerDown}
-                  onPointerMove={handleRatingPointerMove}
-                  onPointerUp={stopRatingDrag}
-                  onPointerCancel={stopRatingDrag}
-                  onLostPointerCapture={stopRatingDrag}
-                  onKeyDown={(event) => {
-                    if (!canEdit) return;
-                    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setRatingFromValue(form.rating - 0.1);
-                    }
-                    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-                      event.preventDefault();
-                      setRatingFromValue(form.rating + 0.1);
-                    }
-                    if (event.key === "Home") {
-                      event.preventDefault();
-                      setRatingFromValue(1);
-                    }
-                    if (event.key === "End") {
-                      event.preventDefault();
-                      setRatingFromValue(5);
-                    }
-                  }}
-                >
-                  {Array.from({ length: 5 }, (_, index) => {
-                    const starNumber = index + 1;
-                    const starTone = getRatingStarTone(form.rating);
-                    return (
-                      <div
-                        key={starNumber}
-                        aria-hidden="true"
-                        className={`inline-flex h-11 w-full items-center justify-center rounded-full border transition-colors ${
-                          starNumber <= form.rating
-                            ? `${starTone.border} ${starTone.activeBg} ${starTone.activeText}`
-                            : "border-stone-200 bg-white text-stone-400"
-                        }`}
-                      >
-                        <span className="relative inline-flex h-[16px] w-[16px]">
-                          <Star className="absolute inset-0 h-[16px] w-[16px] text-stone-300" fill="currentColor" strokeWidth={0} />
-                          <span
-                            className="absolute inset-y-0 left-0 overflow-hidden"
-                            style={{ width: `${Math.max(0, Math.min(1, form.rating - index)) * 100}%` }}
-                          >
-                            <Star className="h-[16px] w-[16px] text-[#0B3530]" fill="currentColor" strokeWidth={0} />
-                          </span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-[11px] text-stone-400">Click or drag across the stars to set a decimal rating.</p>
-              </div>
-            </div>
-
-            <label className="rounded-[12px] border border-stone-200 bg-white p-3 shadow-[0_6px_20px_rgba(6,45,39,0.04)] md:col-span-2 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400 md:text-[12px] md:font-semibold md:normal-case md:tracking-normal md:text-stone-600">Description</span>
-              <span className="mb-2 block text-[12px] text-stone-600 md:hidden">Capture what made this memory worth keeping.</span>
-              <textarea
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                disabled={!canEdit}
-                placeholder="What made this stop memorable? What should we remember next time?"
-                className="min-h-[130px] w-full resize-none rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-3 text-[14px] leading-6 text-stone-800 outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff] md:min-h-[110px] md:py-2.5 md:text-[14px] md:leading-normal"
-                maxLength={1000}
-                required
-              />
-            </label>
-
-            <label className="md:col-span-2">
-              <span className="mb-1 block text-[12px] font-semibold text-stone-600">Tags</span>
-              <input
-                type="text"
-                value={form.tagsText}
-                onChange={(event) => setForm((current) => ({ ...current, tagsText: event.target.value }))}
-                disabled={!canEdit}
-                placeholder="food, cafe, sunset, family time"
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-                maxLength={200}
-              />
-              <span className="mt-1 block text-[11px] text-stone-500">Separate tags with commas.</span>
-            </label>
-
-            <label className="md:col-span-2 flex items-start gap-3 rounded-[10px] border border-stone-200 bg-white px-3 py-3">
-              <input
-                type="checkbox"
-                checked={form.wouldRevisit}
-                onChange={(event) => setForm((current) => ({ ...current, wouldRevisit: event.target.checked }))}
-                disabled={!canEdit}
-                className="h-4 w-4 rounded border-stone-300 text-[#0B3530] focus:ring-[#0B3530]"
-              />
+      <IonCard className="ja-diary-form-card">
+        <form ref={formRef} onSubmit={handleSubmit}>
+          <IonCardContent>
+            <div className="ja-diary-form-header">
               <div>
-                <span className="block text-[13px] font-semibold text-stone-700">Would revisit?</span>
-                <span className="block text-[11px] text-stone-500">Mark places we would happily return to on the next trip.</span>
-              </div>
-            </label>
-            <div className="hidden items-center gap-2 md:col-span-2 md:flex">
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 rounded-[10px] border border-stone-200 px-4 py-3 text-[13px] font-semibold text-stone-600 transition-colors hover:bg-stone-50"
-                >
-                  Cancel edit
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={!canEdit}
-                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-[13px] font-bold transition-colors ${
-                  canEdit
-                    ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
-                    : "cursor-not-allowed bg-stone-100 text-stone-400"
-                }`}
-              >
-                {editingId ? <PencilLine size={15} /> : <Plus size={15} />}
-                {editingId ? "Save memory" : "Save memory"}
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="rounded-[16px] border border-stone-200 bg-white p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
-              <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
-                <CloudUpload size={12} />
-                Photo upload
-              </div>
-              <div className="mb-2 text-[12px] font-semibold text-stone-700">Choose a photo</div>
-              <label className="block">
-                <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={!canEdit} className="sr-only" />
-                <div className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-[10px] border border-dashed border-stone-300 bg-white px-4 text-center md:min-h-[88px]">
-                  <CloudUpload size={24} className="text-[#062d27]" />
-                  <div className="mt-2 text-[13px] font-semibold text-[#0b1f1c]">Tap to choose photo</div>
-                  <p className="mt-1 text-[10px] text-stone-500">Images are compressed locally before sync. Supabase uploads happen only when you are signed in and online.</p>
-                </div>
-              </label>
-
-              {photoError && <p className="mt-2 text-[12px] text-rose-600">{photoError}</p>}
-
-              {form.photoUrl && (
-                <div className="mt-3 overflow-hidden rounded-[10px] border border-stone-200 bg-white">
-                  {formPreview}
-                </div>
-              )}
-
-              <div className="mt-3 flex items-center gap-2 md:hidden">
-                {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1 rounded-[10px] border border-stone-200 px-4 py-3 text-[13px] font-semibold text-stone-600 transition-colors hover:bg-stone-50"
-                  >
-                    Cancel edit
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={!canEdit}
-                  className={`inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-[13px] font-bold transition-colors ${
-                    canEdit
-                      ? "bg-[#062d27] text-white hover:bg-[#0b3b34]"
-                      : "cursor-not-allowed bg-stone-100 text-stone-400"
-                  }`}
-                >
-                  {editingId ? <PencilLine size={15} /> : <Plus size={15} />}
-                  Save memory
-                </button>
+                <div className="ja-diary-section-eyebrow"><IonIcon icon={cameraOutline} className="ja-diary-eyebrow-icon" />Add memory</div>
+                <h3 className="ja-diary-form-title">{editingId ? "Refine this trip memory" : "Create a new diary entry"}</h3>
               </div>
             </div>
+            <div className="ja-diary-form-layout">
+              <div className="ja-diary-form-fields">
+                <div ref={titleFieldRef} className={`ja-diary-field-span2${fieldErrors.has("title") ? " ja-diary-field--error" : ""}${shakingFields.has("title") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Title <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("title") && <span className="ja-diary-field-error-msg">Title is required</span>}
+                  <IonInput ref={titleInputRef} value={form.title} onIonInput={(e) => { setForm((c) => ({ ...c, title: e.detail.value ?? "" })); clearFieldError("title"); }}
+                    disabled={!canEdit} placeholder="Kaya toast at sunrise, Batu Caves, Marina Bay walk..." className="ja-diary-input" maxlength={120} />
+                </div>
+                <div className="ja-diary-field">
+                  <span className="ja-diary-field-label">Type</span>
+                  <IonSelect value={form.type} onIonChange={(e) => setForm((c) => ({ ...c, type: e.detail.value }))} disabled={!canEdit} interface="action-sheet" className="ja-diary-select">
+                    {diaryTypes.map((t) => <IonSelectOption key={t} value={t}>{t}</IonSelectOption>)}
+                  </IonSelect>
+                </div>
+                <div ref={dateFieldRef} className={`ja-diary-field${fieldErrors.has("date") ? " ja-diary-field--error" : ""}${shakingFields.has("date") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Date visited <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("date") && <span className="ja-diary-field-error-msg">Date is required</span>}
+                  <IonInput type="date" value={form.dateVisited} onIonInput={(e) => { setForm((c) => ({ ...c, dateVisited: e.detail.value ?? "" })); clearFieldError("date"); }} disabled={!canEdit} className="ja-diary-input" />
+                </div>
+                <div ref={locationFieldRef} className={`ja-diary-field-span2${fieldErrors.has("location") ? " ja-diary-field--error" : ""}${shakingFields.has("location") ? " ja-diary-field--shake" : ""}`}>
+                  <div className="ja-diary-field-row">
+                    <span className="ja-diary-field-label">Location name <span className="ja-diary-required">*</span></span>
+                    <IonButton type="button" size="small" onClick={handleLocateMe} disabled={!canEdit || isLocating} className="ja-diary-locate-btn">
+                      {isLocating ? <IonSpinner name="crescent" slot="start" /> : <IonIcon icon={locateOutline} slot="start" />}{isLocating ? "Locating..." : "Locate Me"}
+                    </IonButton>
+                  </div>
+                  {fieldErrors.has("location") && <span className="ja-diary-field-error-msg">Location is required</span>}
+                  <IonInput value={form.locationName} onIonInput={(e) => { setForm((c) => ({ ...c, locationName: e.detail.value ?? "" })); clearFieldError("location"); }} disabled={!canEdit} placeholder="Jalan Alor, Marina Bay Sands, KL Sentral..." className="ja-diary-input" maxlength={120} />
+                </div>
+                <div className="ja-diary-field-span2">
+                  <span className="ja-diary-field-label">Country or city</span>
+                  <IonInput value={form.cityOrCountry} onIonInput={(e) => setForm((c) => ({ ...c, cityOrCountry: e.detail.value ?? "" }))} disabled={!canEdit} placeholder="Kuala Lumpur, Malaysia" className="ja-diary-input" maxlength={80} />
+                </div>
+                {locationLookupError && <p className="ja-diary-field-span2 ja-diary-error-text">{locationLookupError}</p>}
 
-            <div className="rounded-[16px] border border-stone-200 bg-white p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
-              <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
-                <CalendarDays size={12} />
-                Draft summary
-              </div>
-              <div className="space-y-2 text-[12px] text-stone-600">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-semibold text-stone-700">Location</span>
-                  <span className="text-right">{draftLocationSummary}</span>
+                {/* Rating */}
+                <div className="ja-diary-field-span2">
+                  <span className="ja-diary-field-label">Rating</span>
+                  <div className="ja-diary-rating-section">
+                    <div className="ja-diary-rating-top">
+                      <div className="ja-diary-rating-score"><span className={`ja-diary-rating-score-value ${getRatingScoreClass(form.rating)}`}>{formatDiaryRating(form.rating)}</span><span className="ja-diary-rating-max">/ 5</span></div>
+                      <span className={`ja-diary-rating-word ${getRatingLabelClass(form.rating)}`}>{getRatingLabel(form.rating)}</span>
+                    </div>
+                    <div ref={ratingTrackRef} className="ja-diary-rating-track" role="slider" tabIndex={canEdit ? 0 : -1}
+                      aria-label="Diary rating" aria-valuemin={1} aria-valuemax={5} aria-valuenow={Number(form.rating.toFixed(1))} aria-valuetext={`${formatDiaryRating(form.rating)} out of 5`}
+                      onPointerDown={handleRatingPointerDown} onPointerMove={handleRatingPointerMove}
+                      onPointerUp={stopRatingDrag} onPointerCancel={stopRatingDrag} onLostPointerCapture={stopRatingDrag}
+                      onKeyDown={(e) => { if (!canEdit) return; if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); setRatingFromValue(form.rating - 0.1); } if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); setRatingFromValue(form.rating + 0.1); } if (e.key === "Home") { e.preventDefault(); setRatingFromValue(1); } if (e.key === "End") { e.preventDefault(); setRatingFromValue(5); } }}>
+                      {Array.from({ length: 5 }, (_, i) => { const sn = i + 1; const sc = getRatingCellClass(form.rating, sn <= form.rating); const starClass = sn <= form.rating ? getRatingStarClass(form.rating) : "ja-diary-star-gray"; return (
+                        <div key={sn} aria-hidden="true" className={`ja-diary-star-cell ${sc}`}>
+                          <span className="ja-diary-star-wrap"><IonIcon icon={starOutline} className={`ja-diary-star-bg ${starClass}`} /><span className="ja-diary-star-fill" style={{ width: `${Math.max(0, Math.min(1, (Number.isFinite(form.rating) ? form.rating : 3) - i)) * 100}%` }}><IonIcon icon={starOutline} className="ja-diary-star-active" /></span></span>
+                        </div>
+                      ); })}
+                    </div>
+                    <p className="ja-diary-rating-hint">Click or drag across the stars to set a decimal rating.</p>
+                  </div>
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-semibold text-stone-700">Date visited</span>
-                  <span className="text-right">{draftDateSummary}</span>
+
+                {/* Description */}
+                <div ref={descriptionFieldRef} className={`ja-diary-field-span2${fieldErrors.has("description") ? " ja-diary-field--error" : ""}${shakingFields.has("description") ? " ja-diary-field--shake" : ""}`}>
+                  <span className="ja-diary-field-label">Description <span className="ja-diary-required">*</span></span>
+                  {fieldErrors.has("description") && <span className="ja-diary-field-error-msg">Description is required</span>}
+                  <IonTextarea value={form.description} onIonInput={(e) => { setForm((c) => ({ ...c, description: e.detail.value ?? "" })); clearFieldError("description"); }} disabled={!canEdit}
+                    placeholder="What made this stop memorable? What should we remember next time?" className="ja-diary-textarea" maxlength={1000} />
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="font-semibold text-stone-700">Revisit</span>
-                  <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[11px] font-semibold text-stone-600">{draftRevisitSummary}</span>
+
+                {/* Tags */}
+                <div className="ja-diary-field-span2">
+                  <span className="ja-diary-field-label">Tags</span>
+                  <IonInput value={form.tagsText} onIonInput={(e) => setForm((c) => ({ ...c, tagsText: e.detail.value ?? "" }))} disabled={!canEdit} placeholder="food, cafe, sunset, family time" className="ja-diary-input" maxlength={200} />
+                  <span className="ja-diary-helper">Separate tags with commas.</span>
+                </div>
+
+                {/* Would revisit */}
+                <label className="ja-diary-field-span2 ja-diary-check-label">
+                  <input type="checkbox" checked={form.wouldRevisit} onChange={(e) => setForm((c) => ({ ...c, wouldRevisit: e.target.checked }))} disabled={!canEdit} className="ja-diary-check-input" />
+                  <div><span className="ja-diary-check-title">Would revisit?</span><span className="ja-diary-check-desc">Mark places we would happily return to on the next trip.</span></div>
+                </label>
+
+                {/* Desktop action buttons */}
+                <div className="ja-diary-desktop-actions">
+                  {editingId && <IonButton fill="outline" onClick={resetForm} className="ja-diary-cancel-btn">Cancel edit</IonButton>}
+                  <IonButton type="submit" disabled={!canEdit} className="ja-diary-save-btn"><IonIcon icon={editingId ? createOutline : addOutline} slot="start" />Save memory</IonButton>
                 </div>
               </div>
-            </div>
 
-            <div className="rounded-[16px] border border-[#dff2ea] bg-[#f2faf6] p-4 shadow-[0_6px_20px_rgba(6,45,39,0.04)]">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#93b56e]">
-                <MapPin size={12} />
-                Sync notes
+              {/* Right side: photo, draft summary, sync */}
+              <div className="ja-diary-side-col">
+                <IonCard className="ja-diary-photo-card">
+                  <IonCardContent>
+                    <div className="ja-diary-section-eyebrow"><IonIcon icon={cloudUploadOutline} className="ja-diary-eyebrow-icon" />Photo upload</div>
+                    <div className="ja-diary-photo-prompt">Choose a photo</div>
+                    <label className="ja-diary-photo-label">
+                      <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={!canEdit} className="ja-diary-sr-only" />
+                      <div className="ja-diary-photo-dropzone"><IonIcon icon={cloudUploadOutline} className="ja-diary-photo-icon" /><div className="ja-diary-photo-text">Tap to choose photo</div><p className="ja-diary-photo-helper">Images are compressed locally before sync. Supabase uploads happen only when you are signed in and online.</p></div>
+                    </label>
+                    {photoError && <p className="ja-diary-photo-error">{photoError}</p>}
+                    {form.photoUrl && <div className="ja-diary-photo-preview-wrap">{formPreview}</div>}
+                    <div className="ja-diary-mobile-actions">
+                      {editingId && <IonButton fill="outline" onClick={resetForm} className="ja-diary-cancel-btn">Cancel edit</IonButton>}
+                      <IonButton type="submit" disabled={!canEdit} className="ja-diary-save-btn"><IonIcon icon={editingId ? createOutline : addOutline} slot="start" />Save memory</IonButton>
+                    </div>
+                  </IonCardContent>
+                </IonCard>
+
+                <IonCard className="ja-diary-summary-card">
+                  <IonCardContent>
+                    <div className="ja-diary-section-eyebrow"><IonIcon icon={calendarOutline} className="ja-diary-eyebrow-icon" />Draft summary</div>
+                    <div className="ja-diary-summary-grid">
+                      <div className="ja-diary-summary-row"><span className="ja-diary-summary-key">Location</span><span className="ja-diary-summary-val ja-diary-summary-val-right">{draftLocationSummary}</span></div>
+                      <div className="ja-diary-summary-row"><span className="ja-diary-summary-key">Date visited</span><span className="ja-diary-summary-val ja-diary-summary-val-right">{draftDateSummary}</span></div>
+                      <div className="ja-diary-summary-row"><span className="ja-diary-summary-key">Revisit</span><IonChip className="ja-diary-chip" style={{ ...getRevisitPillColors(form.wouldRevisit) }}>{draftRevisitSummary}</IonChip></div>
+                    </div>
+                  </IonCardContent>
+                </IonCard>
+
+                <IonCard className="ja-diary-sync-card">
+                  <IonCardContent>
+                    <div className="ja-diary-section-eyebrow"><IonIcon icon={mapOutline} className="ja-diary-eyebrow-icon" />Sync notes</div>
+                    <p className="ja-diary-sync-text">{canEdit ? "Saving will keep the memory on this device first, then push it to the cloud." : "Read-only mode keeps local cache entries visible, but editing is disabled until sign-in."}</p>
+                  </IonCardContent>
+                </IonCard>
               </div>
-              <p className="text-[12px] leading-5 text-[#58716b]">
-                {canEdit
-                  ? "Saving will keep the memory on this device first, then push it to the cloud."
-                  : "Read-only mode keeps local cache entries visible, but editing is disabled until sign-in."}
-              </p>
+            </div>
+          </IonCardContent>
+        </form>
+      </IonCard>
+
+      {/* Filters */}
+      <IonCard className="ja-diary-filters-card">
+        <IonCardContent>
+          <div className="ja-diary-filters-top">
+            <div>
+              <div className="ja-diary-section-eyebrow ja-diary-eyebrow-muted"><IonIcon icon={searchOutline} className="ja-diary-eyebrow-icon" />Filters</div>
+              <h3 className="ja-diary-filters-title">Search the travel diary</h3>
+            </div>
+            <div className="ja-diary-filters-count">{filteredEntries.length} memor{filteredEntries.length === 1 ? "y" : "ies"} shown</div>
+          </div>
+
+          {currentUser && (
+            <div className="ja-diary-owner-row">
+              <span className="ja-diary-owner-label">Show</span>
+              <IonSegment value={ownerFilter} onIonChange={(e) => setOwnerFilter(e.detail.value as "all" | "mine")} className="ja-diary-segment">
+                <IonSegmentButton value="all" className="ja-diary-segment-btn"><IonLabel>All</IonLabel></IonSegmentButton>
+                <IonSegmentButton value="mine" className="ja-diary-segment-btn"><IonLabel>Mine</IonLabel></IonSegmentButton>
+              </IonSegment>
+            </div>
+          )}
+
+          <div className="ja-diary-filters-grid">
+            <div>
+              <span className="ja-diary-field-label">Search</span>
+              <div className="ja-diary-search-wrap">
+                <IonIcon icon={searchOutline} className="ja-diary-search-icon" />
+                <input type="search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Title, location, tags, description..." className="ja-diary-search-input" />
+              </div>
+            </div>
+            <div>
+              <span className="ja-diary-field-label">Type</span>
+              <IonSelect value={filterType} onIonChange={(e) => setFilterType(e.detail.value)} interface="action-sheet" className="ja-diary-filter-select">
+                <IonSelectOption value="All">All types</IonSelectOption>
+                {diaryTypes.map((t) => <IonSelectOption key={t} value={t}>{t}</IonSelectOption>)}
+              </IonSelect>
+            </div>
+            <div>
+              <span className="ja-diary-field-label">Rating</span>
+              <IonSelect value={filterRating} onIonChange={(e) => setFilterRating(e.detail.value)} interface="action-sheet" className="ja-diary-filter-select">
+                <IonSelectOption value="All">All ratings</IonSelectOption>
+                {starScale.map((r) => <IonSelectOption key={r} value={String(r)}>{r} stars</IonSelectOption>)}
+              </IonSelect>
             </div>
           </div>
-        </div>
-      </form>
+        </IonCardContent>
+      </IonCard>
 
-      <section className="mb-5 rounded-[14px] border border-stone-200 bg-white p-4 shadow-[0_10px_30px_rgba(6,45,39,0.06)]">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#6d7f79]">
-              <Search size={12} />
-              Filters
-            </div>
-            <h3 className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-[#0b1f1c]">Search the travel diary</h3>
-          </div>
-
-          <div className="text-[12px] text-stone-500 md:text-right">
-            {filteredEntries.length} memor{filteredEntries.length === 1 ? "y" : "ies"} shown
-          </div>
-        </div>
-
-        {currentUser && (
-          <div className="flex items-center gap-1.5 mt-3 px-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-stone-400 mr-1">Show</span>
-            <button
-              type="button"
-              onClick={() => setOwnerFilter("all")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-                ownerFilter === "all"
-                  ? "bg-[#0B3530] text-white shadow-sm"
-                  : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setOwnerFilter("mine")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-                ownerFilter === "mine"
-                  ? "bg-[#0B3530] text-white shadow-sm"
-                  : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-              }`}
-            >
-              Mine
-            </button>
-          </div>
-        )}
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_0.85fr_0.85fr]">      
-          <label className="md:col-span-1">
-            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Search</span>
-            <div className="relative">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Title, location, tags, description..."
-                className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] py-2.5 pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-              />
-            </div>
-          </label>
-
-          <label>
-            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Type</span>
-            <select
-              value={filterType}
-              onChange={(event) => setFilterType(event.target.value as DiaryEntryType | "All")}
-              className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-            >
-              <option value="All">All types</option>
-              {diaryTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-1 block text-[12px] font-semibold text-stone-600">Rating</span>
-            <select
-              value={filterRating}
-              onChange={(event) => setFilterRating(event.target.value)}
-              className="w-full rounded-[10px] border border-stone-200 bg-[#fafaff] px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-[#7c6ae6] focus:bg-[#f6f2ff]"
-            >
-              <option value="All">All ratings</option>
-              {starScale.map((rating) => (
-                <option key={rating} value={String(rating)}>
-                  {rating} stars
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section>
+      {/* Entry list */}
+      <section className="ja-diary-entries-section">
         {filteredEntries.length === 0 ? (
-          <div className="rounded-[14px] border border-dashed border-stone-200 bg-white px-5 py-10 text-center text-[14px] text-stone-500 shadow-xs">
-            {diaryEntries.length === 0
-              ? "No memories yet. Add your first travel diary entry."
-              : "No memories match your current filters."}
-          </div>
+          <IonCard className="ja-diary-empty-card">
+            <IonCardContent>
+              <div className="ja-diary-empty-text">{diaryEntries.length === 0 ? "No memories yet. Add your first travel diary entry." : "No memories match your current filters."}</div>
+            </IonCardContent>
+          </IonCard>
         ) : (
-          <div className="space-y-4 md:space-y-5">
+          <div className="ja-diary-entry-grid">
             {filteredEntries.map((entry) => {
-              const typeClass = getTypePillClass(entry.type);
-              const locationLabel = entry.cityOrCountry
-                ? `${entry.locationName}, ${entry.cityOrCountry}`
-                : entry.locationName;
-
+              const tc = getTypePillColors(entry.type);
+              const locLabel = entry.cityOrCountry ? `${entry.locationName}, ${entry.cityOrCountry}` : entry.locationName;
+              const rc = getRevisitPillColors(entry.wouldRevisit);
               return (
-                <article
-                  key={entry.id}
-                  className="group overflow-hidden rounded-[14px] border border-stone-200 bg-white shadow-[0_10px_30px_rgba(6,45,39,0.06)] transition-shadow hover:shadow-[0_14px_34px_rgba(6,45,39,0.1)] md:grid md:grid-cols-[340px_minmax(0,1fr)]"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-stone-100 md:aspect-auto md:h-full md:min-h-[320px]">
-                    {entry.photoUrl ? (
-                      <img
-                        src={entry.photoUrl}
-                        alt={entry.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 via-stone-200 to-stone-300 text-stone-400">
-                        <Camera size={30} />
-                      </div>
-                    )}
-
-                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${typeClass}`}>
-                        {entry.type}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={getSyncDotClass(entry.syncStatus)}
-                          aria-label={getSyncDotLabel(entry.syncStatus)}
-                          title={getSyncDotLabel(entry.syncStatus)}
-                        />
+                <article key={entry.id} className="ja-diary-entry-card">
+                  <div className="ja-diary-entry-image-col">
+                    {entry.photoUrl ? <img src={entry.photoUrl} alt={entry.title} className="ja-diary-entry-photo" loading="lazy" />
+                    : <div className="ja-diary-entry-photo-missing"><IonIcon icon={cameraOutline} className="ja-diary-entry-photo-icon" /></div>}
+                    <div className="ja-diary-entry-image-overlay">
+                      <IonChip className="ja-diary-entry-chip" style={{ background: tc.bg, color: tc.text, border: `1px solid ${tc.border}` }}>{entry.type}</IonChip>
+                      <div className="ja-diary-entry-overlay-actions">
+                        <span className="ja-diary-sync-dot" style={{ backgroundColor: getSyncDotColor(entry.syncStatus) }} title={getSyncDotLabel(entry.syncStatus)} aria-label={getSyncDotLabel(entry.syncStatus)} />
                         {canManageEntry(entry) && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => startEdit(entry)}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-stone-700 shadow-sm backdrop-blur transition-colors hover:bg-white"
-                              aria-label={`Edit ${entry.title}`}
-                              title="Edit entry"
-                            >
-                              <PencilLine size={12} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(entry.id)}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/90 text-rose-600 shadow-sm backdrop-blur transition-colors hover:bg-rose-50"
-                              aria-label={`Delete ${entry.title}`}
-                              title="Delete entry"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
+                          <>
+                            <IonButton fill="clear" size="small" onClick={() => startEdit(entry)} className="ja-diary-entry-action-btn" aria-label={`Edit ${entry.title}`} title="Edit entry"><IonIcon icon={pencilOutline} /></IonButton>
+                            <IonButton fill="clear" size="small" onClick={() => handleDelete(entry.id)} className="ja-diary-entry-action-btn ja-diary-entry-action-btn-danger" aria-label={`Delete ${entry.title}`} title="Delete entry"><IonIcon icon={trashOutline} /></IonButton>
+                          </>
                         )}
                       </div>
                     </div>
                   </div>
-
-                  <div className="space-y-3 p-4 md:flex md:flex-col md:justify-between md:p-5">
+                  <div className="ja-diary-entry-content-col">
                     <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="line-clamp-2 text-[22px] font-semibold leading-tight tracking-[-0.03em] text-stone-900 md:text-[28px]">
-                          {entry.title}
-                        </h4>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-emerald-500">
-                        {renderStars(entry.rating, "h-3.5 w-3.5")}
-                        <span className="ml-1 text-[11px] font-semibold text-stone-500">{formatDiaryRating(entry.rating)}/5</span>
+                      <div className="ja-diary-entry-title-row"><h4 className="ja-diary-entry-title">{entry.title}</h4></div>
+                      <div className="ja-diary-entry-stars">
+                        {starScale.map((sv) => <span key={sv} className={sv <= entry.rating ? "ja-diary-star-filled" : "ja-diary-star-empty"}><IonIcon icon={starOutline} style={{ fontSize: 14, fill: sv <= entry.rating ? "currentColor" : "none" }} /></span>)}
+                        <span className="ja-diary-entry-rating-label">{formatDiaryRating(entry.rating)}/5</span>
                       </div>
                     </div>
-
-                    <div className="rounded-[12px] border border-stone-200 bg-stone-50 px-3 py-3 md:rounded-[12px] md:border md:border-stone-200">
-                      <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">
-                        Description
-                      </div>
-                      <p className="whitespace-pre-wrap break-words text-[14px] leading-6 text-stone-700 md:text-[14px] md:text-stone-700">
-                        {entry.description}
-                      </p>
+                    <div className="ja-diary-entry-desc-box">
+                      <div className="ja-diary-entry-desc-label">Description</div>
+                      <p className="ja-diary-entry-desc-text">{entry.description}</p>
                     </div>
-
-                    <div className="grid grid-cols-1 gap-1.5 text-[12px] text-stone-600">
-                      <div className="flex items-start gap-2">
-                        <CalendarDays size={13} className="mt-0.5 shrink-0 text-[#88B04B]" />
-                        <span>{formatDateLabel(entry.dateVisited)}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin size={13} className="mt-0.5 shrink-0 text-[#88B04B]" />
-                        <span>{locationLabel}</span>
-                      </div>
+                    <div className="ja-diary-entry-meta-row">
+                      <div className="ja-diary-entry-meta-icon-row"><IonIcon icon={calendarOutline} className="ja-diary-entry-meta-icon" /><span>{formatDateLabel(entry.dateVisited)}</span></div>
+                      <div className="ja-diary-entry-meta-icon-row"><IonIcon icon={mapOutline} className="ja-diary-entry-meta-icon" /><span>{locLabel}</span></div>
                     </div>
-
                     {entry.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {entry.tags.map((tagValue) => (
-                          <span
-                            key={`${entry.id}-${tagValue}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600"
-                          >
-                            <Tag size={11} />
-                            {tagValue}
-                          </span>
-                        ))}
-                      </div>
+                      <div className="ja-diary-entry-tag-row">{entry.tags.map((tv) => <IonChip key={`${entry.id}-${tv}`} className="ja-diary-tag-chip">{tv}</IonChip>)}</div>
                     )}
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3 text-[10px] text-stone-400">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-mono uppercase tracking-wider">
-                          Saved by {formatSavedBy(entry.savedByEmail, entry.savedByUserId)}
-                        </span>
-                        <span className="font-mono uppercase tracking-wider">
-                          Created {formatTimestamp(entry.createdAt)}
-                        </span>
+                    <div className="ja-diary-entry-footer">
+                      <div className="ja-diary-entry-footer-left">
+                        <span className="ja-diary-entry-footer-text">Saved by {formatSavedBy(entry.savedByEmail, entry.savedByUserId)}</span>
+                        <span className="ja-diary-entry-footer-text">Created {formatTimestamp(entry.createdAt)}</span>
                       </div>
-
-                      <span
-                        className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getRevisitPillClass(
-                          entry.wouldRevisit,
-                        )}`}
-                      >
-                        {entry.wouldRevisit ? "Would revisit" : "One and done"}
-                      </span>
+                      <IonChip className="ja-diary-entry-chip" style={{ background: rc.bg, color: rc.text, border: `1px solid ${rc.border}` }}>{entry.wouldRevisit ? "Would revisit" : "One and done"}</IonChip>
                     </div>
                   </div>
                 </article>

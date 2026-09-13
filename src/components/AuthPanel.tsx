@@ -1,6 +1,22 @@
-import React, { useEffect } from "react";
-import { LogOut } from "lucide-react";
+import React from "react";
 import type { Session } from "@supabase/supabase-js";
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonCard,
+  IonCardContent,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonText,
+  IonSpinner,
+} from "@ionic/react";
+import { logOutOutline, closeOutline } from "ionicons/icons";
 
 type ProviderId = "google" | "facebook" | "github";
 
@@ -28,6 +44,11 @@ const providers: Array<{
   { id: "facebook", label: "Continue with Facebook", note: "Use your Facebook account", badge: "f" },
 ];
 
+const brandToolbar = {
+  "--background": "#0B3530",
+  "--color": "#ffffff",
+} as React.CSSProperties;
+
 export default function AuthPanel({
   open,
   title,
@@ -40,116 +61,123 @@ export default function AuthPanel({
   onSignOut,
   isConfigured = true,
 }: AuthPanelProps) {
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[5000] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xs no-print sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200 touch-manipulation"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-800 touch-manipulation"
-          aria-label="Close login modal"
-        >
-          X
-        </button>
-
-        <div className="bg-gradient-to-r from-[#0B3530] to-[#18534C] px-6 py-5 text-white">
-          <div className="text-[13px] uppercase tracking-[0.35em] text-[#88B04B] font-mono">Secure Sync</div>
-          <h3 className="mt-1 text-lg md:text-xl font-serif font-bold">{title}</h3>
-          <p className="mt-1 text-[14px] md:text-[15px] text-stone-200 max-w-2xl">{description}</p>
-        </div>
-
-        <div className="space-y-4 p-6">
-          {errorMessage ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
-              <p className="text-[14px] font-semibold text-rose-800">{errorMessage}</p>
-            </div>
-          ) : null}
-
-          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-            <p className="text-[14px] font-sans text-stone-600 leading-relaxed">
-              Sign in to sync your budget and trip checklist across devices. We keep the trip data private to this itinerary.
-            </p>
+    <IonModal isOpen={open} onDidDismiss={onClose} className="ja-auth-modal" style={{ "--width": "min(420px, calc(100vw - 32px))", "--max-width": "420px", "--height": "auto", "--border-radius": "18px", "--box-shadow": "0 24px 60px rgba(0,0,0,0.35)" } as React.CSSProperties}>
+      <IonHeader>
+        <IonToolbar style={brandToolbar}>
+          <div className="ja-auth-toolbar-inner">
+            <div className="ja-auth-eyebrow">SECURE SYNC</div>
+            <IonTitle className="ja-auth-title">{title}</IonTitle>
           </div>
+          <IonButtons slot="end">
+            <IonButton onClick={onClose} aria-label="Close login modal">
+              <IonIcon icon={closeOutline} />
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+        <div className="ja-auth-desc-wrap" style={{ background: "#0B3530", color: "rgba(255,255,255,0.8)" }}>
+          <p className="ja-auth-desc-text">{description}</p>
+        </div>
+      </IonHeader>
 
-          {!isConfigured && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-[14px] font-semibold text-amber-900">Login is not configured on this deployment yet.</p>
-              <p className="mt-1 text-[14px] text-amber-800">
-                The app needs Supabase environment variables in Vercel before Google/Facebook sign-in can work.
-              </p>
-            </div>
-          )}
+      <div className="ja-auth-content">
+        {loading && (
+          <div className="ja-auth-loader">
+            <IonSpinner name="crescent" />
+          </div>
+        )}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {providers.map((provider) => (
-              <button
-                key={provider.id}
-                onClick={() => onSignIn(provider.id)}
-                type="button"
-                disabled={loading || !isConfigured}
-                className="min-h-20 rounded-xl border border-stone-200 bg-white p-4 text-left transition-all hover:border-[#0B3530] hover:shadow-xs disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation"
+        {!loading && (
+          <>
+            {errorMessage ? (
+              <IonCard className="ja-auth-error-card" style={{ margin: "0 0 16px" }}>
+                <IonCardContent>
+                  <IonText color="danger">
+                    <p className="ja-auth-error-text">{errorMessage}</p>
+                  </IonText>
+                </IonCardContent>
+              </IonCard>
+            ) : null}
+
+            <IonCard style={{ margin: "0 0 16px" }}>
+              <IonCardContent>
+                <p className="ja-auth-sync-card-text">
+                  Sign in to sync your budget and trip checklist across devices. We keep the trip data private to this itinerary.
+                </p>
+              </IonCardContent>
+            </IonCard>
+
+            {!isConfigured && (
+              <IonCard
+                className="ja-auth-config-card"
+                style={{
+                  margin: "0 0 16px",
+                  "--border-color": "#fde68a",
+                } as React.CSSProperties}
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-sm font-bold text-[#88B04B]">
+                <IonCardContent>
+                  <p className="ja-auth-config-title">Login is not configured on this deployment yet.</p>
+                  <p className="ja-auth-config-desc">
+                    The app needs Supabase environment variables in Vercel before Google/Facebook sign-in can work.
+                  </p>
+                </IonCardContent>
+              </IonCard>
+            )}
+
+            <IonList className="ja-auth-provider-list" style={{ margin: "0 0 16px" }}>
+              {providers.map((provider) => (
+                <IonItem
+                  key={provider.id}
+                  button
+                  disabled={loading || !isConfigured}
+                  onClick={() => onSignIn(provider.id)}
+                  className="ja-auth-provider-item"
+                  detail={false}
+                >
+                  <div className="ja-auth-provider-badge" style={{ background: "#0B3530", color: "#88B04B" }}>
                     {provider.badge}
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-[15px] font-semibold text-stone-800">{provider.label}</div>
-                    <p className="mt-1 text-[13px] font-mono uppercase tracking-wider text-stone-400">
-                      {provider.note}
-                    </p>
-                  </div>
+                  <IonLabel>
+                    <div className="ja-auth-provider-label">{provider.label}</div>
+                    <p className="ja-auth-provider-note">{provider.note}</p>
+                  </IonLabel>
+                </IonItem>
+              ))}
+            </IonList>
+
+            <IonCard style={{ margin: "0 0 16px" }}>
+              <IonCardContent>
+                <div className="ja-auth-account-section">
+                  <p className="ja-auth-account-label">Account</p>
+                  {session ? (
+                    <>
+                      <p className="ja-auth-account-email">{session.user.email ?? "Signed in"}</p>
+                      <p className="ja-auth-account-status">Budget + checklist sync is active.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="ja-auth-signin-title">Not signed in</p>
+                      <p className="ja-auth-signin-desc">Choose Google, GitHub, or Facebook to enable shared cloud sync.</p>
+                    </>
+                  )}
                 </div>
-              </button>
-            ))}
-          </div>
 
-          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 flex flex-col gap-3">
-            <div>
-              <p className="text-[13px] font-mono uppercase tracking-widest text-stone-400">Account</p>
-              {session ? (
-                <>
-              <p className="mt-2 text-[15px] font-semibold text-stone-800">{session.user.email ?? "Signed in"}</p>
-              <p className="mt-1 text-[14px] text-stone-500">Budget + checklist sync is active.</p>
-            </>
-          ) : (
-            <>
-              <p className="mt-2 text-[15px] font-semibold text-stone-800">Not signed in</p>
-              <p className="mt-1 text-[14px] text-stone-500">Choose Google, GitHub, or Facebook to enable shared cloud sync.</p>
-            </>
-          )}
-            </div>
-
-            <button
-              onClick={onSignOut}
-              type="button"
-              disabled={!session || !isConfigured}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[14px] font-semibold text-stone-700 transition-all hover:border-rose-300 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
-            >
-              <LogOut size={14} />
-              Sign out
-            </button>
-          </div>
-        </div>
+                <IonButton
+                  expand="block"
+                  fill="outline"
+                  disabled={!session || !isConfigured}
+                  onClick={onSignOut}
+                  color="danger"
+                  className="ja-auth-sign-out"
+                >
+                  <IonIcon slot="start" icon={logOutOutline} />
+                  Sign out
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </>
+        )}
       </div>
-    </div>
+    </IonModal>
   );
 }

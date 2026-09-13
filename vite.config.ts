@@ -1,4 +1,3 @@
-import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -8,36 +7,18 @@ export default defineConfig(() => {
   return {
     plugins: [
       react(),
-      tailwindcss(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: [
-          "favicon.png",
-          "apple-touch-icon.png",
-          "icon-192.png",
-          "icon-512.png",
-          "day12-kl-skyline.png",
-          "day13-batu-caves.png",
-          "day13-saloma-bridge.png",
-        ],
         workbox: {
-          globPatterns: ["**/*.{js,css,html,woff2,ico}"],
+          globPatterns: ["**/*.{js,css,html,woff2,ico,webp,png}"],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*tabler.*/i,
-              handler: "CacheFirst",
-              options: {
-                cacheName: "tabler-icons",
-                expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
             {
               urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
               handler: "StaleWhileRevalidate",
               options: {
                 cacheName: "map-tiles",
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 14 },
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
               },
             },
           ],
@@ -66,10 +47,22 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-react": ["react", "react-dom"],
+            "vendor-ionic": ["@ionic/react", "@ionic/react-router", "ionicons"],
+            "vendor-leaflet": ["leaflet"],
+            "vendor-supabase": ["@supabase/supabase-js"],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

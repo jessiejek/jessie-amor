@@ -1,5 +1,46 @@
-﻿import React, { useEffect, useRef, useState } from "react";
-import { CalendarDays, CreditCard, Compass, Loader2, Map as MapIcon, Menu, NotebookText, Printer, RefreshCw, Share2, Ticket, Utensils, Wallet, LogOut } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  CalendarDays,
+  CreditCard,
+  Compass,
+  Map as MapIcon,
+  Menu,
+  NotebookText,
+  Printer,
+  Share2,
+  Ticket,
+  Utensils,
+  Wallet,
+  LogOut,
+} from "lucide-react";
+//trigger
+import {
+  IonApp,
+  IonCol,
+  IonContent,
+  IonRefresher,
+  IonRefresherContent,
+  IonGrid,
+  IonIcon,
+  IonLabel,
+  IonPage,
+  IonRow,
+  IonRouterOutlet,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+} from "@ionic/react";
+import { IonReactRouter } from "@ionic/react-router";
+import { Redirect, Route, useHistory, useLocation } from "react-router-dom";
+import {
+  calendarOutline,
+  walletOutline,
+  mapOutline,
+  bookOutline,
+  menuOutline,
+  gridOutline,
+} from "ionicons/icons";
+import { installKeyboardClass } from "./utils/keyboardClass";
 import type { Session } from "@supabase/supabase-js";
 import {
   buildGuideForItem,
@@ -9,7 +50,7 @@ import {
   type TimelineItemData,
 } from "./data/code1Itinerary";
 import type { MapItineraryData } from "./data/mapItinerary";
-import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow } from "./types";
+import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow, type TripProfile, type TripProfileRow, profileToRow, rowToProfile } from "./types";
 import {
   hasSupabaseConfig,
   supabase,
@@ -18,12 +59,16 @@ import {
   supabaseNotesTable,
   supabaseDiaryTable,
   supabaseDiaryBucket,
+  supabaseReceiptBucket,
   supabaseBudgetSettingsTable,
   supabaseSettingsTable,
+  supabaseTripProfileTable,
   tripKey,
 } from "./lib/supabase";
 import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
 
+import { activeTrip, isKaohsiung } from "./lib/activeTrip";
+import TripPicker from "./components/TripPicker";
 import Navigation from "./components/Navigation";
 import Hero from "./components/Hero";
 import BudgetSummaryHeader from "./components/BudgetSummaryHeader";
@@ -39,6 +84,8 @@ import DestinationInfoModal from "./components/DestinationInfoModal";
 import AuthPanel from "./components/AuthPanel";
 import { useLiveExchangeRates } from "./lib/exchangeRates";
 import SettingsModal from "./components/SettingsModal";
+import PdfEditorPage from "./components/PdfEditorPage";
+import ItineraryPlusTab from "./components/ItineraryPlusTab";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -50,6 +97,7 @@ type SupabaseExpenseRow = {
   paid_with: Expense["paidWith"];
   original_amount: number | null;
   original_currency: Expense["originalCurrency"] | null;
+  receipt_path: string | null;
   saved_by_user_id: string | null;
   saved_by_email: string | null;
   created_at: string | null;
@@ -120,6 +168,7 @@ const expenseToRow = (expense: Expense): SupabaseExpenseRow => ({
   paid_with: expense.paidWith,
   original_amount: expense.originalAmount ?? null,
   original_currency: expense.originalCurrency ?? null,
+  receipt_path: expense.receiptPath ?? null,
   saved_by_user_id: expense.createdBy ?? expense.savedByUserId ?? null,
   saved_by_email: expense.savedByEmail ?? null,
   created_at: expense.createdAt ?? new Date().toISOString(),
@@ -135,10 +184,18 @@ const rowToExpense = (row: SupabaseExpenseRow): Expense => ({
   paidWith: row.paid_with,
   originalAmount: row.original_amount ?? undefined,
   originalCurrency: row.original_currency ?? undefined,
+  receiptPath: row.receipt_path ?? undefined,
   createdBy: row.saved_by_user_id ?? undefined,
   savedByUserId: row.saved_by_user_id ?? undefined,
   savedByEmail: row.saved_by_email ?? undefined,
-  createdAt: row.created_at ?? row.updated_at,
+  // Normalize DB timestamp to ISO format with Z so it matches the client's
+  // new Date().toISOString() output and expenseSignature comparisons don't
+  // falsely differ due to "+00:00" vs "Z" or microsecond precision.
+  createdAt: row.created_at
+    ? new Date(row.created_at).toISOString()
+    : row.updated_at
+      ? new Date(row.updated_at).toISOString()
+      : undefined,
 });
 
 const checklistToRow = (item: ChecklistItem): SupabaseChecklistRow => ({
@@ -291,6 +348,22 @@ const getDiaryOwnerId = (entry: DiaryEntry) => entry.createdBy ?? entry.savedByU
 const buildDiaryPhotoPath = (entryId: string, userId: string) => `${tripKey}/${userId}/${entryId}-photo.jpg`;
 const isDiaryLocalPhotoUrl = (photoUrl?: string) => Boolean(photoUrl?.startsWith("data:"));
 
+const buildReceiptPath = (expenseId: string, userId: string) => `${tripKey}/${userId}/${expenseId}-receipt.jpg`;
+
+// Convert a data: URL to a Blob without using fetch() — fetch() silently fails
+// on iOS Safari/PWA for large data URLs (>~1–2 MB) due to WKWebView limits.
+const dataUrlToBlob = (dataUrl: string): Blob => {
+  const comma = dataUrl.indexOf(",");
+  const meta = comma >= 0 ? dataUrl.slice(0, comma) : "";
+  const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const mime = /data:(.*?);/.exec(meta)?.[1] ?? "image/jpeg";
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+};
+const isLocalReceiptUrl = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("data:"));
+
 const hashString = (value: string) => {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -323,7 +396,16 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
     }
 
     if (localItem) {
-      merged.push(remoteItem);
+      // If the local synced item has a receipt path that the remote row doesn't
+      // have yet (second upsert hasn't completed), rescue the local receipt data
+      // and re-queue a sync so receipt_path gets saved to the DB.
+      const localReceipt = localItem as unknown as { receiptPath?: string; receiptUrl?: string };
+      const remoteReceipt = remoteItem as unknown as { receiptPath?: string };
+      if (localReceipt.receiptPath && !remoteReceipt.receiptPath) {
+        merged.push({ ...remoteItem, receiptPath: localReceipt.receiptPath, receiptUrl: localReceipt.receiptUrl, syncStatus: "pending" as const });
+      } else {
+        merged.push(remoteItem);
+      }
       seen.add(remoteItem.id);
       continue;
     }
@@ -350,23 +432,12 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
 
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
-const normalizeTipIcon = (icon: string) => {
-  const normalized = icon.trim();
-  const iconMap: Record<string, string> = {
-    "ðŸ’³": "💳",
-    "ðŸ—“ï¸": "🗓️",
-    "ðŸ“±": "📱",
-    "ðŸ¦€": "🦀",
-  };
 
-  return iconMap[normalized] ?? normalized;
-};
-
-export default function App() {
-  const PULL_REFRESH_TRIGGER = 84;
-  const PULL_REFRESH_MAX = 108;
+function AppShell() {
   const itinerary = selectedItinerary;
   const [userSettings, setUserSettings] = useState<UserTripSettings | null>(null);
+  const [tripProfile, setTripProfile] = useState<TripProfile | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
   const [settingsLoaded, setSettingsLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
@@ -375,7 +446,7 @@ export default function App() {
   const requestedRateSymbols = React.useMemo(
     () => (userSettings?.currencies?.length
       ? Array.from(new Set(["MYR", ...userSettings.currencies.filter((code) => code !== "MYR")]))
-      : ["MYR", "SGD"]),
+      : (isKaohsiung ? ["MYR", "TWD", "PHP"] : ["MYR", "SGD"])),
     [userSettings],
   );
   const exchangeRates = useLiveExchangeRates(requestedRateSymbols);
@@ -386,13 +457,14 @@ export default function App() {
     if (pathname === "/diary") return "/diary";
     if (pathname === "/account") return "/account";
     if (pathname === "/settings") return "/settings";
+    if (pathname === "/pdf-editor") return "/pdf-editor";
+    if (pathname === "/itinerary-plus") return "/itinerary-plus";
     return "/";
   };
 
-  const [activeRoute, setActiveRoute] = useState<string>(() => {
-    if (typeof window === "undefined") return "/";
-    return routeFromPath(window.location.pathname);
-  });
+  const history = useHistory();
+  const location = useLocation();
+  const activeRoute = routeFromPath(location.pathname);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState<boolean>(!supabase);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -401,10 +473,7 @@ export default function App() {
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedHomeDay, setSelectedHomeDay] = useState<number>(selectedItinerary.days[0]?.day ?? 0);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
-  const [pullDistance, setPullDistance] = useState<number>(0);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-  const [showNav, setShowNav] = useState(true);
   const [isIosStandalonePwa, setIsIosStandalonePwa] = useState(false);
   const [screenSize, setScreenSize] = useState<"small" | "large">(window.innerWidth < 768 ? "small" : "large");
   const [budgetCapPhp, setBudgetCapPhp] = useState<number>(0);
@@ -412,8 +481,6 @@ export default function App() {
   const [checklistLoaded, setChecklistLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [notesLoaded, setNotesLoaded] = useState<boolean>(!hasSupabaseConfig);
   const [diaryLoaded, setDiaryLoaded] = useState<boolean>(!hasSupabaseConfig);
-  const pullStartYRef = useRef<number | null>(null);
-  const isPullingRef = useRef<boolean>(false);
   const isOnline = useOnlineStatus();
   const [initialExpenseCache] = useState(() => readCachedDataset<Expense[]>(expenseCacheKey));
   const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
@@ -432,11 +499,17 @@ export default function App() {
   const checklistSignatureRef = useRef<string>(initialChecklistCache?.syncedSignature || checklistSignature(initialChecklistItems));
   const notesSignatureRef = useRef<string>(initialNotesCache?.syncedSignature || notesSignature(initialNoteItems));
   const diarySignatureRef = useRef<string>(initialDiaryCache?.syncedSignature || diarySignature(initialDiaryItems));
+  const contentRefs = useRef<Record<string, HTMLIonContentElement | null>>({});
   const expenseDirtyRef = useRef<boolean>(initialExpenseCache?.dirty ?? false);
   const checklistDirtyRef = useRef<boolean>(initialChecklistCache?.dirty ?? false);
   const notesDirtyRef = useRef<boolean>(initialNotesCache?.dirty ?? false);
   const diaryDirtyRef = useRef<boolean>(initialDiaryCache?.dirty ?? false);
   const expenseIdsRef = useRef<string[]>(initialExpenseCache?.syncedIds ?? initialExpenseItems.map((expense) => expense.id));
+  // Remembers each expense's uploaded receipt path so we can delete the stored
+  // photo from Storage when its expense is removed (avoids orphaned receipts).
+  const expenseReceiptPathsRef = useRef<Record<string, string>>(
+    Object.fromEntries(initialExpenseItems.filter((expense) => expense.receiptPath).map((expense) => [expense.id, expense.receiptPath as string])),
+  );
   const checklistIdsRef = useRef<string[]>(initialChecklistCache?.syncedIds ?? initialChecklistItems.map((item) => item.id));
   const notesIdsRef = useRef<string[]>(initialNotesCache?.syncedIds ?? initialNoteItems.map((note) => note.id));
   const diaryIdsRef = useRef<string[]>(initialDiaryCache?.syncedIds ?? initialDiaryItems.map((entry) => entry.id));
@@ -543,9 +616,10 @@ export default function App() {
     });
   };
 
-  const pullProgress = Math.min(1, pullDistance / PULL_REFRESH_TRIGGER);
-  const pullCanRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
-  const pullUiScale = 0.96 + pullProgress * 0.04;
+
+  useEffect(() => {
+    if (activeTrip) document.title = activeTrip.headline;
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -590,7 +664,7 @@ export default function App() {
     const loadProfile = async () => {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("is_admin")
+        .select("is_admin, is_active")
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -599,6 +673,14 @@ export default function App() {
       if (error) {
         console.warn("Supabase profile load failed:", error.message);
         setIsAdmin(false);
+        return;
+      }
+
+      if (data?.is_active === false) {
+        setIsAdmin(false);
+        setAuthError("Access to this trip has been revoked. Contact the trip owner if this is a mistake.");
+        setShowAuthModal(true);
+        void supabase.auth.signOut();
         return;
       }
 
@@ -662,7 +744,18 @@ export default function App() {
       setSettingsLoaded(true);
     };
 
+    const loadTripProfile = async () => {
+      const { data, error } = await supabase
+        .from(supabaseTripProfileTable)
+        .select("*")
+        .eq("trip_key", tripKey)
+        .maybeSingle();
+      if (cancelled || error) return;
+      if (data) setTripProfile(rowToProfile(data as TripProfileRow));
+    };
+
     void loadUserSettings();
+    void loadTripProfile();
 
     return () => {
       cancelled = true;
@@ -691,7 +784,7 @@ export default function App() {
       const [expenseResult, checklistResult, notesResult] = await Promise.all([
         supabase
           .from(supabaseExpenseTable)
-          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, saved_by_user_id, saved_by_email, created_at")
+          .select("id, trip_key, day, category, item, amount, paid_with, original_amount, original_currency, receipt_path, saved_by_user_id, saved_by_email, created_at")
           .eq("trip_key", tripKey)
           .order("day", { ascending: true })
           .order("item", { ascending: true }),
@@ -713,18 +806,25 @@ export default function App() {
       const { data: checklistData, error: checklistError } = checklistResult;
       const { data: notesData, error: notesError } = notesResult;
 
+      // Read fresh from localStorage instead of the mount-time snapshot so that
+      // items added/edited while offline are included when connectivity returns
+      // and this bootstrap re-runs (isOnline is in the effect deps).
+      const currentExpenseCache = readCachedDataset<Expense[]>(expenseCacheKey);
+      const currentChecklistCache = readCachedDataset<ChecklistItem[]>(checklistCacheKey);
+      const currentNotesCache = readCachedDataset<TravelNote[]>(notesCacheKey);
+
       if (expenseError) {
         console.warn("Supabase expense load failed:", expenseError.message);
       } else {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
         const { merged, hasLocalPending } = mergeBootstrapItems<Expense>(
-          initialExpenseCache?.data ?? [],
+          currentExpenseCache?.data ?? [],
           forceSyncStatus<Expense>(remoteExpenses, "synced"),
-          initialExpenseCache?.syncedIds ?? expenseIdsRef.current,
+          currentExpenseCache?.syncedIds ?? expenseIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
-          saveExpenseSnapshot(merged, syncedSignature, true, initialExpenseCache?.syncedIds ?? expenseIdsRef.current);
+          saveExpenseSnapshot(merged, syncedSignature, true, currentExpenseCache?.syncedIds ?? expenseIdsRef.current);
           setExpenses(merged);
         } else {
           const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
@@ -739,13 +839,13 @@ export default function App() {
       } else {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
         const { merged, hasLocalPending } = mergeBootstrapItems<ChecklistItem>(
-          initialChecklistCache?.data ?? [],
+          currentChecklistCache?.data ?? [],
           forceSyncStatus<ChecklistItem>(remoteChecklist, "synced"),
-          initialChecklistCache?.syncedIds ?? checklistIdsRef.current,
+          currentChecklistCache?.syncedIds ?? checklistIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = checklistSignatureRef.current || checklistSignature(merged);
-          saveChecklistSnapshot(merged, syncedSignature, true, initialChecklistCache?.syncedIds ?? checklistIdsRef.current);
+          saveChecklistSnapshot(merged, syncedSignature, true, currentChecklistCache?.syncedIds ?? checklistIdsRef.current);
           checklistDirtyRef.current = true;
           setChecklist(merged);
         } else {
@@ -763,13 +863,13 @@ export default function App() {
           ? (notesData as SupabaseNotesRow).notes
           : [];
         const { merged, hasLocalPending } = mergeBootstrapItems<TravelNote>(
-          initialNotesCache?.data ?? [],
+          currentNotesCache?.data ?? [],
           forceSyncStatus<TravelNote>(remoteNotes, "synced"),
-          initialNotesCache?.syncedIds ?? notesIdsRef.current,
+          currentNotesCache?.syncedIds ?? notesIdsRef.current,
         );
         if (hasLocalPending) {
           const syncedSignature = notesSignatureRef.current || notesSignature(merged);
-          saveNotesSnapshot(merged, syncedSignature, true, initialNotesCache?.syncedIds ?? notesIdsRef.current);
+          saveNotesSnapshot(merged, syncedSignature, true, currentNotesCache?.syncedIds ?? notesIdsRef.current);
           notesDirtyRef.current = true;
           setNotes(merged);
         } else {
@@ -816,7 +916,35 @@ export default function App() {
               const existing = current.find((expense) => expense.id === row.id);
               const incoming = rowToExpense(row);
               if (existing && expenseSignature([existing]) === expenseSignature([incoming])) return current;
-              const next = forceSyncStatus<Expense>(mergeExpenseRow(current, row), "synced");
+
+              // The first upsert (receipt_path = null) can arrive via Realtime AFTER the
+              // receipt upload effect has already set receiptPath locally. If we blindly
+              // replace with the stale row we erase the path before the second upsert fires.
+              // Preserve the local receipt data and keep the expense pending so the next
+              // upsert cycle saves receipt_path to the DB.
+              if (existing?.receiptPath && !incoming.receiptPath) {
+                const preserved: Expense = {
+                  ...incoming,
+                  receiptPath: existing.receiptPath,
+                  receiptUrl: existing.receiptUrl,
+                  syncStatus: "pending" as const,
+                };
+                const next = current.map((expense) => expense.id === incoming.id ? preserved : expense);
+                saveExpenseSnapshot(next, expenseSignatureRef.current, true, expenseIdsRef.current);
+                return next;
+              }
+
+              // Belt-and-suspenders: if the expense has a local data: URL still
+              // uploading and the incoming row has no receipt_path, preserve the
+              // data: URL so the badge doesn't disappear mid-upload.
+              const mergedList = mergeExpenseRow(current, row);
+              const next = mergedList.map((expense) => {
+                if (expense.id !== row.id) return { ...expense, syncStatus: "synced" as const };
+                if (isLocalReceiptUrl(existing?.receiptUrl) && !expense.receiptPath) {
+                  return { ...expense, receiptUrl: existing!.receiptUrl, syncStatus: "pending" as const };
+                }
+                return { ...expense, syncStatus: "synced" as const };
+              });
               const nextSignature = expenseSignature(next);
               saveExpenseSnapshot(next, nextSignature, false, next.map((expense) => expense.id));
               return next;
@@ -875,9 +1003,15 @@ export default function App() {
             if (!row || !Array.isArray(row.notes)) return;
             const incomingNotes = forceSyncStatus<TravelNote>(row.notes, "synced");
             setNotes((current) => {
-              if (notesSignature(current) === notesSignature(incomingNotes)) return current;
-              saveNotesSnapshot(incomingNotes, notesSignature(incomingNotes), false, incomingNotes.map((note) => note.id));
-              return incomingNotes;
+              // Preserve locally pending notes (not yet flushed to DB) that the
+              // remote blob doesn't know about — prevents concurrent writes from
+              // dropping notes that are in-flight on this device.
+              const incomingIds = new Set(incomingNotes.map((n) => n.id));
+              const localPending = current.filter((n) => n.syncStatus === "pending" && !incomingIds.has(n.id));
+              const merged = localPending.length > 0 ? [...incomingNotes, ...localPending] : incomingNotes;
+              if (notesSignature(current) === notesSignature(merged)) return current;
+              saveNotesSnapshot(merged, notesSignature(incomingNotes), localPending.length > 0, merged.map((n) => n.id));
+              return merged;
             });
           },
         )
@@ -912,7 +1046,7 @@ export default function App() {
       const baseEntry = rowToDiaryEntry(row);
       if (!row.photo_path) return baseEntry;
 
-      const { data, error } = await supabase.storage.from(supabaseDiaryBucket).createSignedUrl(row.photo_path, 60 * 60);
+      const { data, error } = await supabase.storage.from(supabaseDiaryBucket).createSignedUrl(row.photo_path, 60 * 60 * 24 * 365);
       if (error) {
         console.warn("Supabase diary photo load failed:", error.message);
         return baseEntry;
@@ -944,15 +1078,19 @@ export default function App() {
       const hydratedRows = await Promise.all(remoteRows.map(async (row) => hydrateDiaryEntry(row)));
       if (cancelled) return;
 
+      // Read fresh from localStorage so offline-added diary entries survive
+      // the bootstrap re-run that occurs when connectivity returns.
+      const currentDiaryCache = readCachedDataset<DiaryEntry[]>(diaryCacheKey);
+
       const { merged, hasLocalPending } = mergeBootstrapItems<DiaryEntry>(
-        initialDiaryCache?.data ?? [],
+        currentDiaryCache?.data ?? [],
         forceSyncStatus<DiaryEntry>(hydratedRows, "synced"),
-        initialDiaryCache?.syncedIds ?? diaryIdsRef.current,
+        currentDiaryCache?.syncedIds ?? diaryIdsRef.current,
       );
 
       if (hasLocalPending) {
         const syncedSignature = diarySignatureRef.current || diarySignature(merged);
-        saveDiarySnapshot(merged, syncedSignature, true, initialDiaryCache?.syncedIds ?? diaryIdsRef.current);
+        saveDiarySnapshot(merged, syncedSignature, true, currentDiaryCache?.syncedIds ?? diaryIdsRef.current);
         setDiaryEntries(merged);
       } else {
         const syncedDiary = forceSyncStatus<DiaryEntry>(merged, "synced");
@@ -1164,6 +1302,20 @@ export default function App() {
             console.warn("Supabase expense delete failed:", deleteError.message);
             return;
           }
+
+          // Remove the orphaned receipt photos from Storage too.
+          const removedReceiptPaths = requestRemovedIds
+            .map((id) => expenseReceiptPathsRef.current[id])
+            .filter((value): value is string => Boolean(value));
+          if (removedReceiptPaths.length > 0) {
+            const { error: receiptDeleteError } = await supabase.storage
+              .from(supabaseReceiptBucket)
+              .remove(removedReceiptPaths);
+            if (receiptDeleteError) {
+              console.warn("Supabase receipt photo delete failed:", receiptDeleteError.message);
+            }
+          }
+          requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; });
         }
 
         setExpenses((current) => {
@@ -1192,7 +1344,13 @@ export default function App() {
               return expense;
             }
 
-            return { ...expense, syncStatus: "synced" };
+            // Don't mark synced while the receipt photo is still uploading —
+            // the data: URL means receipt_path hasn't been saved to the DB yet.
+            // Do NOT set hasMismatch here: the receipt upload effect will re-mark
+            // the expense pending and trigger the next sync when it finishes.
+            if (isLocalReceiptUrl(expense.receiptUrl)) return expense;
+
+            return { ...expense, syncStatus: "synced" as const };
           });
 
           for (const requestExpense of requestExpenses) {
@@ -1226,6 +1384,100 @@ export default function App() {
       expenseSyncInFlightRef.current = false;
     };
   }, [expenses, expensesLoaded, authReady, session, isOnline, currentUser, expenseSyncNonce]);
+
+  // Keep a running map of expense id -> uploaded receipt path. We never drop
+  // entries here, so a just-deleted expense still has its path available for
+  // Storage cleanup in the sync delete branch below.
+  useEffect(() => {
+    for (const expense of expenses) {
+      if (expense.receiptPath) expenseReceiptPathsRef.current[expense.id] = expense.receiptPath;
+    }
+  }, [expenses]);
+
+  // Upload locally-attached receipt photos to Supabase Storage once we are
+  // online and signed in. Runs independently of the expense upsert engine: it
+  // only sets receiptPath/receiptUrl, and that field change lets the normal
+  // expense sync persist the path. Offline receipts stay as local data URLs in
+  // the cache and upload automatically when connectivity returns.
+  const receiptUploadInFlightRef = useRef<boolean>(false);
+  const receiptUploadFailedIdsRef = useRef<Set<string>>(new Set());
+
+  // Reset failed-receipt block when connectivity or auth changes so the user can
+  // recover by toggling airplane mode or signing out and back in.
+  useEffect(() => {
+    receiptUploadFailedIdsRef.current.clear();
+  }, [isOnline, session]);
+
+  useEffect(() => {
+    if (!supabase || !authReady || !session || !isOnline || !currentUser) return;
+    if (receiptUploadInFlightRef.current) return;
+
+    const pending = expenses.filter(
+      (expense) =>
+        isLocalReceiptUrl(expense.receiptUrl) &&
+        !receiptUploadFailedIdsRef.current.has(expense.id) &&
+        (currentUser.isAdmin || getExpenseOwnerId(expense) === currentUser.userId),
+    );
+    if (pending.length === 0) return;
+
+    receiptUploadInFlightRef.current = true;
+
+    void (async () => {
+      try {
+        const results = await Promise.all(
+          pending.map(async (expense) => {
+            try {
+              const ownerId = getExpenseOwnerId(expense) ?? currentUser.userId;
+              const path = expense.receiptPath ?? buildReceiptPath(expense.id, ownerId);
+              const blob = dataUrlToBlob(expense.receiptUrl as string);
+              const { error: uploadError } = await supabase.storage
+                .from(supabaseReceiptBucket)
+                .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: true });
+              if (uploadError) throw uploadError;
+              const { data: signed } = await supabase.storage
+                .from(supabaseReceiptBucket)
+                .createSignedUrl(path, 60 * 60 * 24 * 365);
+              return { id: expense.id, path, url: signed?.signedUrl, ok: true as const };
+            } catch (error) {
+              console.warn("Receipt upload failed:", error instanceof Error ? error.message : String(error));
+              receiptUploadFailedIdsRef.current.add(expense.id);
+              return { id: expense.id, ok: false as const };
+            }
+          }),
+        );
+
+        const uploaded = results.filter((result) => result.ok);
+        if (uploaded.length > 0) {
+          const byId = new Map(uploaded.map((result) => [result.id, result] as const));
+          setExpenses((current) =>
+            current.map((expense) => {
+              const result = byId.get(expense.id);
+              if (!result || !result.ok) return expense;
+              return {
+                ...expense,
+                receiptPath: result.path,
+                receiptUrl: result.url ?? expense.receiptUrl,
+                syncStatus: "pending" as const,
+              };
+            }),
+          );
+        }
+      } finally {
+        receiptUploadInFlightRef.current = false;
+      }
+    })();
+  }, [expenses, authReady, session, isOnline, currentUser]);
+
+  // On-demand signed URL for viewing a stored receipt (short-lived).
+  const getReceiptSignedUrl = async (path: string): Promise<string | null> => {
+    if (!supabase) return null;
+    const { data, error } = await supabase.storage.from(supabaseReceiptBucket).createSignedUrl(path, 60 * 60);
+    if (error) {
+      console.warn("Receipt signed URL failed:", error.message);
+      return null;
+    }
+    return data?.signedUrl ?? null;
+  };
 
   useEffect(() => {
     if (!checklistLoaded) return;
@@ -1324,7 +1576,7 @@ export default function App() {
               return item;
             }
 
-            return { ...item, syncStatus: "synced" };
+            return { ...item, syncStatus: "synced" as const };
           });
 
           for (const requestItem of requestChecklist) {
@@ -1539,7 +1791,7 @@ export default function App() {
 
               const { data: signedData, error: signedError } = await supabase.storage
                 .from(supabaseDiaryBucket)
-                .createSignedUrl(photoPath, 60 * 60);
+                .createSignedUrl(photoPath, 60 * 60 * 24 * 365);
 
               if (signedError) {
                 console.warn("Supabase diary photo sign URL failed:", signedError.message);
@@ -1727,21 +1979,6 @@ export default function App() {
   }, [isOnline, session]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setActiveRoute(routeFromPath(window.location.pathname));
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
     const navStandalone =
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
@@ -1762,51 +1999,7 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (isIosStandalonePwa) {
-      setShowNav(true);
-      return;
-    }
 
-    let timer: ReturnType<typeof setTimeout>;
-
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-
-      if (currentY < 10) {
-        setShowNav(true);
-      } else {
-        setShowNav(false);
-      }
-
-      clearTimeout(timer);
-      timer = setTimeout(() => setShowNav(true), 200);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(timer);
-    };
-  }, [isIosStandalonePwa]);
-
-  useEffect(() => {
-    if (isIosStandalonePwa) return;
-
-    if (showNav) {
-      requestAnimationFrame(() => {
-        const body = document.body;
-        const scrollY = window.scrollY;
-
-        body.style.minHeight = "calc(100vh + 1px)";
-        void body.offsetHeight;
-        body.style.minHeight = "";
-
-        window.scrollTo(0, scrollY);
-      });
-    }
-  }, [showNav, isIosStandalonePwa]);
 
   useEffect(() => {
     const check = () => setScreenSize(window.innerWidth < 768 ? "small" : "large");
@@ -1875,14 +2068,10 @@ export default function App() {
   }, [activeRoute]);
 
   const metadata = {
-    title: "J&A Malaysia · Singapore Trip 2026",
+    title: activeTrip?.headline ?? "J&A Malaysia · Singapore Trip 2026",
     description: itinerary.hero.subtitle,
   };
-  const normalizedTips = itinerary.tips.map((tip) => ({
-    ...tip,
-    icon: normalizeTipIcon(tip.icon),
-  }));
-
+  
   const formatPhp = (php: number) =>
     `PHP ${php.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
   const phpToRm = (php: number) =>
@@ -1926,8 +2115,32 @@ export default function App() {
     }
   };
 
+  const handleSaveTripProfile = async (incoming: TripProfile) => {
+    if (!supabase) return;
+    setIsSavingProfile(true);
+    try {
+      const row = profileToRow({ ...incoming, tripKey });
+      const { error } = await supabase
+        .from(supabaseTripProfileTable)
+        .upsert(row, { onConflict: "trip_key" });
+      if (error) {
+        console.error("trip_profile save failed:", error.message, error);
+      } else {
+        setTripProfile(rowToProfile(row as TripProfileRow));
+      }
+    } catch (e) {
+      console.error("trip_profile save exception:", e);
+    }
+    setIsSavingProfile(false);
+  };
+
   const handleSaveSettings = async (incoming: UserTripSettings) => {
-    if (!supabase || !session) return;
+    if (!supabase) {
+      throw new Error("Cloud sync isn't configured, so settings can't be saved right now.");
+    }
+    if (!session) {
+      throw new Error("Sign in first — trip settings are saved per account.");
+    }
 
     setIsSavingSettings(true);
     const nextSettings: UserTripSettings = {
@@ -1943,7 +2156,7 @@ export default function App() {
     if (error) {
       console.warn("Supabase user settings save failed:", error.message);
       setIsSavingSettings(false);
-      return;
+      throw new Error("Could not save settings. Check your connection and try again.");
     }
 
     setUserSettings(nextSettings);
@@ -1962,11 +2175,52 @@ export default function App() {
     setShowSettingsModal(true);
   };
 
+  const getIonContentForRoute = (routeKey = activeRoute) => {
+    const routeContent = contentRefs.current[routeKey];
+    if (routeContent) return routeContent;
+
+    return document.querySelector("ion-content.ja-ion-content") as HTMLIonContentElement | null;
+  };
+
+  const scrollContentToTop = (duration = 300, routeKey = activeRoute) => {
+    const content = getIonContentForRoute(routeKey);
+    const behavior: ScrollBehavior = duration > 0 ? "smooth" : "auto";
+
+    setShowScrollTop(false);
+    document.documentElement.classList.remove("nav-scrolled");
+
+    if (!content) {
+      window.scrollTo({ top: 0, behavior });
+      return;
+    }
+
+    if (content.scrollToPoint) {
+      void content.scrollToPoint(0, 0, duration);
+    } else if (content.scrollToTop) {
+      void content.scrollToTop(duration);
+    }
+
+    window.setTimeout(() => {
+      void content.getScrollElement?.().then((scrollElement) => {
+        if (scrollElement.scrollTop > 2) {
+          scrollElement.scrollTo({ top: 0, behavior });
+        }
+      });
+    }, duration + 60);
+  };
+
   const navigateTo = (path: string) => {
-    if (path === activeRoute) return;
-    window.history.pushState({}, "", path);
-    setActiveRoute(routeFromPath(path));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const normalizedPath = routeFromPath(path);
+    if (normalizedPath === activeRoute) {
+      scrollContentToTop(250, normalizedPath);
+      return;
+    }
+
+    history.push(path);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollContentToTop(250, normalizedPath));
+    });
   };
 
   const handleShareTrip = async () => {
@@ -1991,433 +2245,376 @@ export default function App() {
     window.print();
   };
 
-  const canUsePullRefresh = () =>
-    typeof window !== "undefined"
-    && window.innerWidth < 768
-    && window.scrollY <= 0
-    && !showAuthModal
-    && !isRefreshing;
+  useEffect(() => {
+    const cleanup = installKeyboardClass();
+    return () => {
+      cleanup?.();
+    };
+  }, []);
 
-  const resetPullRefresh = () => {
-    pullStartYRef.current = null;
-    isPullingRef.current = false;
-    setPullDistance(0);
+  const handleIonRefresh = (event: CustomEvent) => {
+    window.setTimeout(() => {
+      window.location.reload();
+      (event.detail as { complete: () => void }).complete();
+    }, 600);
   };
 
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1 || !canUsePullRefresh()) return;
-    pullStartYRef.current = event.touches[0].clientY;
-    isPullingRef.current = true;
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!isPullingRef.current || pullStartYRef.current == null) return;
-
-    const rawDistance = event.touches[0].clientY - pullStartYRef.current;
-    if (rawDistance <= 0) {
-      setPullDistance(0);
-      return;
-    }
-
-    const nextDistance = Math.min(PULL_REFRESH_MAX, rawDistance * 0.55);
-    if (nextDistance > 12) {
-      event.preventDefault();
-    }
-    setPullDistance(nextDistance);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isPullingRef.current) return;
-
-    const shouldRefresh = pullDistance >= PULL_REFRESH_TRIGGER;
-    if (shouldRefresh) {
-      setIsRefreshing(true);
-      setPullDistance(PULL_REFRESH_TRIGGER);
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 180);
-      return;
-    }
-
-    resetPullRefresh();
-  };
 
   const mobileAccountCard = session ? (
-    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
-          <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#7ec96b]/40 bg-[#7ec96b]/20 text-[14px] font-semibold text-[#7ec96b]">
-                JA
-              </div>
-              <div className="min-w-0">
-            <div className="text-[14px] font-medium text-[#1a3328]">Jessie Jayr</div>
-            <div className="truncate text-[14px] text-[#888]">{session.user.email ?? "Signed in"}</div>
-              </div>
-            </div>
-
-            <div className="mt-3 border-t border-[#eee] pt-2">
-              <button
-                type="button"
-                onClick={handleShareTrip}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
-              >
-                <Share2 size={14} />
-                Share trip
-              </button>
-              <button
-                type="button"
-                onClick={handleMobilePrint}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#555]"
-              >
-                <Printer size={14} />
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="flex w-full items-center gap-2 py-1.5 text-[14px] text-[#d94f4f]"
-              >
-                <LogOut size={14} />
-                Log out
-              </button>
+    <section className="ja-app-mobile-card">
+      <div className="ja-app-mobile-card-inner">
+        <div className="ja-app-mobile-user-row">
+          <div className="ja-app-mobile-avatar">JA</div>
+          <div className="ja-app-mobile-user-info">
+            <div className="ja-app-mobile-user-name">Jessie Jayr</div>
+            <div className="ja-app-mobile-user-email">{session.user.email ?? "Signed in"}</div>
+          </div>
+        </div>
+        <div className="ja-app-mobile-actions">
+          <button type="button" onClick={handleShareTrip} className="ja-app-mobile-action"><Share2 size={14} />Share trip</button>
+          <button type="button" onClick={handleMobilePrint} className="ja-app-mobile-action"><Printer size={14} />Print</button>
+          <button type="button" onClick={handleSignOut} className="ja-app-mobile-action ja-app-mobile-action-danger"><LogOut size={14} />Log out</button>
         </div>
       </div>
     </section>
   ) : (
-    <section className="md:hidden max-w-7xl mx-auto px-4 pt-4 pb-4 no-print">
-      <div className="rounded-[10px] border border-[#ddd] bg-white p-3 shadow-sm">
-        <div className="text-[13px] font-medium text-[#1a3328]">Not signed in</div>
-        <div className="mt-1 text-[13px] text-[#888]">Use the Login button above to sync your trip data.</div>
-        <button
-          type="button"
-          onClick={() => setShowAuthModal(true)}
-          className="mt-3 inline-flex items-center justify-center rounded-full bg-[#0B3530] px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C]"
-        >
+    <section className="ja-app-mobile-card">
+      <div className="ja-app-mobile-card-inner">
+        <div className="ja-app-mobile-not-signed">Not signed in</div>
+        <div className="ja-app-mobile-hint">Use the Login button above to sync your trip data.</div>
+        <button type="button" onClick={() => setShowAuthModal(true)} className="ja-app-mobile-login-btn">
           Log in
         </button>
       </div>
     </section>
   );
 
-  const shouldRenderMobileBottomNav = screenSize === "small";
+  const renderSiteFooter = () => (
+    <footer className="ja-app-footer">
+      <div className="ja-app-footer-grid">
+        <div>
+          <h3 className="ja-app-footer-title">Curating unforgettable Asian experiences.</h3>
+          <p className="ja-app-footer-text">{itinerary.footer}</p>
+        </div>
+        <div className="ja-app-footer-nav-col">
+          <div>
+            <h4 className="ja-app-footer-heading">Navigation</h4>
+            <ul className="ja-app-footer-links">
+              <li><button onClick={() => navigateTo("/")} className="ja-app-footer-link">Daily Itinerary</button></li>
+              <li><button onClick={() => navigateTo("/budget")} className="ja-app-footer-link">Budget Breakdown</button></li>
+              <li><button onClick={() => navigateTo("/map")} className="ja-app-footer-link">Travel Map</button></li>
+              <li><button onClick={() => navigateTo("/notes")} className="ja-app-footer-link">Custom Notes & Rules</button></li>
+              <li><button onClick={() => navigateTo("/diary")} className="ja-app-footer-link">Travel Diary</button></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="ja-app-footer-heading">Resources</h4>
+            <ul className="ja-app-footer-links">
+              <li><span className="ja-app-footer-muted">Transport Guide</span></li>
+              <li><span className="ja-app-footer-muted">Dining Notes</span></li>
+              <li><span className="ja-app-footer-muted">Safety Tips</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div className="ja-app-footer-bottom">
+        <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
+        <div className="ja-app-footer-legal">
+          <span className="ja-app-footer-legal-link">Privacy</span>
+          <span className="ja-app-footer-legal-link">Support</span>
+          <span className="ja-app-footer-legal-link">Terms</span>
+        </div>
+      </div>
+    </footer>
+  );
 
-  const mobileBottomNavTransformClass = isIosStandalonePwa
-    ? "translate-y-0"
-    : showNav
-      ? "translate-y-0"
-      : "translate-y-full";
+  const renderPage = (
+    children: React.ReactNode,
+    options?: { className?: string; routeKey?: string; showFooter?: boolean }
+  ) => {
+    const routeKey = options?.routeKey ?? activeRoute;
+
+    return (
+    <IonPage>
+      <IonContent
+        ref={(content) => {
+          contentRefs.current[routeKey] = content;
+        }}
+        fullscreen
+        scrollY={true}
+        scrollEvents={true}
+        className="ja-ion-content"
+        onIonScroll={(event) => {
+          if (routeKey !== activeRoute) return;
+          const top = event.detail.scrollTop;
+          setShowScrollTop(top > 400);
+          document.documentElement.classList.toggle("nav-scrolled", top > 60);
+        }}
+      >
+        <div className={`ja-page-frame ${options?.className ?? ""}`}>
+          <IonRefresher
+            slot="fixed"
+            pullMin={130}
+            pullMax={220}
+            onIonRefresh={handleIonRefresh}
+          >
+            <IonRefresherContent
+              pullingText="Pull down to refresh"
+              refreshingSpinner="crescent"
+              refreshingText="Refreshing…"
+            />
+          </IonRefresher>
+
+          <div className="ja-content-offset">
+            <main className="ja-app-main">
+              <IonGrid fixed className="ja-page-grid">
+                <IonRow className="ja-page-row">
+                  <IonCol size="12" className="ja-page-col">
+                    {children}
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
+            </main>
+            {options?.showFooter === false ? null : renderSiteFooter()}
+          </div>
+        </div>
+      </IonContent>
+    </IonPage>
+    );
+  };
 
   return (
-    <div
-      className="flex min-h-[100dvh] flex-col bg-stone-50 text-stone-850 selection:bg-[#88B04B]/35 selection:text-[#0b3530]"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-    >
-        <div
-          className={`pointer-events-none fixed left-1/2 top-0 z-[1600] -translate-x-1/2 transition-all duration-200 md:hidden ${
-            pullDistance > 0 || isRefreshing ? "opacity-100" : "opacity-0"
-          }`}
-          style={{
-            transform: `translateX(-50%) translateY(${Math.max(8, pullDistance - 46)}px) scale(${pullUiScale})`,
-          }}
-        >
-          <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0A84FF]/10 text-[#0A84FF]">
-              {isRefreshing ? (
-                <Loader2 size={13} className="animate-spin" strokeWidth={2.2} />
-              ) : (
-                <RefreshCw
-                  size={13}
-                  strokeWidth={2.2}
-                  className="transition-transform duration-150"
-                  style={{
-                    transform: `rotate(${pullProgress * 180}deg)`,
-                  }}
+    <>
+      <Navigation
+        activeTab={activeRoute}
+        setActiveTab={navigateTo}
+        metadata={metadata}
+        session={session}
+        isOnline={isOnline}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenSettings={handleOpenSettings}
+        onSignOut={handleSignOut}
+        expenses={expenses}
+        screenSize={screenSize}
+        tripProfile={tripProfile}
+      />
+
+      <IonTabs>
+        <IonRouterOutlet>
+          <Route exact path="/account">
+            {renderPage(mobileAccountCard, { routeKey: "/account", showFooter: false })}
+          </Route>
+          <Route exact path="/">
+            {renderPage(
+              <div className="ja-app-fade-in">
+                <div className="home-hero-section">
+                  <Hero hero={itinerary.hero} />
+                  <Legend items={itinerary.legend} />
+                </div>
+                <DailyItineraryView
+                  days={itinerary.days}
+                  onInfoClick={handleOpenGuide}
+                  selectedMobileDay={selectedHomeDay}
+                  onSelectedMobileDayChange={setSelectedHomeDay}
                 />
-              )}
-            </div>
-            <span className="text-[11px] font-medium tracking-[0.01em] text-stone-700">
-              {isRefreshing ? "Refreshing" : pullCanRefresh ? "Release to refresh" : "Pull to refresh"}
-            </span>
-          </div>
-        </div>
-        <Navigation
-          activeTab={activeRoute}
-          setActiveTab={navigateTo}
-          metadata={metadata}
-          session={session}
-          isOnline={isOnline}
-          onOpenAuth={() => setShowAuthModal(true)}
-          onOpenSettings={handleOpenSettings}
-          onSignOut={handleSignOut}
-          expenses={expenses}
-          screenSize={screenSize}
-        />
+                <BudgetSummaryHeader
+                  cards={itinerary.budgetSummary}
+                  expenses={expenses}
+                  showLiveSpends={showLiveSpends}
+                  setShowLiveSpends={setShowLiveSpends}
+                  exchangeRates={exchangeRates}
+                  userSettings={userSettings}
+                  selectedMobileDay={selectedHomeDay}
+                  onSelectedMobileDayChange={setSelectedHomeDay}
+                />
+                <AlertBox alert={itinerary.alert} />
 
-        <div className="flex-1 min-h-0 pt-[calc(112px+env(safe-area-inset-top,0px))] md:pt-[calc(128px+env(safe-area-inset-top,0px))]">
-          <main
-            className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0"
-            style={pullDistance > 0 ? {
-              transform: `translate3d(0, ${pullDistance * 0.28}px, 0)`,
-              transition: isPullingRef.current ? "none" : "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-              willChange: "transform",
-            } : undefined}
-          >
-          {activeRoute === "/account" && mobileAccountCard}
-        {activeRoute === "/" && (
-          <div className="animate-in fade-in duration-300">
-            <div className="home-hero-section">
-              <Hero hero={itinerary.hero} />
-              <Legend items={itinerary.legend} />
-            </div>
-            <DailyItineraryView
-              days={itinerary.days}
-              onInfoClick={handleOpenGuide}
-              selectedMobileDay={selectedHomeDay}
-              onSelectedMobileDayChange={setSelectedHomeDay}
-            />
-            <BudgetSummaryHeader
-              cards={itinerary.budgetSummary}
-              expenses={expenses}
-              showLiveSpends={showLiveSpends}
-              setShowLiveSpends={setShowLiveSpends}
-              exchangeRates={exchangeRates}
-              userSettings={userSettings}
-              selectedMobileDay={selectedHomeDay}
-              onSelectedMobileDayChange={setSelectedHomeDay}
-            />
-            <AlertBox alert={itinerary.alert} />
-
-            <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 no-print">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">Trip Tips</h3>
-                  <p className="mt-1 text-[14px] font-sans text-stone-500">
-                    Code 1's itinerary reminders, folded into Code 2's visual system.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {normalizedTips.map((tip, index) => (
-                  <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
-                ))}
-              </div>
-            </section>
-
-            <section className="bg-stone-100/50 border-t border-b border-stone-200/50 py-12 px-4 md:px-8 no-print">
-              <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-10">
-                  <h3 className="text-xl md:text-2xl font-serif font-bold text-[#0B3530]">
-                    Pro-Traveler Insights
-                  </h3>
-                  <p className="text-[14px] text-stone-500 font-sans mt-1">
-                    Smart hacks and safety strategies recommended by our logistics team
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <CreditCard size={20} />
+                {itinerary.tips.length > 0 && (
+                  <section className="ja-app-section">
+                    <div className="ja-app-section-header"><div><h3 className="ja-app-section-title">Trip Tips</h3><p className="ja-app-section-desc">Code 1's itinerary reminders, folded into Code 2's visual system.</p></div></div>
+                    <div className="ja-app-tips-grid">
+                      {itinerary.tips.map((tip, index) => (
+                        <TipCard key={`${tip.icon}-${index}`} tip={tip as TipCardData} />
+                      ))}
                     </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Touch 'n Go Card</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <Ticket size={20} />
-                    </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Advance Booking</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.
-                    </p>
-                  </div>
-
-                  <div className="bg-white rounded-xl border border-stone-100 p-6 shadow-2xs hover:shadow-xs transition-shadow flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B3530] text-[#88B04B] flex items-center justify-center mb-4">
-                      <Utensils size={20} />
-                    </div>
-                    <h4 className="text-sm font-semibold font-serif text-stone-800 mb-2">Street Food Strategy</h4>
-                    <p className="text-[14px] text-stone-500 font-sans leading-relaxed">
-                      At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 no-print">
-              <div
-                onClick={() => navigateTo("/map")}
-                className="relative cursor-pointer overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[16/5] bg-stone-100 border border-stone-200 flex flex-col items-center justify-center group shadow-xs hover:border-[#88B04B]/60 transition-all text-center p-6"
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
-
-                <div className="absolute top-[20%] left-[30%] w-3 h-3 rounded-full bg-stone-300"></div>
-                <div className="absolute top-[50%] left-[70%] w-3 h-3 rounded-full bg-[#88B04B]/60"></div>
-                <div className="absolute top-[30%] left-[60%] w-3 h-3 rounded-full bg-[#0B3530]/40"></div>
-                <div className="absolute top-[70%] left-[25%] w-3 h-3 rounded-full bg-stone-400"></div>
-
-                <div className="relative bg-white/95 backdrop-blur-sm rounded-xl py-4 px-6 md:px-8 border border-stone-100 max-w-sm shadow-sm group-hover:scale-105 transition-transform duration-300">
-                  <Compass className="text-[#0B3530] mx-auto mb-2 animate-spin-slow" size={24} />
-                  <h4 className="text-sm font-serif font-black text-stone-800 tracking-tight">Explore Kuala Lumpur</h4>
-                  <p className="text-[13px] font-mono tracking-widest text-[#88B04B] font-bold mt-1 uppercase">
-                    INTERACTIVE MAP NOW ACTIVE
-                  </p>
-                  <p className="text-[13px] text-stone-400 font-sans mt-1">Click to browse custom plotted transit markers</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {activeRoute === "/budget" && (
-           <BudgetTab
-            expenses={expenses}
-            setExpenses={setExpenses}
-            isSupabaseConnected={Boolean(supabase && session)}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-            exchangeRates={exchangeRates}
-            budgetCapPhp={budgetCapPhp}
-            userSettings={userSettings}
-          />
-        )}
-        {activeRoute === "/map" && <MapTab session={session} canEdit={Boolean(session)} isOnline={isOnline} userSettings={userSettings} currentUser={currentUser} />}
-        {activeRoute === "/notes" && (
-          <NotesTab
-            notes={notes}
-            setNotes={setNotes}
-            checklist={checklist}
-            setChecklist={setChecklist}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-          />
-        )}
-        {activeRoute === "/diary" && (
-          <DiaryTab
-            diaryEntries={diaryEntries}
-            setDiaryEntries={setDiaryEntries}
-            isOnline={isOnline}
-            canEdit={Boolean(session)}
-            currentUser={currentUser}
-          />
-        )}
-        {activeRoute === "/settings" && (
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-            <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs">
-              <h2 className="text-lg font-serif font-bold text-[#0B3530] mb-6">Settings</h2>
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="text-sm font-semibold text-stone-600">Budget Cap</span>
-                  <span className="text-[11px] text-stone-400 ml-2">0 = no cap</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm font-mono text-stone-500">PHP</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="500"
-                      value={budgetCapPhp || ""}
-                      placeholder="No cap"
-                      onChange={(e) => {
-                        const php = Math.max(0, Number(e.target.value) || 0);
-                        setBudgetCapPhp(php);
-                      }}
-                      className="w-36 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
-                    />
-                    <span className="text-[11px] text-emerald-600 font-medium">Auto-saved</span>
-                  </div>
-                  {budgetCapPhp > 0 && (
-                    <p className="mt-1 text-[11px] text-stone-400">
-                      = {phpToRm(budgetCapPhp)}
-                      {exchangeRates.source === "live" ? (
-                        <span className="text-emerald-600">live rate</span>
-                      ) : exchangeRates.source === "cached" ? (
-                        <span className="text-sky-600">cached rate</span>
-                      ) : (
-                        <span className="text-amber-600">static rate</span>
-                      )}
-                    </p>
-                  )}
-                </label>
-                {!session && (
-                  <p className="text-[11px] text-amber-600">Sign in to sync cap across devices. Currently saved to this device only.</p>
+                  </section>
                 )}
-                <p className="text-[11px] text-stone-400">
-                  When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-                  {budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-          </main>
-        </div>
 
-        {shouldRenderMobileBottomNav && (
-        <footer
-          className={`mobile-bottom-nav no-print fixed inset-x-0 bottom-0 z-[1200] border-t border-white/8 bg-[#122820] pb-[calc(0.55rem+env(safe-area-inset-bottom,0px))] ${
-            isIosStandalonePwa ? "" : "transition-transform duration-300"
-          } ${mobileBottomNavTransformClass}`}
-        >
-          <div className="grid grid-cols-5 gap-2 px-3 pt-2">
-            <button
-              onClick={() => navigateTo("/")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/" ? "bg-white/18" : "bg-white/8"}`}>
-                <CalendarDays size={16} />
-              </span>
-              <span>Itinerary</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/budget")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/budget" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/budget" ? "bg-white/18" : "bg-white/8"}`}>
-                <Wallet size={16} />
-              </span>
-              <span>Budget</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/map")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/map" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/map" ? "bg-white/18" : "bg-white/8"}`}>
-                <MapIcon size={16} />
-              </span>
-              <span>Map</span>
-            </button>
-            <button
-              onClick={() => navigateTo("/notes")}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/notes" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/notes" ? "bg-white/18" : "bg-white/8"}`}>
-                <NotebookText size={16} />
-              </span>
-              <span>Notes</span>
-            </button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("open-more-drawer"))}
-              className={`flex flex-col items-center gap-[2px] py-[4px] text-[10px] transition-colors ${activeRoute === "/diary" ? "text-white" : "text-white/50"}`}
-            >
-              <span className={`flex items-center justify-center rounded-lg p-1.5 ${activeRoute === "/diary" ? "bg-white/18" : "bg-white/8"}`}>
-                <Menu size={16} />
-              </span>
-              <span>More</span>
-            </button>
-          </div>
-        </footer>
-        )}
+                {activeTrip?.slug === "mysg" && (
+                  <section className="ja-app-insights">
+                    <div className="ja-app-insights-inner">
+                      <div className="ja-app-insights-header"><h3 className="ja-app-section-title">Pro-Traveler Insights</h3><p className="ja-app-section-desc">Smart hacks and safety strategies recommended by our logistics team</p></div>
+                      <div className="ja-app-insights-grid">
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><CreditCard size={20} /></div><h4 className="ja-app-insight-title">Touch 'n Go Card</h4><p className="ja-app-section-desc">The essential card for all transit. Buy at KL Sentral for seamless boarding and discounted fares.</p></div>
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Ticket size={20} /></div><h4 className="ja-app-insight-title">Advance Booking</h4><p className="ja-app-section-desc">Malacca buses fill quickly on Sundays. Use BusOnlineTicket.com to secure your 8 AM slot.</p></div>
+                        <div className="ja-app-insight-card"><div className="ja-app-insight-icon"><Utensils size={20} /></div><h4 className="ja-app-insight-title">Street Food Strategy</h4><p className="ja-app-section-desc">At Jalan Alor, stick to grilled skewers and local satay. Avoid the overpriced seafood platters.</p></div>
+                      </div>
+                    </div>
+                  </section>
+                )}
 
-        <AuthPanel
+                <section className="ja-app-section">
+                  <div onClick={() => navigateTo("/map")} className="ja-app-map-card">
+                    <div className="ja-app-map-dots" />
+                    <div className="ja-app-map-dot ja-app-map-dot-1" /><div className="ja-app-map-dot ja-app-map-dot-2" /><div className="ja-app-map-dot ja-app-map-dot-3" /><div className="ja-app-map-dot ja-app-map-dot-4" />
+                    <div className="ja-app-map-card-inner">
+                      <Compass className="ja-app-compass" size={24} />
+                      <h4 className="ja-app-map-card-title">Explore {activeTrip?.slug === "khaoshiong" ? "Kaohsiung" : "Kuala Lumpur"}</h4>
+                      <p className="ja-app-map-card-badge">INTERACTIVE MAP NOW ACTIVE</p>
+                      <p className="ja-app-map-card-desc">Click to browse custom plotted transit markers</p>
+                    </div>
+                  </div>
+                </section>
+              </div>,
+              { routeKey: "/" }
+            )}
+          </Route>
+          <Route exact path="/budget">
+            {renderPage(
+              <BudgetTab
+                expenses={expenses}
+                setExpenses={setExpenses}
+                isSupabaseConnected={Boolean(supabase && session)}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+                exchangeRates={exchangeRates}
+                budgetCapPhp={budgetCapPhp}
+                userSettings={userSettings}
+                getReceiptSignedUrl={getReceiptSignedUrl}
+              />,
+              { routeKey: "/budget" }
+            )}
+          </Route>
+          <Route exact path="/map">
+            {renderPage(
+              <MapTab
+                session={session}
+                canEdit={Boolean(session)}
+                isOnline={isOnline}
+                isActive={activeRoute === "/map"}
+                userSettings={userSettings}
+                currentUser={currentUser}
+              />,
+              { className: "ja-map-page-frame", routeKey: "/map", showFooter: false }
+            )}
+          </Route>
+          <Route exact path="/notes">
+            {renderPage(
+              <NotesTab
+                notes={notes}
+                setNotes={setNotes}
+                checklist={checklist}
+                setChecklist={setChecklist}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+              />,
+              { routeKey: "/notes" }
+            )}
+          </Route>
+          <Route exact path="/diary">
+            {renderPage(
+              <DiaryTab
+                diaryEntries={diaryEntries}
+                setDiaryEntries={setDiaryEntries}
+                isOnline={isOnline}
+                canEdit={Boolean(session)}
+                currentUser={currentUser}
+                onRetryPhotoUpload={() => {
+                  diaryPhotoRetryBlockRef.current = "";
+                  setDiarySyncNonce((v) => v + 1);
+                }}
+              />,
+              { routeKey: "/diary" }
+            )}
+          </Route>
+          <Route exact path="/settings">
+            {renderPage(
+              <div className="ja-app-settings-wrap">
+                <div className="ja-app-settings-card">
+                  <h2 className="ja-app-settings-title">Settings</h2>
+                  <div className="ja-app-settings-body">
+                    <label className="ja-app-settings-block">
+                      <span className="ja-app-settings-field-label">Budget Cap</span>
+                      <span className="ja-app-settings-hint">0 = no cap</span>
+                      <div className="ja-app-settings-cap-row">
+                        <span className="ja-app-settings-currency">PHP</span>
+                        <input type="number" min="0" step="500" value={budgetCapPhp || ""} placeholder="No cap"
+                          onChange={(e) => { const php = Math.max(0, Number(e.target.value) || 0); setBudgetCapPhp(php); }}
+                          className="ja-app-settings-input" />
+                        <span className="ja-app-settings-auto">Auto-saved</span>
+                      </div>
+                      {budgetCapPhp > 0 && <p className="ja-app-settings-conversion">= {phpToRm(budgetCapPhp)}<span className={`ja-app-rate ${exchangeRates.source === "live" ? "ja-app-rate-live" : exchangeRates.source === "cached" ? "ja-app-rate-cached" : "ja-app-rate-static"}`}>{exchangeRates.source === "live" ? "live rate" : exchangeRates.source === "cached" ? "cached rate" : "static rate"}</span></p>}
+                    </label>
+                    {!session && <p className="ja-app-settings-warning">Sign in to sync cap across devices. Currently saved to this device only.</p>}
+                    <p className="ja-app-settings-helper">When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.{budgetCapPhp > 0 && <> Currently capped at <strong>{formatPhp(budgetCapPhp)}</strong>.</>}</p>
+                  </div>
+                </div>
+              </div>,
+              { routeKey: "/settings" }
+            )}
+          </Route>
+          <Route exact path="/pdf-editor">
+            {renderPage(
+              <PdfEditorPage
+                tripProfile={tripProfile}
+                onSave={handleSaveTripProfile}
+                isSaving={isSavingProfile}
+                onBack={() => navigateTo("/")}
+              />,
+              { routeKey: "/pdf-editor" }
+            )}
+          </Route>
+          <Route exact path="/itinerary-plus">
+            {renderPage(
+              <ItineraryPlusTab
+                tripProfile={tripProfile}
+                onSave={handleSaveTripProfile}
+                isSaving={isSavingProfile}
+                canEdit={Boolean(session)}
+              />,
+              { routeKey: "/itinerary-plus" }
+            )}
+          </Route>
+          <Redirect to="/" />
+        </IonRouterOutlet>
+
+        <IonTabBar slot="bottom" className="ja-ion-tab-bar no-print">
+          <IonTabButton tab="itinerary" href="/" onClick={(event) => { event.preventDefault(); navigateTo("/"); }}>
+            <IonIcon icon={calendarOutline} />
+            <IonLabel>Itinerary</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="itinerary-plus" href="/itinerary-plus" onClick={(event) => { event.preventDefault(); navigateTo("/itinerary-plus"); }}>
+            <IonIcon icon={gridOutline} />
+            <IonLabel>Itinerary+</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="budget" href="/budget" onClick={(event) => { event.preventDefault(); navigateTo("/budget"); }}>
+            <IonIcon icon={walletOutline} />
+            <IonLabel>Budget</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="map" href="/map" onClick={(event) => { event.preventDefault(); navigateTo("/map"); }}>
+            <IonIcon icon={mapOutline} />
+            <IonLabel>Map</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="diary" href="/diary" onClick={(event) => { event.preventDefault(); navigateTo("/diary"); }}>
+            <IonIcon icon={bookOutline} />
+            <IonLabel>Diary</IonLabel>
+          </IonTabButton>
+          <IonTabButton
+            tab="more"
+            onClick={(event) => {
+              event.preventDefault();
+              window.dispatchEvent(new CustomEvent("open-more-drawer"));
+            }}
+          >
+            <IonIcon icon={menuOutline} />
+            <IonLabel>More</IonLabel>
+          </IonTabButton>
+        </IonTabBar>
+      </IonTabs>
+
+      <AuthPanel
         open={showAuthModal}
         title={session ? "Manage your account" : "Sign in to sync your trip"}
         description={session ? "Your cloud sync is active for budget, checklist, notes, map, and diary data." : "Choose Google, GitHub, or Facebook to enable shared budget, checklist, notes, map, and diary sync."}
@@ -2429,50 +2626,6 @@ export default function App() {
         onSignOut={handleSignOut}
         isConfigured={hasSupabaseConfig}
       />
-
-      <footer className="bg-[#041D1A] text-stone-400 py-14 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] px-4 md:px-8 md:pb-14 border-t border-[#0B3530] no-print">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-[18px] font-serif font-bold text-white leading-tight mt-2 max-w-xs">
-              Curating unforgettable Asian experiences.
-            </h3>
-            <p className="text-[14px] text-stone-500 font-sans leading-relaxed mt-4 max-w-xs">
-              {itinerary.footer}
-            </p>
-          </div>
-
-          <div className="md:col-span-2 grid grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Navigation</h4>
-              <ul className="space-y-2 text-[14px] font-sans">
-                <li><button onClick={() => navigateTo("/")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Daily Itinerary</button></li>
-                <li><button onClick={() => navigateTo("/budget")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Budget Breakdown</button></li>
-                <li><button onClick={() => navigateTo("/map")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Map</button></li>
-                <li><button onClick={() => navigateTo("/notes")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Custom Notes & Rules</button></li>
-                <li><button onClick={() => navigateTo("/diary")} className="hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer text-[#9CA3AF]">Travel Diary</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-[14px] font-bold text-white uppercase tracking-wider font-mono mb-4">Resources</h4>
-              <ul className="space-y-2 text-[14px] font-sans">
-                <li><span className="text-stone-400">Transport Guide</span></li>
-                <li><span className="text-stone-400">Dining Notes</span></li>
-                <li><span className="text-stone-400">Safety Tips</span></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto border-t border-[#0B3530] mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center text-[12px] font-mono text-stone-500">
-          <span>(c) 2026 Jessie & Amor. All rights reserved.</span>
-          <div className="flex gap-4 mt-2 sm:mt-0 font-sans">
-            <span className="hover:text-stone-400">Privacy</span>
-            <span className="hover:text-stone-400">Support</span>
-            <span className="hover:text-stone-400">Terms</span>
-          </div>
-        </div>
-      </footer>
 
       <DestinationInfoModal guide={selectedGuide} onClose={() => setSelectedGuide(null)} />
 
@@ -2501,21 +2654,45 @@ export default function App() {
               ? "cached rate"
               : "static rate"
         }
+        onOpenPdfEditor={() => {
+          setShowSettingsModal(false);
+          navigateTo("/pdf-editor");
+        }}
       />
 
       <button
         type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        onClick={() => scrollContentToTop(300)}
         aria-label="Scroll to top"
-        className={`fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[1300] flex h-10 w-10 items-center justify-center rounded-full bg-[#0B3530] text-white shadow-lg transition-all duration-300 hover:bg-[#18534C] ${
-          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
-        }`}
+        className={`ja-app-scroll-btn${showScrollTop ? " ja-app-scroll-visible" : ""}`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 15l-6-6-6 6"/>
         </svg>
       </button>
-    </div>
+    </>
+  );
+}
+
+export default function App() {
+  // No trip selected in the URL -> show the trip picker landing page.
+  if (!activeTrip) {
+    return (
+      <IonApp>
+        <TripPicker />
+      </IonApp>
+    );
+  }
+
+  // Mount the whole itinerary app under the active trip's URL prefix
+  // (/mysg or /khaoshiong) so every inner route stays relative.
+  return (
+    <IonApp>
+      {/* @ts-expect-error IonReactRouterProps children type gap with React 19 JSX */}
+      <IonReactRouter basename={activeTrip.routeBase}>
+        <AppShell />
+      </IonReactRouter>
+    </IonApp>
   );
 }
 

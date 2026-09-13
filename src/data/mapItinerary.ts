@@ -1,5 +1,6 @@
 import type { ItineraryItem } from "../types";
 import type { SyncStatus } from "../types";
+import { activeTrip } from "../lib/activeTrip";
 
 export interface MapDestination {
   id: string;
@@ -228,6 +229,7 @@ export const buildInitialMapItinerary = (): MapItineraryData => ({
       label: "July 13",
       title: "Batu Caves, Genting and Jalan Alor",
       destinations: [
+        { id: "13-0", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "05:15 AM", notes: "Start the day at Travelodge before heading out to Batu Caves and Genting Highlands." },
         { id: "13-1", name: "Restoran Yusoof Dan Zakhir Kuala Lumpur", lat: 3.1432, lng: 101.6983, time: "05:30 AM", notes: "Step out of Travelodge to Restoran Yusoof Dan Zakhir right next door. Grab a quick, hot Roti Canai and Teh Tarik to fuel up." },
         { id: "13-2", name: "Pasar Seni LRT Station", lat: 3.1319, lng: 101.6957, time: "05:50 AM", notes: "Walk right behind your hotel into Pasar Seni LRT Station. Take the Kelana Jaya Line 1 stop to KL Sentral (approx. 3 minutes)." },
         { id: "13-3", name: "KL Sentral Station", lat: 3.1344, lng: 101.6865, time: "06:00 AM", notes: "Tap out of the LRT gates at KL Sentral and follow the blue overhead signs pointing to the KTM Komuter departure gates. Buy a cash token or tap your Touch 'n Go card at the turnstiles for the Batu Caves Line." },
@@ -241,6 +243,7 @@ export const buildInitialMapItinerary = (): MapItineraryData => ({
         { id: "13-11", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "05:45 PM", notes: "Rest." },
         { id: "13-12", name: "Jalan Alor Kuala Lumpur", lat: 3.1456, lng: 101.7088, time: "07:00 PM", notes: "How to get there: A quick Grab or MRT ride down to Bukit Bintang Station. The Experience: The 500-meter stretch is in full swing by now under a canopy of glowing red lanterns. It is loud, high-energy, and smells amazing. Sit down at one of the busy, plastic-table stalls for an incredible street seafood dinner." },
         { id: "13-13", name: "Bukit Bintang MRT Station", lat: 3.1492, lng: 101.7143, time: "09:00 PM", notes: "Return to Pasar Seni via MRT for a well-deserved, deep sleep." },
+        { id: "13-14", name: "Travelodge KL City Centre", lat: 3.1439720747976154, lng: 101.6955623684415, time: "09:20 PM", notes: "Arrive back at Travelodge to end the day." },
       ],
     },
     {
@@ -324,6 +327,88 @@ export const buildEmptyMapItinerary = (): MapItineraryData => ({
   }),
 });
 
+const buildKaohsiungMapItinerary = (): MapItineraryData => ({
+  version: MAP_ITINERARY_VERSION,
+  updatedAt: new Date().toISOString(),
+  days: [
+    {
+      day: 17,
+      label: "October 17",
+      title: "Day 1 - October 17 - Arrival",
+      destinations: [
+        { id: "17-1", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "7:30 PM", notes: "Land, clear immigration, collect bags." },
+        { id: "17-2", name: "Sanduo Shopping District MRT Station", lat: 22.6103, lng: 120.3020, time: "8:00 PM", notes: "Red Line from the airport (R4), ~15 min, no transfers." },
+        { id: "17-3", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:20 PM", notes: "~10 min walk from the station. Check in for the whole trip, Oct 17-21." },
+      ],
+    },
+    {
+      day: 18,
+      label: "October 18",
+      title: "Day 2 - October 18 - Cijin Island",
+      destinations: [
+        { id: "18-1", name: "Gushan Ferry Pier", lat: 22.6224, lng: 120.2664, time: "8:30 AM", notes: "Take the ferry across to Cijin Island from here." },
+        { id: "18-2", name: "Alien Art Center", lat: 22.6236, lng: 120.2679, time: "9:00 AM", notes: "Right by the Gushan ferry pier, worth doing before crossing." },
+        { id: "18-3", name: "British Consulate at Takao", lat: 22.6215, lng: 120.2657, time: "9:45 AM", notes: "On the Gushan/Sizihwan side overlooking the harbor mouth, not on Cijin itself." },
+        { id: "18-4", name: "Cijin Old Street", lat: 22.6167, lng: 120.2717, time: "10:45 AM", notes: "Lunch stop here — non-seafood noodles, buns, local snacks." },
+        { id: "18-5", name: "Cijin Tianhou Temple", lat: 22.6165, lng: 120.2712, time: "1:00 PM", notes: "" },
+        { id: "18-6", name: "Cijin Beach", lat: 22.6108, lng: 120.2678, time: "1:45 PM", notes: "" },
+        { id: "18-7", name: "Rainbow Church", lat: 22.6135, lng: 120.2670, time: "2:30 PM", notes: "" },
+        { id: "18-8", name: "Cijin Coastal Park", lat: 22.6080, lng: 120.2650, time: "3:00 PM", notes: "" },
+        { id: "18-9", name: "Cijin Coral Reef Cliff", lat: 22.6088, lng: 120.2635, time: "3:30 PM", notes: "" },
+        { id: "18-10", name: "Cijin Tunnel of Stars", lat: 22.6095, lng: 120.2645, time: "4:00 PM", notes: "" },
+        { id: "18-11", name: "Kaohsiung Lighthouse", lat: 22.6067, lng: 120.2622, time: "4:30 PM", notes: "Mount Cihou climb up to the lighthouse." },
+        { id: "18-12", name: "Cihou Fort", lat: 22.6070, lng: 120.2630, time: "5:15 PM", notes: "Same hill as the lighthouse, good for sunset." },
+        { id: "18-13", name: "Cijin Ferry Pier", lat: 22.6198, lng: 120.2686, time: "6:45 PM", notes: "Ferry back to Gushan." },
+      ],
+    },
+    {
+      day: 19,
+      label: "October 19",
+      title: "Day 3 - October 19 - Meteor Garden University (Chiayi)",
+      destinations: [
+        { id: "19-1", name: "Zuoying HSR Station", lat: 22.6879, lng: 120.3086, time: "7:10 AM", notes: "Board the HSR to Chiayi here." },
+        { id: "19-2", name: "Chiayi HSR Station", lat: 23.4590, lng: 120.3221, time: "7:50 AM", notes: "Taxi to National Chung Cheng University from here, ~35-40 min." },
+        { id: "19-3", name: "National Chung Cheng University", lat: 23.5502, lng: 120.4869, time: "8:35 AM", notes: "The real Meteor Garden campus — stood in for Ying De University (2001)." },
+        { id: "19-4", name: "Qianzhen Phase 31 Park", lat: 22.5960, lng: 120.3078, time: "1:45 PM", notes: "~5-10 min walk from the hotel, big urban green space." },
+        { id: "19-5", name: "Sanduo Shopping District", lat: 22.6103, lng: 120.3020, time: "2:30 PM", notes: "Shin Kong Mitsukoshi + Pacific SOGO." },
+        { id: "19-6", name: "85 Sky Tower", lat: 22.6142, lng: 120.3016, time: "4:00 PM", notes: "Observation deck on floor 74, panoramic city view." },
+      ],
+    },
+    {
+      day: 20,
+      label: "October 20",
+      title: "Day 4 - October 20 - Amor's Birthday: Slow Day, City Side",
+      destinations: [
+        { id: "20-1", name: "Lotus Pond", lat: 22.6725, lng: 120.2953, time: "10:15 AM", notes: "Dragon and Tiger Pagodas, Spring and Autumn Pavilion, Statue of Xuantian." },
+        { id: "20-2", name: "Central Park Kaohsiung", lat: 22.6218, lng: 120.2996, time: "1:50 PM", notes: "Sit, walk slow, no checklist." },
+        { id: "20-3", name: "Pier-2 Art Center", lat: 22.6206, lng: 120.2848, time: "4:30 PM", notes: "Converted warehouses, murals, installations — walk at your own pace." },
+        { id: "20-4", name: "Love Pier", lat: 22.6178, lng: 120.2839, time: "6:00 PM", notes: "Sunset view of the harbor before dinner." },
+      ],
+    },
+    {
+      day: 21,
+      label: "October 21",
+      title: "Day 5 - October 21 - Morning/Early Afternoon + Evening Departure",
+      destinations: [
+        { id: "21-1", name: "Neiwei Art Center", lat: 22.6820, lng: 120.2940, time: "9:45 AM", notes: "Airport by 4:00 PM for the 8:00 PM flight — 4-hour buffer, no rushing." },
+        { id: "21-2", name: "Neiwei Cultural Park", lat: 22.6800, lng: 120.2955, time: "10:15 AM", notes: "" },
+        { id: "21-3", name: "Kaohsiung Museum of Fine Arts", lat: 22.6656, lng: 120.2926, time: "10:45 AM", notes: "" },
+        { id: "21-4", name: "Kaohsiung LRT Green Tunnel", lat: 22.6598, lng: 120.2930, time: "11:30 AM", notes: "" },
+        { id: "21-5", name: "Sunfong Temple", lat: 22.6750, lng: 120.2970, time: "11:50 AM", notes: "" },
+        { id: "21-6", name: "Hamasen Museum of Railway", lat: 22.6234, lng: 120.2822, time: "1:45 PM", notes: "" },
+        { id: "21-7", name: "Great Harbour Bridge Kaohsiung", lat: 22.6215, lng: 120.2836, time: "2:15 PM", notes: "" },
+        { id: "21-8", name: "Dayi Wharf Kaohsiung", lat: 22.6198, lng: 120.2851, time: "2:35 PM", notes: "Last fixed stop — Kaohsiung Music Center and Dream Mall are optional only if running ahead of schedule." },
+        { id: "21-9", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "3:00 PM", notes: "Collect stored luggage." },
+        { id: "21-10", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "4:00 PM", notes: "Check-in, immigration, security. Flight KHH -> MNL departs 8:00 PM, arrives 9:55 PM." },
+      ],
+    },
+  ],
+});
+
+/** Trip-aware starting skeleton for the map tab (empty for Kaohsiung). */
+export const buildBaseMapItinerary = (): MapItineraryData =>
+  activeTrip?.slug === "khaoshiong" ? buildKaohsiungMapItinerary() : buildInitialMapItinerary();
+
 const hasValidDays = (value: unknown): value is MapItineraryData =>
   Boolean(
     value &&
@@ -337,7 +422,7 @@ const toNumber = (value: unknown, fallback: number) => {
 };
 
 export const normalizeMapItinerary = (raw: unknown): MapItineraryData => {
-  if (!hasValidDays(raw)) return buildInitialMapItinerary();
+  if (!hasValidDays(raw)) return buildBaseMapItinerary();
 
   const days = raw.days
     .filter((day) => day && typeof day === "object")

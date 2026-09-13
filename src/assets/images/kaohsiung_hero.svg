@@ -1,0 +1,117 @@
+<svg width="1600" height="600" viewBox="0 0 1600 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stylised Kaohsiung harbour skyline at golden hour">
+  <defs>
+    <linearGradient id="khSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123a63"/>
+      <stop offset="0.42" stop-color="#2f5e86"/>
+      <stop offset="0.7" stop-color="#c98a5b"/>
+      <stop offset="1" stop-color="#f2c078"/>
+    </linearGradient>
+    <linearGradient id="khWater" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7b985"/>
+      <stop offset="0.35" stop-color="#a9743f"/>
+      <stop offset="1" stop-color="#123a63"/>
+    </linearGradient>
+    <linearGradient id="khCity" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f2f4e"/>
+      <stop offset="1" stop-color="#0a2036"/>
+    </linearGradient>
+    <linearGradient id="khCityFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a5f80"/>
+      <stop offset="1" stop-color="#274863"/>
+    </linearGradient>
+    <radialGradient id="khSun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff4dd"/>
+      <stop offset="0.5" stop-color="#ffd98f"/>
+      <stop offset="1" stop-color="#ffd98f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- sky -->
+  <rect width="1600" height="600" fill="url(#khSky)"/>
+  <circle cx="1140" cy="330" r="150" fill="url(#khSun)"/>
+  <circle cx="1140" cy="330" r="46" fill="#fff1d4"/>
+
+  <!-- mountains (Shoushan) -->
+  <path d="M0 348 L150 300 L330 356 L470 322 L560 360 L560 420 L0 420 Z" fill="#2c5075" opacity="0.75"/>
+  <path d="M980 356 L1120 312 L1300 360 L1460 328 L1600 360 L1600 420 L980 420 Z" fill="#2c5075" opacity="0.65"/>
+
+  <!-- far skyline -->
+  <g fill="url(#khCityFar)">
+    <rect x="120" y="330" width="34" height="120"/>
+    <rect x="168" y="352" width="22" height="98"/>
+    <rect x="210" y="312" width="40" height="138"/>
+    <rect x="262" y="344" width="26" height="106"/>
+    <rect x="300" y="326" width="30" height="124"/>
+    <rect x="1180" y="330" width="30" height="120"/>
+    <rect x="1224" y="350" width="22" height="100"/>
+    <rect x="1260" y="316" width="38" height="134"/>
+    <rect x="1312" y="342" width="24" height="108"/>
+    <rect x="1348" y="330" width="30" height="120"/>
+  </g>
+
+  <!-- Dream Mall Ferris wheel -->
+  <g stroke="#0f2f4e" stroke-width="4" fill="none" opacity="0.9">
+    <circle cx="250" cy="352" r="52"/>
+    <circle cx="250" cy="352" r="8" fill="#0f2f4e"/>
+    <path d="M250 300 L250 404 M198 352 L302 352 M213 315 L287 389 M287 315 L213 389"/>
+  </g>
+  <path d="M238 400 L262 400 L250 452 Z" fill="#0f2f4e"/>
+
+  <!-- main skyline -->
+  <g fill="url(#khCity)">
+    <rect x="360" y="300" width="46" height="150"/>
+    <rect x="416" y="340" width="30" height="110"/>
+    <rect x="452" y="270" width="40" height="180"/>
+    <rect x="500" y="330" width="34" height="120"/>
+    <rect x="540" y="304" width="44" height="146"/>
+    <rect x="592" y="344" width="28" height="106"/>
+
+    <!-- 85 Sky Tower: twin legs forming the character 高 -->
+    <rect x="660" y="250" width="30" height="200"/>
+    <rect x="726" y="250" width="30" height="200"/>
+    <rect x="660" y="250" width="96" height="26"/>
+    <rect x="686" y="150" width="44" height="110"/>
+    <path d="M690 150 L708 96 L726 150 Z"/>
+    <rect x="706" y="60" width="4" height="40"/>
+
+    <rect x="784" y="320" width="34" height="130"/>
+    <rect x="824" y="288" width="46" height="162"/>
+    <rect x="876" y="332" width="28" height="118"/>
+    <rect x="908" y="300" width="40" height="150"/>
+    <rect x="956" y="344" width="26" height="106"/>
+    <rect x="990" y="316" width="38" height="134"/>
+    <rect x="1036" y="286" width="30" height="164"/>
+    <rect x="1072" y="336" width="34" height="114"/>
+  </g>
+
+  <!-- Kaohsiung Music Center / Love Pier crane forms -->
+  <g fill="#0f2f4e" opacity="0.92">
+    <path d="M1096 450 L1096 384 Q1116 350 1140 384 L1140 450 Z"/>
+    <path d="M1150 450 L1150 396 Q1168 366 1190 396 L1190 450 Z"/>
+  </g>
+
+  <!-- water -->
+  <rect x="0" y="450" width="1600" height="150" fill="url(#khWater)"/>
+  <g fill="#ffe6bd" opacity="0.5">
+    <rect x="1110" y="452" width="60" height="6"/>
+    <rect x="1120" y="466" width="40" height="5"/>
+    <rect x="1126" y="478" width="28" height="4"/>
+  </g>
+  <g stroke="#12324f" stroke-width="3" opacity="0.35">
+    <line x1="0" y1="470" x2="1600" y2="470"/>
+    <line x1="0" y1="496" x2="1600" y2="496"/>
+    <line x1="0" y1="524" x2="1600" y2="524"/>
+  </g>
+
+  <!-- boats -->
+  <g fill="#0f2f4e">
+    <path d="M300 512 l70 0 -12 20 -46 0 Z"/>
+    <rect x="330" y="498" width="4" height="16"/>
+    <path d="M620 500 l52 0 -9 15 -34 0 Z"/>
+    <path d="M900 520 l84 0 -14 22 -56 0 Z"/>
+    <rect x="936" y="502" width="4" height="20"/>
+  </g>
+
+  <!-- warm haze over the join -->
+  <rect x="0" y="430" width="1600" height="60" fill="#f0b878" opacity="0.28"/>
+</svg>

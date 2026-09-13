@@ -1,6 +1,37 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { CurrentUserInfo, UserTripSettings } from "../types";
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonCard,
+  IonCardContent,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
+  IonCheckbox,
+  IonChip,
+  IonSpinner,
+} from "@ionic/react";
+import { FileText } from "lucide-react";
+import { closeOutline } from "ionicons/icons";
+import { supabase } from "../lib/supabase";
+import { activeTrip, isKaohsiung } from "../lib/activeTrip";
+
+interface RegisteredUser {
+  id: string;
+  email: string;
+  is_admin: boolean;
+  is_active: boolean;
+}
 
 interface SettingsModalProps {
   open: boolean;
@@ -15,117 +46,96 @@ interface SettingsModalProps {
   onBudgetCapChange?: (value: number) => void;
   budgetCapRmLabel?: string;
   budgetCapStatusLabel?: string;
+  onOpenPdfEditor?: () => void;
 }
 
-type FormState = {
-  baseCurrency: string;
-  currencies: string[];
-  startDate: string;
-  endDate: string;
-};
+type FormState = { baseCurrency: string; currencies: string[]; startDate: string; endDate: string; };
 
 const currencyOptions = [
-  { code: "MYR", name: "Malaysian Ringgit" },
-  { code: "SGD", name: "Singapore Dollar" },
-  { code: "PHP", name: "Philippine Peso" },
-  { code: "USD", name: "US Dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "JPY", name: "Japanese Yen" },
-  { code: "AUD", name: "Australian Dollar" },
-  { code: "GBP", name: "British Pound" },
-  { code: "IDR", name: "Indonesian Rupiah" },
-  { code: "THB", name: "Thai Baht" },
+  { code: "MYR", name: "Malaysian Ringgit" }, { code: "SGD", name: "Singapore Dollar" },
+  { code: "TWD", name: "New Taiwan Dollar" },
+  { code: "PHP", name: "Philippine Peso" }, { code: "USD", name: "US Dollar" },
+  { code: "EUR", name: "Euro" }, { code: "JPY", name: "Japanese Yen" },
+  { code: "AUD", name: "Australian Dollar" }, { code: "GBP", name: "British Pound" },
+  { code: "IDR", name: "Indonesian Rupiah" }, { code: "THB", name: "Thai Baht" },
 ];
 
 const buildInitialState = (settings: UserTripSettings | null): FormState => {
-  const baseCurrency = settings?.baseCurrency ?? "MYR";
-  const currencies = settings?.currencies?.length ? settings.currencies : ["MYR", "SGD"];
+  const baseCurrency = settings?.baseCurrency ?? (isKaohsiung ? "TWD" : "MYR");
+  const currencies = settings?.currencies?.length
+    ? settings.currencies
+    : (isKaohsiung ? ["TWD", "PHP"] : ["MYR", "SGD"]);
   const startDate = settings?.travelDates?.[0] ?? "";
   const endDate = settings?.travelDates?.[settings.travelDates.length - 1] ?? "";
-
-  return {
-    baseCurrency,
-    currencies,
-    startDate,
-    endDate,
-  };
+  return { baseCurrency, currencies, startDate, endDate };
 };
 
-const parseIsoDateToUtc = (value: string) => {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(Date.UTC(year, (month || 1) - 1, day || 1));
-};
-
-const formatUtcDateToIso = (value: Date) => {
-  const year = value.getUTCFullYear();
-  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(value.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const formatPreviewDate = (value: string) =>
-  parseIsoDateToUtc(value).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const parseIsoDateToUtc = (value: string) => { const [y, m, d] = value.split("-").map(Number); return new Date(Date.UTC(y, (m || 1) - 1, d || 1)); };
+const formatUtcDateToIso = (value: Date) => `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`;
+const formatPreviewDate = (value: string) => parseIsoDateToUtc(value).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 const expandDateRange = (start: string, end: string): string[] => {
   const dates: string[] = [];
   const current = parseIsoDateToUtc(start);
   const last = parseIsoDateToUtc(end);
-
-  while (current <= last) {
-    dates.push(formatUtcDateToIso(current));
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
+  while (current <= last) { dates.push(formatUtcDateToIso(current)); current.setUTCDate(current.getUTCDate() + 1); }
   return dates;
 };
 
+const brandToolbar = { "--background": "#0B3530", "--color": "#ffffff" } as React.CSSProperties;
+
 export default function SettingsModal({
-  open,
-  onClose,
-  session,
-  currentUser,
-  settings,
-  onSave,
-  isSaving,
-  isFirstSetup = false,
-  budgetCapPhp = 0,
-  onBudgetCapChange,
-  budgetCapRmLabel = "RM 0",
-  budgetCapStatusLabel = "",
+  open, onClose, session, currentUser, settings, onSave, isSaving,
+  isFirstSetup = false, budgetCapPhp = 0, onBudgetCapChange,
+  budgetCapRmLabel = "RM 0", budgetCapStatusLabel = "",
+  onOpenPdfEditor,
 }: SettingsModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialState(settings));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userActionError, setUserActionError] = useState("");
+
+  useEffect(() => { if (!open) return; setForm(buildInitialState(settings)); setErrors({}); setFormError(""); }, [open, settings]);
 
   useEffect(() => {
-    if (!open) return;
-    setForm(buildInitialState(settings));
-    setErrors({});
-  }, [open, settings]);
+    if (!open || !supabase || !currentUser?.isAdmin) return;
+    let cancelled = false;
+    setLoadingUsers(true);
+    supabase
+      .from("user_profiles")
+      .select("id, email, is_admin, is_active")
+      .order("email", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Failed to load registered users:", error.message);
+          setUserActionError("Could not load the user list.");
+        } else {
+          setRegisteredUsers((data ?? []) as RegisteredUser[]);
+        }
+        setLoadingUsers(false);
+      });
+    return () => { cancelled = true; };
+  }, [open, currentUser?.isAdmin]);
 
-  useEffect(() => {
-    if (!open) return;
+  const toggleUserActive = async (user: RegisteredUser) => {
+    if (!supabase) return;
+    const nextActive = !user.is_active;
+    setRegisteredUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, is_active: nextActive } : u)));
+    const { error } = await supabase.from("user_profiles").update({ is_active: nextActive }).eq("id", user.id);
+    if (error) {
+      console.warn("Failed to update user access:", error.message);
+      setUserActionError(`Could not update ${user.email}. Try again.`);
+      setRegisteredUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, is_active: user.is_active } : u)));
+    } else {
+      setUserActionError("");
+    }
+  };
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isFirstSetup) {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isFirstSetup, onClose, open]);
-
-  const additionalCurrencies = useMemo(
-    () => form.currencies.filter((code) => code !== form.baseCurrency),
-    [form.baseCurrency, form.currencies],
-  );
-
+  const additionalCurrencies = useMemo(() => form.currencies.filter((code) => code !== form.baseCurrency), [form.baseCurrency, form.currencies]);
   const maxAdditionalCurrencies = 2;
   const canSelectMoreAdditional = additionalCurrencies.length < maxAdditionalCurrencies;
 
@@ -135,273 +145,213 @@ export default function SettingsModal({
     return `${expanded.length} days: ${formatPreviewDate(form.startDate)} -> ${formatPreviewDate(form.endDate)}`;
   }, [form.endDate, form.startDate]);
 
-  if (!open) return null;
-
   const handleBaseCurrencyChange = (baseCurrency: string) => {
     setForm((current) => ({
-      ...current,
-      baseCurrency,
+      ...current, baseCurrency,
       currencies: [baseCurrency, ...current.currencies.filter((code) => code !== current.baseCurrency && code !== baseCurrency)],
     }));
   };
 
   const handleAdditionalCurrencyToggle = (currencyCode: string) => {
     setForm((current) => {
-      const alreadySelected = current.currencies.includes(currencyCode);
-      if (alreadySelected) {
-        return {
-          ...current,
-          currencies: current.currencies.filter((code) => code !== currencyCode),
-        };
-      }
-
-      if (current.currencies.filter((code) => code !== current.baseCurrency).length >= maxAdditionalCurrencies) {
-        return current;
-      }
-
-      return {
-        ...current,
-        currencies: [...current.currencies, currencyCode],
-      };
+      if (current.currencies.includes(currencyCode)) return { ...current, currencies: current.currencies.filter((code) => code !== currencyCode) };
+      if (current.currencies.filter((code) => code !== current.baseCurrency).length >= maxAdditionalCurrencies) return current;
+      return { ...current, currencies: [...current.currencies, currencyCode] };
     });
   };
 
   const validate = () => {
-    const nextErrors: Record<string, string> = {};
-
-    if (!form.startDate) nextErrors.startDate = "Trip start date is required.";
-    if (!form.endDate) nextErrors.endDate = "Trip end date is required.";
-    if (form.startDate && form.endDate && form.endDate < form.startDate) {
-      nextErrors.endDate = "Trip end date must be on or after the start date.";
-    }
-    if (additionalCurrencies.length < 1) {
-      nextErrors.currencies = "Select at least 1 additional currency.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    const next: Record<string, string> = {};
+    if (!form.startDate) next.startDate = "Trip start date is required.";
+    if (!form.endDate) next.endDate = "Trip end date is required.";
+    if (form.startDate && form.endDate && form.endDate < form.startDate) next.endDate = "Trip end date must be on or after the start date.";
+    if (additionalCurrencies.length < 1) next.currencies = "Select at least 1 additional currency.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!validate()) return;
-
+  const handleSubmit = async () => {
+    setFormError("");
+    if (!validate()) {
+      // The date/currency fields that failed can be scrolled out of view
+      // (e.g. after checking the admin panel further down) — without this,
+      // clicking Save silently does nothing and looks broken.
+      scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      setFormError("Please fix the highlighted fields above before saving.");
+      return;
+    }
     const travelDates = expandDateRange(form.startDate, form.endDate);
-    const nextSettings: UserTripSettings = {
-      id: settings?.id ?? crypto.randomUUID(),
-      userId: currentUser?.userId ?? session?.user.id ?? "",
-      tripKey: settings?.tripKey ?? "",
-      baseCurrency: form.baseCurrency,
-      currencies: [form.baseCurrency, ...additionalCurrencies],
-      travelDates,
-      createdAt: settings?.createdAt,
-      updatedAt: settings?.updatedAt,
-    };
-
-    await onSave(nextSettings);
+    try {
+      await onSave({
+        id: settings?.id ?? crypto.randomUUID(), userId: currentUser?.userId ?? session?.user.id ?? "",
+        tripKey: settings?.tripKey ?? "", baseCurrency: form.baseCurrency,
+        currencies: [form.baseCurrency, ...additionalCurrencies], travelDates,
+        createdAt: settings?.createdAt, updatedAt: settings?.updatedAt,
+      });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Could not save settings. Check your connection and try again.");
+      scrollBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[5500] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xs no-print sm:items-center"
-      onClick={() => {
-        if (!isFirstSetup) onClose();
-      }}
-    >
-      <div
-        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200"
-        onClick={(event) => event.stopPropagation()}
-      >
-        {!isFirstSetup && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-800"
-            aria-label="Close settings modal"
-          >
-            X
-          </button>
-        )}
-
-        <div className="bg-gradient-to-br from-[#0B3530] to-[#18534C] px-6 py-5 text-white">
-          <div className="text-[13px] uppercase tracking-[0.35em] text-[#88B04B] font-mono">Trip Preferences</div>
-          <h3 className="mt-1 text-lg font-serif font-bold md:text-xl">
-            {isFirstSetup ? "Welcome! Set up your trip preferences" : "Trip Settings"}
-          </h3>
-          <p className="mt-1 max-w-2xl text-[14px] text-stone-200 md:text-[15px]">
-            {isFirstSetup
-              ? "Choose your currencies and travel dates. You can update these anytime in Settings."
-              : "Update your currency preferences and travel dates."}
-          </p>
+    <IonModal isOpen={open} onDidDismiss={() => { if (!isFirstSetup) onClose(); }} backdropDismiss={!isFirstSetup} className="ja-settings-modal ja-settings-fullpage">
+      <IonHeader>
+        <IonToolbar style={brandToolbar}>
+          {!isFirstSetup && <IonButtons slot="end"><IonButton onClick={onClose} aria-label="Close settings modal"><IonIcon icon={closeOutline} /></IonButton></IonButtons>}
+          <IonTitle>{isFirstSetup ? "Welcome! Set up your trip preferences" : "Trip Settings"}</IonTitle>
+        </IonToolbar>
+        <div className="ja-settings-desc-wrap" style={{ background: "#0B3530", color: "rgba(255,255,255,0.8)" }}>
+          <p className="ja-settings-desc">{isFirstSetup ? "Choose your currencies and travel dates. You can update these anytime in Settings." : "Update your currency preferences and travel dates."}</p>
         </div>
+      </IonHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-stone-50 p-6">
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Currencies</h4>
-              <p className="mt-1 text-[13px] text-stone-500">Choose your base currency plus up to 2 additional display currencies.</p>
+      <div className="ja-settings-scroll-body" ref={scrollBodyRef} style={{ background: "#f5f5f4" }}>
+        <div className="ja-settings-content">
+          {formError ? (
+            <div className="ja-settings-card" style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 12, padding: "12px 16px", color: "#991b1b", fontWeight: 600 }}>
+              {formError}
             </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Base Currency</label>
-                <select
-                  value={form.baseCurrency}
-                  onChange={(event) => handleBaseCurrencyChange(event.target.value)}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                >
-                  {currencyOptions.map((option) => (
-                    <option key={option.code} value={option.code}>
-                      {option.code} - {option.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Additional Currency</label>
-                <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50 p-3">
-                  {currencyOptions
-                    .filter((option) => option.code !== form.baseCurrency)
-                    .map((option) => {
-                      const checked = form.currencies.includes(option.code);
-                      const disabled = !checked && !canSelectMoreAdditional;
-                      return (
-                        <label
-                          key={option.code}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-[14px] transition-colors ${
-                            disabled
-                              ? "border-stone-200 bg-stone-100 text-stone-400"
-                              : checked
-                                ? "border-[#0B3530] bg-[#0B3530]/5 text-[#0B3530]"
-                                : "border-stone-200 bg-white text-stone-700 hover:border-[#0B3530]/40"
-                          }`}
-                        >
-                          <span>{option.code} - {option.name}</span>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={disabled}
-                            onChange={() => handleAdditionalCurrencyToggle(option.code)}
-                            className="h-4 w-4 accent-[#0B3530]"
-                          />
-                        </label>
-                      );
-                    })}
+          ) : null}
+          {activeTrip ? (
+            <IonCard className="ja-settings-card">
+              <IonCardContent>
+                <div className="ja-settings-card-header">
+                  <h4 className="ja-settings-card-title">Current Trip</h4>
+                  <p className="ja-settings-card-desc">{activeTrip.name} · {activeTrip.dateLabel}</p>
                 </div>
-                <p className="mt-2 text-[12px] text-stone-500">You can pick up to 2 additional currencies for now. More currencies coming soon.</p>
-                {errors.currencies ? <p className="mt-1 text-[12px] text-rose-600">{errors.currencies}</p> : null}
+                <a href="/" className="ja-settings-helper" style={{ display: "inline-block", fontWeight: 600, textDecoration: "underline", color: "#0B3530" }}>← Switch to a different trip</a>
+              </IonCardContent>
+            </IonCard>
+          ) : null}
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="ja-settings-card-header">
+                <h4 className="ja-settings-card-title">Currencies</h4>
+                <p className="ja-settings-card-desc">Choose your base currency plus up to 2 additional display currencies.</p>
               </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Travel Dates</h4>
-              <p className="mt-1 text-[13px] text-stone-500">These dates drive the budget day labels without changing the stored day number format.</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip Start Date</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                />
-                {errors.startDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.startDate}</p> : null}
+              <div className="ja-settings-grid">
+                <div>
+                  <label className="ja-settings-field-label">Base Currency</label>
+                  <IonSelect value={form.baseCurrency} onIonChange={(event) => handleBaseCurrencyChange(event.detail.value)} interface="action-sheet" className="ja-settings-select">
+                    {currencyOptions.map((o) => <IonSelectOption key={o.code} value={o.code}>{o.code} - {o.name}</IonSelectOption>)}
+                  </IonSelect>
+                </div>
+                <div>
+                  <label className="ja-settings-field-label">Additional Currency</label>
+                  <div className="ja-settings-checkbox-wrap">
+                    <IonList className="ja-settings-checkbox-list">
+                      {currencyOptions.filter((o) => o.code !== form.baseCurrency).map((option) => {
+                        const checked = form.currencies.includes(option.code);
+                        const isDisabled = !checked && !canSelectMoreAdditional;
+                        return (
+                          <IonItem key={option.code} className={`ja-settings-checkbox-item${checked ? " ja-settings-checkbox-item-checked" : ""}${isDisabled ? " ja-settings-checkbox-item-disabled" : ""}`}>
+                            <IonLabel className="ja-settings-checkbox-label">{option.code} - {option.name}</IonLabel>
+                            <IonCheckbox slot="end" checked={checked} disabled={isDisabled} onIonChange={() => handleAdditionalCurrencyToggle(option.code)} />
+                          </IonItem>
+                        );
+                      })}
+                    </IonList>
+                  </div>
+                  <p className="ja-settings-helper">You can pick up to 2 additional currencies for now. More currencies coming soon.</p>
+                  {errors.currencies ? <p className="ja-settings-error">{errors.currencies}</p> : null}
+                </div>
               </div>
+            </IonCardContent>
+          </IonCard>
 
-              <div>
-                <label className="mb-1 block text-[14px] font-semibold text-stone-600">Trip End Date</label>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  onChange={(event) => setForm((current) => ({ ...current, endDate: event.target.value }))}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] outline-none focus:border-[#0B3530]"
-                />
-                {errors.endDate ? <p className="mt-1 text-[12px] text-rose-600">{errors.endDate}</p> : null}
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="ja-settings-card-header">
+                <h4 className="ja-settings-card-title">Travel Dates</h4>
+                <p className="ja-settings-card-desc">These dates drive the budget day labels without changing the stored day number format.</p>
               </div>
-            </div>
-
-            {previewText ? (
-              <div className="mt-4 rounded-xl border border-[#D0DFDC] bg-[#F1F5F4] px-4 py-3 text-[13px] font-medium text-[#0B3530]">
-                {previewText}
+              <div className="ja-settings-date-grid">
+                <div>
+                  <label className="ja-settings-field-label">Trip Start Date</label>
+                  <IonInput type="date" value={form.startDate} onIonInput={(event) => { const v = event.detail.value ?? ""; setForm((c) => ({ ...c, startDate: String(v) })); }} className="ja-settings-date-input" />
+                  {errors.startDate ? <p className="ja-settings-error">{errors.startDate}</p> : null}
+                </div>
+                <div>
+                  <label className="ja-settings-field-label">Trip End Date</label>
+                  <IonInput type="date" value={form.endDate} onIonInput={(event) => { const v = event.detail.value ?? ""; setForm((c) => ({ ...c, endDate: String(v) })); }} className="ja-settings-date-input" />
+                  {errors.endDate ? <p className="ja-settings-error">{errors.endDate}</p> : null}
+                </div>
               </div>
-            ) : null}
-          </section>
+              {previewText ? <div className="ja-settings-preview">{previewText}</div> : null}
+            </IonCardContent>
+          </IonCard>
 
-          <section className="rounded-2xl border border-stone-200 bg-white p-5">
-            <div className="mb-4">
-              <h4 className="text-[16px] font-serif font-bold text-[#0B3530]">Budget Cap</h4>
-              <p className="mt-1 text-[13px] text-stone-500">Set a personal PHP cap for cash and debit spending. `0` means no cap.</p>
-            </div>
-
-            <label className="block">
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-sm font-mono text-stone-500">PHP</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={budgetCapPhp || ""}
-                  placeholder="No cap"
-                  onChange={(event) => {
-                    const php = Math.max(0, Number(event.target.value) || 0);
-                    onBudgetCapChange?.(php);
-                  }}
-                  className="w-40 rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#0B3530]"
-                />
-                <span className="text-[11px] font-medium text-emerald-600">Auto-saved</span>
+          <IonCard className="ja-settings-card">
+            <IonCardContent>
+              <div className="ja-settings-card-header">
+                <h4 className="ja-settings-card-title">Budget Cap</h4>
+                <p className="ja-settings-card-desc">Set a personal PHP cap for cash and debit spending. `0` means no cap.</p>
               </div>
-              {budgetCapPhp > 0 && (
-                <p className="mt-1 text-[11px] text-stone-400">
-                  = {budgetCapRmLabel}
-                  {budgetCapStatusLabel ? <span className="ml-1">{budgetCapStatusLabel}</span> : null}
-                </p>
-              )}
-            </label>
+              <label className="ja-settings-cap-row">
+                <div className="ja-settings-cap-field">
+                  <span className="ja-settings-cap-prefix">PHP</span>
+                  <IonInput type="number" min={0} value={budgetCapPhp || ""} placeholder="No cap"
+                    onIonInput={(event) => { const v = Number(event.detail.value ?? ""); if (!Number.isNaN(v)) onBudgetCapChange?.(Math.max(0, v)); }}
+                    className="ja-settings-cap-input" />
+                  <span className="ja-settings-cap-saved">Auto-saved</span>
+                </div>
+                {budgetCapPhp > 0 && <p className="ja-settings-cap-conversion">= {budgetCapRmLabel}{budgetCapStatusLabel ? <IonChip className="ja-settings-cap-chip">{budgetCapStatusLabel}</IonChip> : null}</p>}
+              </label>
+              {!session && <p className="ja-settings-warning">Sign in to sync cap across devices. Currently saved to this device only.</p>}
+              <p className="ja-settings-helper">When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.{budgetCapPhp > 0 ? <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</> : null}</p>
+            </IonCardContent>
+          </IonCard>
 
-            {!session && (
-              <p className="mt-3 text-[11px] text-amber-600">
-                Sign in to sync cap across devices. Currently saved to this device only.
-              </p>
-            )}
+          {currentUser?.isAdmin ? (
+            <IonCard className="ja-settings-card">
+              <IonCardContent>
+                <div className="ja-settings-card-header">
+                  <h4 className="ja-settings-card-title">Registered Users</h4>
+                  <p className="ja-settings-card-desc">Only you can see this. Deactivating an account signs it out and blocks it from opening the app.</p>
+                </div>
+                {loadingUsers ? <IonSpinner name="crescent" /> : (
+                  registeredUsers.map((user) => (
+                    <div key={user.id} className="ja-users-row">
+                      <div className="ja-users-row-main">
+                        <span className="ja-users-row-name">{user.email}</span>
+                        {user.is_admin ? <IonChip color="tertiary" className="ja-settings-cap-chip">Admin</IonChip> : null}
+                        <IonChip color={user.is_active ? "success" : "medium"} className="ja-settings-cap-chip">{user.is_active ? "Active" : "Blocked"}</IonChip>
+                      </div>
+                      {user.is_admin ? null : (
+                        <IonButton fill="outline" size="small" color={user.is_active ? "danger" : "success"} onClick={() => toggleUserActive(user)}>
+                          {user.is_active ? "Deactivate" : "Activate"}
+                        </IonButton>
+                      )}
+                    </div>
+                  ))
+                )}
+                {userActionError ? <p className="ja-settings-error">{userActionError}</p> : null}
+              </IonCardContent>
+            </IonCard>
+          ) : null}
 
-            <p className="mt-3 text-[11px] text-stone-400">
-              When set, an alert appears on the Budget page if cash+debit spending exceeds this cap.
-              {budgetCapPhp > 0 && <> Currently capped at <strong>PHP {budgetCapPhp.toLocaleString("en-PH", { maximumFractionDigits: 2 })}</strong>.</>}
-            </p>
-          </section>
+          {onOpenPdfEditor ? (
+            <IonCard className="ja-settings-card">
+              <IonCardContent>
+                <div className="ja-settings-card-header">
+                  <h4 className="ja-settings-card-title">Downloadable PDF</h4>
+                  <p className="ja-settings-card-desc">Edit the travelers, flights, and hotels that appear on the Immigration Document.</p>
+                </div>
+                <IonButton fill="outline" onClick={onOpenPdfEditor}><FileText size={14} style={{ marginRight: 8 }} />Edit Downloadable PDF</IonButton>
+              </IonCardContent>
+            </IonCard>
+          ) : null}
 
-          <div className="flex items-center justify-end gap-3">
-            {!isFirstSetup && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-[14px] font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:text-stone-900"
-              >
-                Cancel
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex min-w-32 items-center justify-center gap-2 rounded-xl bg-[#0B3530] px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-[#18534C] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  Saving...
-                </>
-              ) : (
-                "Save Settings"
-              )}
-            </button>
+          {formError ? <p className="ja-settings-error" style={{ textAlign: "right" }}>{formError}</p> : null}
+          <div className="ja-settings-actions">
+            {!isFirstSetup && <IonButton fill="outline" onClick={onClose}>Cancel</IonButton>}
+            <IonButton disabled={isSaving} onClick={handleSubmit} className="ja-settings-save-btn">
+              {isSaving ? <><IonSpinner slot="start" name="crescent" /> Saving...</> : "Save Settings"}
+            </IonButton>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </IonModal>
   );
 }
