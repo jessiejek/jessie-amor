@@ -3,6 +3,7 @@ import { IonButton, IonCheckbox, IonIcon, IonInput, IonSpinner } from "@ionic/re
 import { pencilOutline, checkmarkOutline, closeOutline, addOutline, trashOutline, downloadOutline } from "ionicons/icons";
 import type { TripProfile, PdfItineraryDay, PdfFlightLeg, TripHotel } from "../types";
 import { buildDefaultItineraryDays, buildDefaultFlightLegs, generateItineraryPlusPdf } from "../utils/generateImmigrationPdf";
+import { isKaohsiung } from "../lib/activeTrip";
 
 interface ItineraryPlusTabProps {
   tripProfile: TripProfile | null;
@@ -11,10 +12,16 @@ interface ItineraryPlusTabProps {
   canEdit: boolean;
 }
 
-const DEFAULT_HOTELS: TripHotel[] = [
+const KAOHSIUNG_HOTELS: TripHotel[] = [
+  { hotel: "Hub Hotel Kaohsiung Yisin Branch", location: "Qianzhen District, Kaohsiung", checkIn: "October 17, 2026", checkOut: "October 21, 2026" },
+];
+
+const MALAYSIA_SINGAPORE_HOTELS: TripHotel[] = [
   { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
   { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
 ];
+
+const DEFAULT_HOTELS: TripHotel[] = isKaohsiung ? KAOHSIUNG_HOTELS : MALAYSIA_SINGAPORE_HOTELS;
 
 const DAY_BAND_COLORS = ["#DCEAFE", "#DCF7E3", "#FDEBD3", "#F3E1FB", "#FDE1E1", "#E1F5F3"];
 
@@ -66,12 +73,12 @@ function loadColumnVisibility(): Record<string, boolean> {
 const buildSavePayload = (current: TripProfile | null, itineraryDays: PdfItineraryDay[], flightLegs: PdfFlightLeg[]): TripProfile => ({
   id: current?.id ?? crypto.randomUUID(),
   tripKey: current?.tripKey ?? "",
-  documentTitle: current?.documentTitle || "Jessie & Amor's Malaysia - Singapore Trip 2026",
+  documentTitle: current?.documentTitle || (isKaohsiung ? "Jessie & Amor's Kaohsiung Trip 2026" : "Jessie & Amor's Malaysia - Singapore Trip 2026"),
   traveler1: current?.traveler1 ?? "Jessie Jay Q. Rubi",
   traveler2: current?.traveler2 ?? "Rizza Amor L. Caguco",
   purpose: current?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience",
   duration: current?.duration ?? "5 days",
-  route: current?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore",
+  route: current?.route ?? (isKaohsiung ? "Kaohsiung, Taiwan" : "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore"),
   flightLegs,
   hotels: current?.hotels?.length ? current.hotels : DEFAULT_HOTELS,
   itineraryDays,

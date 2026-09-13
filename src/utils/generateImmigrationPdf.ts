@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { itinerary, TRAVELER_1, TRAVELER_2 } from "../data/code1Itinerary";
+import { isKaohsiung } from "../lib/activeTrip";
 import type { PdfFlightLeg, PdfItineraryDay, TripProfile } from "../types";
 
 export function buildDefaultItineraryDays(): PdfItineraryDay[] {
@@ -10,30 +11,41 @@ export function buildDefaultItineraryDays(): PdfItineraryDay[] {
   }));
 }
 
+const KAOHSIUNG_FLIGHT_LEGS: PdfFlightLeg[] = [
+  { label: "Depart Philippines", dateTime: "October 17, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
+  { label: "Arrival in Kaohsiung", dateTime: "October 17, 2026 at 07:30 PM", airport: "Kaohsiung International Airport (KHH)" },
+  { label: "Depart Kaohsiung", dateTime: "October 21, 2026 (afternoon)", airport: "Kaohsiung International Airport (KHH)" },
+  { label: "Arrive Philippines", dateTime: "October 21, 2026 (evening)", airport: "Ninoy Aquino International Airport (MNL)" },
+];
+
+const MALAYSIA_SINGAPORE_FLIGHT_LEGS: PdfFlightLeg[] = [
+  { label: "Depart Philippines", dateTime: "July 11, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
+  { label: "Arrival in Malaysia", dateTime: "July 12, 2026 at 01:30 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
+  { label: "Depart Malaysia", dateTime: "July 15, 2026 at 08:00 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
+  { label: "Arrive Singapore", dateTime: "July 15, 2026 (morning)", airport: "Changi Airport (SIN)" },
+  { label: "Depart Singapore", dateTime: "July 16, 2026 (morning)", airport: "Changi Airport (SIN)" },
+  { label: "Arrive Philippines", dateTime: "July 17, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
+];
+
 export function buildDefaultFlightLegs(): PdfFlightLeg[] {
-  return [
-    { label: "Depart Philippines", dateTime: "July 11, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
-    { label: "Arrival in Malaysia", dateTime: "July 12, 2026 at 01:30 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
-    { label: "Depart Malaysia", dateTime: "July 15, 2026 at 08:00 AM", airport: "Kuala Lumpur International Airport (KLIA)" },
-    { label: "Arrive Singapore", dateTime: "July 15, 2026 (morning)", airport: "Changi Airport (SIN)" },
-    { label: "Depart Singapore", dateTime: "July 16, 2026 (morning)", airport: "Changi Airport (SIN)" },
-    { label: "Arrive Philippines", dateTime: "July 17, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
-  ];
+  return isKaohsiung ? KAOHSIUNG_FLIGHT_LEGS : MALAYSIA_SINGAPORE_FLIGHT_LEGS;
 }
 
 export function generateImmigrationPdf(tripProfile: TripProfile | null | undefined) {
   const p = tripProfile;
-  const title = p?.documentTitle || "Jessie & Amor's Malaysia - Singapore Trip 2026";
+  const title = p?.documentTitle || (isKaohsiung ? "Jessie & Amor's Kaohsiung Trip 2026" : "Jessie & Amor's Malaysia - Singapore Trip 2026");
   const t1 = p?.traveler1 ?? TRAVELER_1;
   const t2 = p?.traveler2 ?? TRAVELER_2;
   const purpose = p?.purpose ?? "Tourism - sightseeing, cultural exploration, culinary experience";
   const duration = p?.duration ?? "5 days";
-  const route = p?.route ?? "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore";
+  const route = p?.route ?? (isKaohsiung ? "Kaohsiung, Taiwan" : "Kuala Lumpur, Malaysia - Malacca (day trip) - Singapore");
   const flightLegs = p?.flightLegs?.length ? p.flightLegs : buildDefaultFlightLegs();
-  const hotels = p?.hotels ?? [
-    { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
-    { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
-  ];
+  const hotels = p?.hotels ?? (isKaohsiung
+    ? [{ hotel: "Hub Hotel Kaohsiung Yisin Branch", location: "Qianzhen District, Kaohsiung", checkIn: "October 17, 2026", checkOut: "October 21, 2026" }]
+    : [
+        { hotel: "Travelodge KL City Centre", location: "Kuala Lumpur", checkIn: "July 12, 2026", checkOut: "July 15, 2026" },
+        { hotel: "Hotel Classic by Venue", location: "Joo Chiat, Singapore", checkIn: "July 15, 2026", checkOut: "July 16, 2026" },
+      ]);
   const days = p?.itineraryDays?.length ? p.itineraryDays : itinerary.days;
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
