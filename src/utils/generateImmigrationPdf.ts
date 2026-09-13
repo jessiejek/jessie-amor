@@ -12,10 +12,10 @@ export function buildDefaultItineraryDays(): PdfItineraryDay[] {
 }
 
 const KAOHSIUNG_FLIGHT_LEGS: PdfFlightLeg[] = [
-  { label: "Depart Philippines", dateTime: "October 17, 2026", airport: "Ninoy Aquino International Airport (MNL)" },
-  { label: "Arrival in Kaohsiung", dateTime: "October 17, 2026 at 07:30 PM", airport: "Kaohsiung International Airport (KHH)" },
-  { label: "Depart Kaohsiung", dateTime: "October 21, 2026 (afternoon)", airport: "Kaohsiung International Airport (KHH)" },
-  { label: "Arrive Philippines", dateTime: "October 21, 2026 (evening)", airport: "Ninoy Aquino International Airport (MNL)" },
+  { label: "Depart Philippines", dateTime: "October 17, 2026 at 05:00 PM", airport: "Ninoy Aquino International Airport (MNL)" },
+  { label: "Arrival in Kaohsiung", dateTime: "October 17, 2026 at 07:00 PM", airport: "Kaohsiung International Airport (KHH)" },
+  { label: "Depart Kaohsiung", dateTime: "October 21, 2026 at 08:00 PM", airport: "Kaohsiung International Airport (KHH)" },
+  { label: "Arrive Philippines", dateTime: "October 21, 2026 at 09:55 PM", airport: "Ninoy Aquino International Airport (MNL)" },
 ];
 
 const MALAYSIA_SINGAPORE_FLIGHT_LEGS: PdfFlightLeg[] = [
