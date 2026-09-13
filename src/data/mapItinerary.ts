@@ -336,9 +336,10 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       label: "October 17",
       title: "Day 1 - October 17 - Arrival",
       destinations: [
-        { id: "17-1", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "7:30 PM", notes: "Land, clear immigration, collect bags." },
-        { id: "17-2", name: "Sanduo Shopping District MRT Station", lat: 22.6103, lng: 120.3020, time: "8:00 PM", notes: "Red Line from the airport (R4), ~15 min, no transfers." },
-        { id: "17-3", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:20 PM", notes: "~10 min walk from the station. Check in for the whole trip, Oct 17-21." },
+        { id: "17-1", name: "Ninoy Aquino International Airport", lat: 14.5086, lng: 121.0197, time: "5:00 PM", notes: "Flight MNL -> KHH departs 5:00 PM, arrives 7:00 PM." },
+        { id: "17-2", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "Land, clear immigration, collect bags." },
+        { id: "17-3", name: "Sanduo Shopping District MRT Station", lat: 22.6103, lng: 120.3020, time: "7:30 PM", notes: "Red Line from the airport (R4), ~15 min, no transfers." },
+        { id: "17-4", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:50 PM", notes: "~10 min walk from the station. Check in for the whole trip, Oct 17-21." },
       ],
     },
     {
