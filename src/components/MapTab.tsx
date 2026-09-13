@@ -138,6 +138,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
   const activeDay = useMemo(() => displayDays.find((d) => d.day === selectedDay) ?? displayDays[0] ?? null, [displayDays, selectedDay]);
 
   // --- Leaflet / Sync useEffects ---
+  const defaultDay = activeTrip?.slug === "khaoshiong" ? 19 : 12;
   useEffect(() => {
     if (!supabase) { setMapLoaded(true); return; } if (!isOnline) { setMapLoaded(true); return; }
     let c = false; let ch: ReturnType<typeof supabase.channel> | null = null;
@@ -145,13 +146,13 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
       const { data, error } = await supabase.from(supabaseMapDestinationsTable).select("*").eq("trip_key", tripKey);
       if (c) return; if (error) { console.warn("Supabase map load failed:", error.message); setMapLoaded(true); return; }
       const rows = (data ?? []) as MapDestinationRow[]; cachedRowsRef.current = rows;
-      if (rows.length > 0 && !mapDirtyRef.current) { const d = rows.map(rowToDestination); const days = groupDestinationsByDay(d, (dd) => rows.find((r) => r.id === dd.id)?.day ?? 12); setItineraryData({ ...buildBaseMapItinerary(), days }); saveMapSnapshot({ ...buildBaseMapItinerary(), days }, false); }
+      if (rows.length > 0 && !mapDirtyRef.current) { const d = rows.map(rowToDestination); const days = groupDestinationsByDay(d, (dd) => rows.find((r) => r.id === dd.id)?.day ?? defaultDay); setItineraryData({ ...buildBaseMapItinerary(), days }); saveMapSnapshot({ ...buildBaseMapItinerary(), days }, false); }
       setMapLoaded(true);
     };
     const handleRealtimeEvent = (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
       if (mapDirtyRef.current) return; setItineraryData((prev) => {
         const all = mapDestinations(prev);
-        if (payload.eventType === "DELETE") { const id = (payload.old?.id ?? payload.new?.id) as string | undefined; if (!id) return prev; return { ...prev, days: groupDestinationsByDay(all.filter((dd) => dd.id !== id), (dd) => prev.days.find((d) => d.destinations.some((ds) => ds.id === dd.id))?.day ?? 12) }; }
+        if (payload.eventType === "DELETE") { const id = (payload.old?.id ?? payload.new?.id) as string | undefined; if (!id) return prev; return { ...prev, days: groupDestinationsByDay(all.filter((dd) => dd.id !== id), (dd) => prev.days.find((d) => d.destinations.some((ds) => ds.id === dd.id))?.day ?? defaultDay) }; }
         const nr = payload.new as MapDestinationRow | undefined; if (!nr) return prev; cachedRowsRef.current = cachedRowsRef.current.filter((r) => r.id !== nr.id).concat(nr); const up: MapDestination = { ...rowToDestination(nr), syncStatus: "synced" };
         if (payload.eventType === "INSERT") { if (all.some((dd) => dd.id === up.id)) return prev; return { ...prev, days: groupDestinationsByDay([...all, up], (dd) => nr.day) }; }
         if (payload.eventType === "UPDATE") { return { ...prev, days: groupDestinationsByDay(all.map((dd) => dd.id === up.id ? up : dd), (dd) => cachedRowsRef.current.find((r) => r.id === dd.id)?.day ?? nr.day) }; }
@@ -167,7 +168,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
     const ad = mapDestinations(itineraryData); const pd = ad.filter((d) => d.syncStatus === "pending"); const hp = pd.length > 0 || pendingDeleteIdsRef.current.size > 0;
     if (!hp) { saveMapSnapshot(itineraryData, false); return; } saveMapSnapshot(itineraryData, true);
     const to = window.setTimeout(async () => {
-      const deletes = Array.from(pendingDeleteIdsRef.current); const upsert = pd.map((d) => { const day = itineraryData.days.find((dd) => dd.destinations.some((ds) => ds.id === d.id)); return destinationToRow(d, tripKey, day?.day ?? 12); });
+      const deletes = Array.from(pendingDeleteIdsRef.current); const upsert = pd.map((d) => { const day = itineraryData.days.find((dd) => dd.destinations.some((ds) => ds.id === d.id)); return destinationToRow(d, tripKey, day?.day ?? defaultDay); });
       const errs: string[] = []; for (const r of upsert) { const { error } = await supabase.from(supabaseMapDestinationsTable).upsert(r, { onConflict: "id" }); if (error) errs.push(error.message); }
       for (const id of deletes) { const { error } = await supabase.from(supabaseMapDestinationsTable).delete().eq("id", id); if (error) errs.push(error.message); }
       if (errs.length > 0) { console.warn("Supabase map sync errors:", errs.join(", ")); return; }
