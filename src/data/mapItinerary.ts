@@ -370,6 +370,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       label: "October 18",
       title: "Day 2 - October 18 - Cijin Island",
       destinations: [
+        { id: "18-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:30 AM", notes: "Breakfast at the hotel before heading out." },
         { id: "18-1", name: "Gushan Ferry Pier", lat: 22.6224, lng: 120.2664, time: "8:30 AM", notes: "Take the ferry across to Cijin Island from here." },
         { id: "18-2", name: "Alien Art Center", lat: 22.6236, lng: 120.2679, time: "9:00 AM", notes: "Right by the Gushan ferry pier, worth doing before crossing." },
         { id: "18-3", name: "British Consulate at Takao", lat: 22.6215, lng: 120.2657, time: "9:45 AM", notes: "On the Gushan/Sizihwan side overlooking the harbor mouth, not on Cijin itself." },
@@ -390,6 +391,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       label: "October 19",
       title: "Day 3 - October 19 - Meteor Garden University (Chiayi)",
       destinations: [
+        { id: "19-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "6:15 AM", notes: "Grab coffee + bread from the hotel's free breakfast, to go — too early for the full spread." },
         { id: "19-1", name: "Zuoying HSR Station", lat: 22.6879, lng: 120.3086, time: "7:10 AM", notes: "Board the HSR to Chiayi here." },
         { id: "19-2", name: "Chiayi HSR Station", lat: 23.4590, lng: 120.3221, time: "7:50 AM", notes: "Taxi to National Chung Cheng University from here, ~35-40 min." },
         { id: "19-3", name: "National Chung Cheng University", lat: 23.5502, lng: 120.4869, time: "8:35 AM", notes: "The real Meteor Garden campus — stood in for Ying De University (2001)." },
@@ -403,6 +405,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       label: "October 20",
       title: "Day 4 - October 20 - Amor's Birthday: Slow Day, City Side",
       destinations: [
+        { id: "20-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:30 AM", notes: "Happy birthday, Amor! Slow breakfast at the hotel, no alarms needed." },
         { id: "20-1", name: "Lotus Pond", lat: 22.6725, lng: 120.2953, time: "10:15 AM", notes: "Dragon and Tiger Pagodas, Spring and Autumn Pavilion, Statue of Xuantian." },
         { id: "20-2", name: "Central Park Kaohsiung", lat: 22.6218, lng: 120.2996, time: "1:50 PM", notes: "Sit, walk slow, no checklist." },
         { id: "20-3", name: "Pier-2 Art Center", lat: 22.6206, lng: 120.2848, time: "4:30 PM", notes: "Converted warehouses, murals, installations — walk at your own pace." },
@@ -414,6 +417,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       label: "October 21",
       title: "Day 5 - October 21 - Morning/Early Afternoon + Evening Departure",
       destinations: [
+        { id: "21-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 AM", notes: "Breakfast, then check out and store luggage at the front desk." },
         { id: "21-1", name: "Neiwei Art Center", lat: 22.6820, lng: 120.2940, time: "9:45 AM", notes: "Airport by 4:00 PM for the 8:00 PM flight — 4-hour buffer, no rushing." },
         { id: "21-2", name: "Neiwei Cultural Park", lat: 22.6800, lng: 120.2955, time: "10:15 AM", notes: "" },
         { id: "21-3", name: "Kaohsiung Museum of Fine Arts", lat: 22.6656, lng: 120.2926, time: "10:45 AM", notes: "" },
