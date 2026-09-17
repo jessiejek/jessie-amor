@@ -49,7 +49,6 @@ import {
   type TipCardData,
   type TimelineItemData,
 } from "./data/code1Itinerary";
-import type { MapItineraryData } from "./data/mapItinerary";
 import { Expense, TravelNote, ChecklistItem, DiaryEntry, type SyncStatus, type CurrentUserInfo, type UserTripSettings, settingsToRow, rowToSettings, type UserTripSettingsRow, type TripProfile, type TripProfileRow, profileToRow, rowToProfile } from "./types";
 import {
   hasSupabaseConfig,
@@ -65,7 +64,7 @@ import {
   supabaseTripProfileTable,
   tripKey,
 } from "./lib/supabase";
-import { makeOfflineCacheKey, readCachedDataset, useCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
+import { makeOfflineCacheKey, readCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
 
 import { activeTrip, isKaohsiung } from "./lib/activeTrip";
 import TripPicker from "./components/TripPicker";
@@ -261,7 +260,6 @@ const isDiaryEntryProtectedFromRealtime = (
 const expenseCacheKey = makeOfflineCacheKey(tripKey, "expenses");
 const checklistCacheKey = makeOfflineCacheKey(tripKey, "checklist");
 const notesCacheKey = makeOfflineCacheKey(tripKey, "notes");
-const mapCacheKey = makeOfflineCacheKey(tripKey, "map");
 
 const expenseSignature = (expenses: Expense[]) =>
   JSON.stringify(expenses.map((expense) => {
@@ -486,7 +484,6 @@ function AppShell() {
   const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
   const [initialNotesCache] = useState(() => readCachedDataset<TravelNote[]>(notesCacheKey));
   const [initialDiaryCache] = useState(() => readCachedDataset<DiaryEntry[]>(diaryCacheKey));
-  const mapCache = useCachedDataset<MapItineraryData>(mapCacheKey);
   const initialExpenseItems = applySyncStatus<Expense>(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced");
   const initialChecklistItems = applySyncStatus<ChecklistItem>(initialChecklistCache?.data ?? [], initialChecklistCache?.dirty ? "pending" : "synced");
   const initialNoteItems = applySyncStatus<TravelNote>(initialNotesCache?.data ?? [], initialNotesCache?.dirty ? "pending" : "synced");
@@ -1778,8 +1775,7 @@ function AppShell() {
 
             try {
               const photoPath = entry.photoPath ?? buildDiaryPhotoPath(entry.id, currentSavedBy.userId);
-              const response = await fetch(entry.photoUrl);
-              const blob = await response.blob();
+              const blob = dataUrlToBlob(entry.photoUrl as string);
               const { error: uploadError } = await supabase.storage.from(supabaseDiaryBucket).upload(photoPath, blob, {
                 contentType: blob.type || "image/jpeg",
                 upsert: true,
