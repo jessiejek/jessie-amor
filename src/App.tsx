@@ -2256,13 +2256,30 @@ function AppShell() {
   };
 
 
+  const accountMetadata = session?.user.user_metadata as
+    | { avatar_url?: string; picture?: string; full_name?: string; name?: string }
+    | undefined;
+  const accountDisplayName =
+    accountMetadata?.full_name?.trim() ||
+    accountMetadata?.name?.trim() ||
+    session?.user.email?.split("@")[0] ||
+    "Signed in";
+  const accountAvatar = accountMetadata?.avatar_url ?? accountMetadata?.picture ?? null;
+  const accountInitial = (accountDisplayName.trim().charAt(0) || "?").toUpperCase();
+
   const mobileAccountCard = session ? (
     <section className="ja-app-mobile-card">
       <div className="ja-app-mobile-card-inner">
         <div className="ja-app-mobile-user-row">
-          <div className="ja-app-mobile-avatar">JA</div>
+          <div className="ja-app-mobile-avatar">
+            {accountAvatar ? (
+              <img src={accountAvatar} alt={accountDisplayName} className="ja-app-mobile-avatar-img" referrerPolicy="no-referrer" />
+            ) : (
+              accountInitial
+            )}
+          </div>
           <div className="ja-app-mobile-user-info">
-            <div className="ja-app-mobile-user-name">Jessie Jayr</div>
+            <div className="ja-app-mobile-user-name">{accountDisplayName}</div>
             <div className="ja-app-mobile-user-email">{session.user.email ?? "Signed in"}</div>
           </div>
         </div>

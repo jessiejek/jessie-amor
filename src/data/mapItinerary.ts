@@ -197,7 +197,11 @@ const coordinateHints: Array<{ match: string[]; coords: Coordinates }> = [
 export const resolveCoordinatesFromName = (name: string): Coordinates => {
   const normalized = name.toLowerCase();
   const hint = coordinateHints.find(({ match }) => match.some((needle) => normalized.includes(needle)));
-  return hint?.coords ?? { lat: 3.139, lng: 101.6869 };
+  if (hint) return hint.coords;
+  // Fall back to the active trip's map centre (KL for mysg, Kaohsiung for khaoshiong)
+  // instead of always pinning unknowns to Kuala Lumpur.
+  const [lat, lng] = activeTrip?.mapCenter ?? [3.139, 101.6869];
+  return { lat, lng };
 };
 
 const buildNotes = (item: ItineraryItem) => {

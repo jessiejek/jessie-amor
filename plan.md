@@ -1,5 +1,15 @@
 # Fix Plan — Codebase Review Findings (2026-09-17)
 
+> **Status update (2026-09-21):** The three concrete fixes below are **done** in
+> commit `0bfe288` (PDF page count, diary `dataUrlToBlob`, dead `mapCache`).
+> Additional follow-ups from a later audit were also applied locally on
+> 2026-09-21: Kaohsiung map fallback, diary imageOrientation fallback, account
+> display name from session, real share QR, dead deps/exports cleanup,
+> `vite-env.d.ts` completion, and vendor chunk tweak. Keep this file as history;
+> do not treat the open checklists below as still broken.
+
+---
+
 Source: code review covering wiring, warnings/faults, and offline functionality
 across `src/App.tsx`, `src/components/MapTab.tsx`, `src/components/BudgetTab.tsx`,
 `src/components/DiaryTab.tsx`, `src/lib/offlineCache.ts`, `src/lib/supabase.ts`,

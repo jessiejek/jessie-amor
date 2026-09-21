@@ -14,8 +14,7 @@ A React 19 + Ionic 8 SPA (PWA) for a two-person trip to Malaysia and Singapore. 
 - React 19, TypeScript, Vite, Ionic 8 (iOS mode forced via `setupIonicReact({ mode: "ios" })`), react-router-dom v5
 - Supabase JS v2 (Postgres + Realtime + Storage)
 - Leaflet (map rendering)
-- `@google/genai` package present in `package.json` but not imported anywhere in source
-- `html2pdf.js` present in `package.json` but not used — PDF generation uses `jsPDF` directly
+- PDF generation uses `jspdf` directly (a direct dependency); share QR uses `qrcode`
 - Service worker: VitePWA, `registerType: "autoUpdate"`, registered immediately on boot
 
 **Build / PWA config (`vite.config.ts`)**
@@ -38,7 +37,6 @@ All values are env vars with fallback defaults:
 |--------|---------|---------|
 | `supabaseExpenseTable` | `VITE_SUPABASE_EXPENSES_TABLE` | `budget_expenses` |
 | `supabaseChecklistTable` | `VITE_SUPABASE_CHECKLIST_TABLE` | `trip_checklist_items` |
-| `supabaseMapTable` | `VITE_SUPABASE_MAP_TABLE` | `trip_map_itineraries` (unused in code) |
 | `supabaseMapDestinationsTable` | `VITE_SUPABASE_MAP_DESTINATIONS_TABLE` | `trip_map_destinations` |
 | `supabaseNotesTable` | `VITE_SUPABASE_NOTES_TABLE` | `trip_scratch_notes` |
 | `supabaseDiaryTable` | `VITE_SUPABASE_DIARY_TABLE` | `trip_diary_entries` |
@@ -208,7 +206,7 @@ Same pattern but the entire `notes` array is serialized into a single JSON colum
 ### Diary Sync
 Most complex. In addition to text upsert/delete, it handles photo uploads:
 1. For each diary entry with `photoUrl.startsWith("data:")`:
-   a. `fetch(entry.photoUrl)` → blob (NOTE: uses `fetch`, not `dataUrlToBlob` — different from budget receipts)
+   a. `dataUrlToBlob(entry.photoUrl)` → blob (same path as budget receipts; do not use `fetch(dataUrl)` on iOS)
    b. Upload to `trip-diary-photos` bucket
    c. Get 365-day signed URL
 2. Upsert all entries to `trip_diary_entries`
@@ -430,7 +428,7 @@ MapTab receives `session` as a prop and uses it directly — there is no interna
 
 Realtime: `postgres_changes` on `trip_map_destinations`, filter `trip_key=eq.{tripKey}`. Handles INSERT, UPDATE, DELETE. Skipped if `mapDirtyRef.current`.
 
-**Known issue**: `supabaseMapTable` (`trip_map_itineraries`) is defined in `supabase.ts` but never queried anywhere in the code. It is dead.
+**Note**: the old `supabaseMapTable` export (`trip_map_itineraries`) was removed as dead code; map sync uses only the destinations table.
 
 ---
 
@@ -691,31 +689,31 @@ Top bar only (Login/Settings NOT shown here). Bottom `IonTabBar` in AppShell han
 
 ## Known Issues / Suspicious Code
 
-1. **`supabaseMapTable` (`trip_map_itineraries`) is never queried.** It is exported from `supabase.ts` but no component imports or uses it. Dead export.
+1. **`supabaseMapTable`** — removed as a dead export (map sync uses destinations table). Updated 2026-09-21.
 
-2. **`@google/genai` in `package.json`** is not imported in any source file. Dead dependency.
+2. **`@google/genai`** — removed from dependencies (unused). Updated 2026-09-21.
 
-3. **`html2pdf.js` in `package.json`** is not imported anywhere. PDF is generated via `jsPDF` directly in Navigation.tsx. Dead dependency.
+3. **`html2pdf.js`** — removed; PDF uses direct `jspdf` dependency. Updated 2026-09-21.
 
-4. **Diary photo upload uses `fetch(entry.photoUrl)`** — not `dataUrlToBlob`. On iOS Safari/WKWebView, `fetch(dataUrl)` silently fails for large payloads (>~1–2 MB). Budget receipt upload was fixed to use `dataUrlToBlob` (atob-based), but diary still uses `fetch`. Large diary photos may silently fail to upload on iOS.
+4. **Diary photo upload** — uses `dataUrlToBlob` (same as budget receipts). Fixed in `0bfe288`; do not reintroduce `fetch(dataUrl)`.
 
-5. **Diary `compressImageFileToDataUrl` has no fallback.** It calls `createImageBitmap(file, { imageOrientation: "from-image" })` directly. On older iOS Safari that doesn't support the `imageOrientation` option, this throws and the photo cannot be attached. Budget tab's `loadDrawable` has a 3-tier fallback; diary does not.
+5. **Diary `compressImageFileToDataUrl`** — now mirrors BudgetTab's 3-tier drawable fallback (EXIF `createImageBitmap` → plain → `<img>`). Updated 2026-09-21.
 
-6. **Account card has hardcoded name "Jessie Jayr"** — does not read from session/profile.
+6. **Account card display name** — reads session `user_metadata` / email (updated 2026-09-21).
 
 7. **Notes deletion is "soft" locally only.** Because notes are stored as a single JSON array (not individual rows), deleting a note sets the local array to exclude it, then the whole array is upserted. There is no per-note DELETE call. If a note was added by another user and this user's local copy doesn't have it, it will be wiped on next upsert (for admins) or preserved (for non-admins who don't own it). This is architecturally inconsistent with expenses and checklist items.
 
 8. **`expenseSyncNonce` vs. cleanup**: the expense sync effect's cleanup calls `window.clearTimeout(timeout)` and sets `expenseSyncInFlightRef.current = false`. If the timeout fires after unmount but before the async completes, `expenseSyncInFlightRef` would be reset while the async is mid-flight. This is unlikely in practice but could cause a double-sync.
 
-9. **Share modal QR placeholder**: The "QR code" shown in the Share modal is decorative CSS. No actual QR code is generated.
+9. **Share modal QR** — generates a real QR via the `qrcode` package when the share modal opens (updated 2026-09-21).
 
 10. **`TRAVELER_1` / `TRAVELER_2` in immigration PDF**: These are constants exported from `src/data/code1Itinerary.ts` — they are hardcoded strings and appear in the generated PDF regardless of who is signed in.
 
 11. **Map sync marks `saveMapSnapshot(itineraryData, false)` using the captured-at-schedule-time `itineraryData`** (not the state at resolution time). If state changed during the 300ms debounce, the snapshot may be stale.
 
-12. **`destinationGuides` export is dead.** It is exported from `code1Itinerary.ts` as `Record<string, DestinationGuide>` keyed by place name, but no other file imports it. The actual guide-building function `buildGuideForItem` uses `GUIDES_BY_KEY` (built internally from `buildFallbackGuideForItem`), not `destinationGuides`.
+12. **`destinationGuides`** — removed unused export from `code1Itinerary.ts`; guides come from `GUIDES_BY_KEY`. Updated 2026-09-21.
 
-13. **`vite-env.d.ts` only declares 8 of the 11 env vars** used in `supabase.ts`. Missing from the TS declaration: `VITE_SUPABASE_MAP_DESTINATIONS_TABLE`, `VITE_SUPABASE_RECEIPT_BUCKET`, `VITE_SUPABASE_BUDGET_SETTINGS_TABLE`, `VITE_SUPABASE_SETTINGS_TABLE`. They still work at runtime via `import.meta.env` but TypeScript will not autocomplete or type-check them.
+13. **`vite-env.d.ts`** — declarations expanded to cover the Supabase env vars used in `supabase.ts`. Updated 2026-09-21.
 
 ---
 
@@ -830,8 +828,7 @@ Three segment kinds:
 - `selectedItinerary = ITINERARIES_BY_ID[DEFAULT_ITINERARY_ID]` — the active itinerary
 - `ITINERARIES_BY_ID`: `{ main: ItineraryPlan, partner: ItineraryPlan }` — `'partner'` has identical content to `'main'`; it is a placeholder, not a different itinerary
 - Convenience re-exports: `hero`, `budgetSummary`, `legend`, `days`, `alert`, `tips`, `footer` (duplicated as `currentHero`, `currentBudgetSummary`, etc. — same values)
-- `destinationGuides: Record<string, DestinationGuide>` — keyed by **place name** (e.g. `"KLIA"`, `"Batu Caves"`), NOT by `GuideKey`. **Dead export** — not imported anywhere outside this file. Not used by `buildGuideForItem`.
-- `buildGuideForItem(item: TimelineItemData): DestinationGuide` — looks up `GUIDES_BY_KEY[item.guideKey]`, then calls `attachFoodGuide`. `GUIDES_BY_KEY` is built at module load time by calling `buildFallbackGuideForItem(item)` for every item in `currentItinerary.days`. NOT from `destinationGuides`.
+- `buildGuideForItem(item: TimelineItemData): DestinationGuide` — looks up `GUIDES_BY_KEY[item.guideKey]`, then calls `attachFoodGuide`. `GUIDES_BY_KEY` is built at module load time by calling `buildFallbackGuideForItem(item)` for every item in `currentItinerary.days`. (the old unused `destinationGuides` export has been removed).
 
 **Internal guide-building pipeline**:
 - `buildFallbackGuideForItem(item)`: giant `switch(item.guideKey)` covering all 63 `GuideKey` values, calling `genericPlaceGuide` for each case. `default` branch handles unknown keys by category (`train/bus` → transit guide, `spot` → photo guide, `food` → meal guide, `hotel` → hotel guide).

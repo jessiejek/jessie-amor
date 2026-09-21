@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { Expense, TripProfile } from "../types";
 import { generateImmigrationPdf } from "../utils/generateImmigrationPdf";
 import { activeTrip } from "../lib/activeTrip";
+import QRCode from "qrcode";
 
 // Per-trip countdown windows. Countdown ends when the trip starts; the trip is
 // "over" after the end date.
@@ -59,6 +60,24 @@ const navItems: NavTab[] = [
 
 export default function Navigation({ activeTab, setActiveTab, session, isOnline, onOpenAuth, onOpenSettings, onSignOut, metadata, expenses = [], screenSize, tripProfile }: NavigationProps) {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shareQrDataUrl, setShareQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    // Generate a real QR for the share modal (works offline once rendered).
+    if (!showShareModal) return;
+    let cancelled = false;
+    const url = window.location.href;
+    QRCode.toDataURL(url, { width: 200, margin: 1, errorCorrectionLevel: "M" })
+      .then((dataUrl) => {
+        if (!cancelled) setShareQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setShareQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showShareModal]);
+
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -279,7 +298,14 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
         </IonToolbar></IonHeader>
         <IonContent className="ja-nav-share-body" style={{ "--background": "#fafaf9" } as React.CSSProperties}>
           <p className="ja-nav-share-desc">Share Jessie and Amor's {activeTrip?.name ?? "travel"} itinerary with others. Both web preview and responsive modes are supported.</p>
-          <div className="ja-nav-share-card"><div className="ja-nav-share-grid"><div className="ja-nav-share-grid-inner"><div className="ja-nav-share-block" /><div className="ja-nav-share-block ja-nav-share-block-tr" /><div className="ja-nav-share-dot" /><div className="ja-nav-share-block ja-nav-share-block-bl" /><div className="ja-nav-share-fill" /><div className="ja-nav-share-fill ja-nav-share-fill-2" /><div className="ja-nav-share-fill ja-nav-share-fill-3" /><div className="ja-nav-share-fill ja-nav-share-fill-4" /></div></div><span className="ja-nav-share-label">SCAN FOR MOBILE VIEW</span></div>
+          <div className="ja-nav-share-card">
+            {shareQrDataUrl ? (
+              <img src={shareQrDataUrl} alt="QR code for this trip page" className="ja-nav-share-qr" width={200} height={200} />
+            ) : (
+              <div className="ja-nav-share-qr-placeholder" aria-hidden="true">Generating QR…</div>
+            )}
+            <span className="ja-nav-share-label">SCAN FOR MOBILE VIEW</span>
+          </div>
           <div className="ja-nav-share-copy-row"><input type="text" readOnly value={window.location.href} className="ja-nav-share-input" /><IonButton onClick={copyUrlToClipboard} className="ja-nav-copy-btn">{copied ? <Check size={16} style={{ color: "#88B04B" }} /> : <Copy size={16} />}</IonButton></div>
         </IonContent>
       </IonModal>
