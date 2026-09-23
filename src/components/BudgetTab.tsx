@@ -284,7 +284,7 @@ export default function BudgetTab({ expenses, setExpenses, isSupabaseConnected =
     setReceiptError(null); setReceiptBusy(true);
     try {
       const dataUrl = await compressReceiptToDataUrl(file);
-      setExpenses((prev) => prev.map((e) => e.id === targetId ? { ...e, receiptUrl: dataUrl, syncStatus: "pending" } : e));
+      setExpenses((prev) => prev.map((e) => e.id === targetId ? { ...e, receiptUrl: dataUrl, receiptPath: undefined, syncStatus: "pending" } : e));
     } catch (err) { setReceiptError(err instanceof Error ? err.message : "Could not process the photo."); }
     finally { setReceiptBusy(false); }
   };

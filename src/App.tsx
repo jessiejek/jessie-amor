@@ -64,7 +64,7 @@ import {
   supabaseTripProfileTable,
   tripKey,
 } from "./lib/supabase";
-import { makeOfflineCacheKey, readCachedDataset, useOnlineStatus, writeCachedDataset } from "./lib/offlineCache";
+import { deleteReceiptBlob, makeOfflineCacheKey, readCachedDataset, readReceiptBlob, useOnlineStatus, writeCachedDataset, writeReceiptBlob } from "./lib/offlineCache";
 
 import { activeTrip, isKaohsiung } from "./lib/activeTrip";
 import TripPicker from "./components/TripPicker";
@@ -361,6 +361,37 @@ const dataUrlToBlob = (dataUrl: string): Blob => {
   return new Blob([bytes], { type: mime });
 };
 const isLocalReceiptUrl = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("data:"));
+const LOCAL_RECEIPT_MARKER_PREFIX = "local-receipt:";
+const toLocalReceiptMarker = (expenseId: string) => `${LOCAL_RECEIPT_MARKER_PREFIX}${expenseId}`;
+const isLocalReceiptMarker = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith(LOCAL_RECEIPT_MARKER_PREFIX));
+
+const dehydrateExpenseReceipts = (expenses: Expense[]): Expense[] =>
+  expenses.map((expense) => {
+    if (!isLocalReceiptUrl(expense.receiptUrl)) {
+      if (expense.receiptPath) deleteReceiptBlob(tripKey, expense.id);
+      return expense;
+    }
+    const saved = writeReceiptBlob(tripKey, expense.id, expense.receiptUrl as string);
+    // Prefer a tiny marker in the expenses cache so quota pressure doesn't wipe the whole list.
+    // If the side-store write failed, keep the data URL in-place as a last resort.
+    return saved ? { ...expense, receiptUrl: toLocalReceiptMarker(expense.id) } : expense;
+  });
+
+const hydrateExpenseReceipts = (expenses: Expense[]): Expense[] =>
+  expenses.map((expense) => {
+    if (isLocalReceiptUrl(expense.receiptUrl)) return expense;
+    if (!isLocalReceiptMarker(expense.receiptUrl)) return expense;
+    const blob = readReceiptBlob(tripKey, expense.id);
+    if (blob) {
+      return {
+        ...expense,
+        receiptUrl: blob,
+        // Local photo still needs upload + receipt_path upsert.
+        syncStatus: expense.syncStatus === "synced" ? ("pending" as const) : expense.syncStatus,
+      };
+    }
+    return { ...expense, receiptUrl: undefined, syncStatus: "pending" as const };
+  });
 
 const hashString = (value: string) => {
   let hash = 0;
@@ -377,6 +408,7 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
   localItems: T[],
   remoteItems: T[],
   syncedIds: string[] = [],
+  cacheDirty = false,
 ) => {
   const localById = new Map(localItems.map((item) => [item.id, item] as const));
   const deletedIds = new Set(syncedIds.filter((id) => !localById.has(id)));
@@ -387,20 +419,29 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
     if (deletedIds.has(remoteItem.id)) continue;
 
     const localItem = localById.get(remoteItem.id);
-    if (localItem && isPendingLocalSync(localItem.syncStatus)) {
+    // Prefer dirty/pending local rows so reconnect never silently drops offline edits.
+    if (localItem && (cacheDirty || isPendingLocalSync(localItem.syncStatus))) {
       merged.push(localItem);
       seen.add(localItem.id);
       continue;
     }
 
     if (localItem) {
-      // If the local synced item has a receipt path that the remote row doesn't
-      // have yet (second upsert hasn't completed), rescue the local receipt data
-      // and re-queue a sync so receipt_path gets saved to the DB.
+      // Rescue local receipt data the remote row doesn't have yet (upload/second
+      // upsert still in flight), including data: URLs that never made it to Storage.
       const localReceipt = localItem as unknown as { receiptPath?: string; receiptUrl?: string };
       const remoteReceipt = remoteItem as unknown as { receiptPath?: string };
-      if (localReceipt.receiptPath && !remoteReceipt.receiptPath) {
-        merged.push({ ...remoteItem, receiptPath: localReceipt.receiptPath, receiptUrl: localReceipt.receiptUrl, syncStatus: "pending" as const });
+      if (
+        (localReceipt.receiptPath && !remoteReceipt.receiptPath) ||
+        isLocalReceiptUrl(localReceipt.receiptUrl) ||
+        isLocalReceiptMarker(localReceipt.receiptUrl)
+      ) {
+        merged.push({
+          ...remoteItem,
+          receiptPath: localReceipt.receiptPath ?? remoteReceipt.receiptPath,
+          receiptUrl: localReceipt.receiptUrl,
+          syncStatus: "pending" as const,
+        });
       } else {
         merged.push(remoteItem);
       }
@@ -414,12 +455,21 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
 
   for (const localItem of localItems) {
     if (seen.has(localItem.id)) continue;
+    // Pending offline adds/edits only. Synced local-only rows are omitted so a
+    // later upsert cannot resurrect expenses another device deleted. App bootstrap
+    // special-cases empty remote + clean local cache for anti-wipe display.
     if (isPendingLocalSync(localItem.syncStatus)) {
       merged.push(localItem);
     }
   }
 
-  const hasLocalPending = Boolean(deletedIds.size) || localItems.some((item) => isPendingLocalSync(item.syncStatus));
+  const hasLocalPending =
+    cacheDirty ||
+    Boolean(deletedIds.size) ||
+    localItems.some((item) => isPendingLocalSync(item.syncStatus)) ||
+    // Receipt rescues mark merged rows pending even when the original local
+    // status was "synced" — keep dirty so we don't force-sync and drop them.
+    merged.some((item) => isPendingLocalSync(item.syncStatus));
 
   return {
     merged,
@@ -427,6 +477,7 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
     deletedIds: Array.from(deletedIds),
   };
 };
+
 
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
@@ -484,7 +535,7 @@ function AppShell() {
   const [initialChecklistCache] = useState(() => readCachedDataset<ChecklistItem[]>(checklistCacheKey));
   const [initialNotesCache] = useState(() => readCachedDataset<TravelNote[]>(notesCacheKey));
   const [initialDiaryCache] = useState(() => readCachedDataset<DiaryEntry[]>(diaryCacheKey));
-  const initialExpenseItems = applySyncStatus<Expense>(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced");
+  const initialExpenseItems = hydrateExpenseReceipts(applySyncStatus<Expense>(initialExpenseCache?.data ?? [], initialExpenseCache?.dirty ? "pending" : "synced"));
   const initialChecklistItems = applySyncStatus<ChecklistItem>(initialChecklistCache?.data ?? [], initialChecklistCache?.dirty ? "pending" : "synced");
   const initialNoteItems = applySyncStatus<TravelNote>(initialNotesCache?.data ?? [], initialNotesCache?.dirty ? "pending" : "synced");
   const initialDiaryItems = applySyncStatus<DiaryEntry>(initialDiaryCache?.data ?? [], initialDiaryCache?.dirty ? "pending" : "synced");
@@ -544,12 +595,25 @@ function AppShell() {
       }
     : null;
   const persistExpenseCache = (nextExpenses: Expense[], syncedSignature: string, dirty: boolean, syncedIds: string[] = nextExpenses.map((expense) => expense.id)) => {
-    writeCachedDataset(expenseCacheKey, {
-      data: nextExpenses,
+    const cachedExpenses = dehydrateExpenseReceipts(nextExpenses);
+    const wrote = writeCachedDataset(expenseCacheKey, {
+      data: cachedExpenses,
       syncedSignature,
       dirty,
       syncedIds,
     });
+    if (!wrote) {
+      // Last resort: drop any leftover inlined data: URLs so the expense rows themselves still survive reload.
+      const leanExpenses = cachedExpenses.map((expense) =>
+        isLocalReceiptUrl(expense.receiptUrl) ? { ...expense, receiptUrl: toLocalReceiptMarker(expense.id) } : expense,
+      );
+      writeCachedDataset(expenseCacheKey, {
+        data: leanExpenses,
+        syncedSignature,
+        dirty,
+        syncedIds,
+      });
+    }
   };
 
   const setExpenseSyncSnapshot = (syncedSignature: string, dirty: boolean, syncedIds: string[] = expenseIdsRef.current) => {
@@ -705,7 +769,15 @@ function AppShell() {
       return;
     }
 
+    const settingsCacheKey = makeOfflineCacheKey(tripKey, `user-settings:${session.user.id}`);
+
     if (!isOnline) {
+      const cachedSettings = readCachedDataset<UserTripSettings>(settingsCacheKey);
+      if (cachedSettings?.data) {
+        setUserSettings(cachedSettings.data);
+        setIsFirstSetup(false);
+        setShowSettingsModal(false);
+      }
       setSettingsLoaded(true);
       return;
     }
@@ -724,12 +796,30 @@ function AppShell() {
 
       if (error) {
         console.warn("Supabase user settings load failed:", error.message);
+        const cachedSettings = readCachedDataset<UserTripSettings>(settingsCacheKey);
+        if (cachedSettings?.data) {
+          setUserSettings(cachedSettings.data);
+          setIsFirstSetup(false);
+          setShowSettingsModal(false);
+        }
         setSettingsLoaded(true);
         return;
       }
 
       if (data) {
-        setUserSettings(rowToSettings(data as UserTripSettingsRow));
+        const cachedSettings = readCachedDataset<UserTripSettings>(settingsCacheKey);
+        // Offline edits still dirty: keep local and let the flush effect push them.
+        if (cachedSettings?.dirty && cachedSettings.data) {
+          setUserSettings(cachedSettings.data);
+        } else {
+          const nextSettings = rowToSettings(data as UserTripSettingsRow);
+          setUserSettings(nextSettings);
+          writeCachedDataset(settingsCacheKey, {
+            data: nextSettings,
+            syncedSignature: "",
+            dirty: false,
+          });
+        }
         setIsFirstSetup(false);
         setShowSettingsModal(false);
       } else {
@@ -758,6 +848,36 @@ function AppShell() {
       cancelled = true;
     };
   }, [authReady, isOnline, session]);
+
+  // Push locally-cached settings that were edited offline once we're back online.
+  useEffect(() => {
+    if (!supabase || !authReady || !session || !isOnline) return;
+    const settingsCacheKey = makeOfflineCacheKey(tripKey, `user-settings:${session.user.id}`);
+    const cachedSettings = readCachedDataset<UserTripSettings>(settingsCacheKey);
+    if (!cachedSettings?.dirty || !cachedSettings.data) return;
+
+    let cancelled = false;
+    void (async () => {
+      const { error } = await supabase
+        .from(supabaseSettingsTable)
+        .upsert(settingsToRow(cachedSettings.data), { onConflict: "user_id,trip_key" });
+      if (cancelled) return;
+      if (error) {
+        console.warn("Supabase user settings offline flush failed:", error.message);
+        return;
+      }
+      writeCachedDataset(settingsCacheKey, {
+        data: cachedSettings.data,
+        syncedSignature: "",
+        dirty: false,
+      });
+      setUserSettings(cachedSettings.data);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, isOnline, session?.user?.id]);
 
   useEffect(() => {
     if (!supabase || !authReady) {
@@ -814,20 +934,43 @@ function AppShell() {
         console.warn("Supabase expense load failed:", expenseError.message);
       } else {
         const remoteExpenses = (expenseData ?? []).map((row) => rowToExpense(row as SupabaseExpenseRow));
-        const { merged, hasLocalPending } = mergeBootstrapItems<Expense>(
-          currentExpenseCache?.data ?? [],
-          forceSyncStatus<Expense>(remoteExpenses, "synced"),
-          currentExpenseCache?.syncedIds ?? expenseIdsRef.current,
-        );
-        if (hasLocalPending) {
-          const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
-          saveExpenseSnapshot(merged, syncedSignature, true, currentExpenseCache?.syncedIds ?? expenseIdsRef.current);
-          setExpenses(merged);
+        const localExpenses = hydrateExpenseReceipts(currentExpenseCache?.data ?? []);
+        // Empty remote must not wipe a healthy cache, and must not adopt that
+        // full local list into syncedIds in a way that later upserts resurrect
+        // rows another device deleted. Keep local for display when clean;
+        // when dirty/pending, keep local + dirty without rewriting syncedIds
+        // from an empty fetch.
+        if (remoteExpenses.length === 0 && localExpenses.length > 0) {
+          const localPending =
+            Boolean(currentExpenseCache?.dirty) ||
+            localExpenses.some((item) => isPendingLocalSync(item.syncStatus));
+          if (localPending) {
+            const syncedSignature = expenseSignatureRef.current || expenseSignature(localExpenses);
+            saveExpenseSnapshot(
+              localExpenses,
+              syncedSignature,
+              true,
+              currentExpenseCache?.syncedIds ?? expenseIdsRef.current,
+            );
+          }
+          setExpenses(localExpenses);
         } else {
-          const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
-          const remoteSignature = expenseSignature(syncedExpenses);
-          saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
-          setExpenses(syncedExpenses);
+          const { merged, hasLocalPending } = mergeBootstrapItems<Expense>(
+            localExpenses,
+            forceSyncStatus<Expense>(remoteExpenses, "synced"),
+            currentExpenseCache?.syncedIds ?? expenseIdsRef.current,
+            Boolean(currentExpenseCache?.dirty),
+          );
+          if (hasLocalPending) {
+            const syncedSignature = expenseSignatureRef.current || expenseSignature(merged);
+            saveExpenseSnapshot(merged, syncedSignature, true, currentExpenseCache?.syncedIds ?? expenseIdsRef.current);
+            setExpenses(merged);
+          } else {
+            const syncedExpenses = forceSyncStatus<Expense>(merged, "synced");
+            const remoteSignature = expenseSignature(syncedExpenses);
+            saveExpenseSnapshot(syncedExpenses, remoteSignature, false, syncedExpenses.map((expense) => expense.id));
+            setExpenses(syncedExpenses);
+          }
         }
       }
 
@@ -835,21 +978,40 @@ function AppShell() {
         console.warn("Supabase checklist load failed:", checklistError.message);
       } else {
         const remoteChecklist = (checklistData ?? []).map((row) => rowToChecklist(row as SupabaseChecklistRow));
-        const { merged, hasLocalPending } = mergeBootstrapItems<ChecklistItem>(
-          currentChecklistCache?.data ?? [],
-          forceSyncStatus<ChecklistItem>(remoteChecklist, "synced"),
-          currentChecklistCache?.syncedIds ?? checklistIdsRef.current,
-        );
-        if (hasLocalPending) {
-          const syncedSignature = checklistSignatureRef.current || checklistSignature(merged);
-          saveChecklistSnapshot(merged, syncedSignature, true, currentChecklistCache?.syncedIds ?? checklistIdsRef.current);
-          checklistDirtyRef.current = true;
-          setChecklist(merged);
+        const localChecklist = currentChecklistCache?.data ?? [];
+        if (remoteChecklist.length === 0 && localChecklist.length > 0) {
+          const localPending =
+            Boolean(currentChecklistCache?.dirty) ||
+            localChecklist.some((item) => isPendingLocalSync(item.syncStatus));
+          if (localPending) {
+            const syncedSignature = checklistSignatureRef.current || checklistSignature(localChecklist);
+            saveChecklistSnapshot(
+              localChecklist,
+              syncedSignature,
+              true,
+              currentChecklistCache?.syncedIds ?? checklistIdsRef.current,
+            );
+            checklistDirtyRef.current = true;
+          }
+          setChecklist(localChecklist);
         } else {
-          const syncedChecklist = forceSyncStatus<ChecklistItem>(merged, "synced");
-          const remoteSignature = checklistSignature(syncedChecklist);
-          saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
-          setChecklist(syncedChecklist);
+          const { merged, hasLocalPending } = mergeBootstrapItems<ChecklistItem>(
+            localChecklist,
+            forceSyncStatus<ChecklistItem>(remoteChecklist, "synced"),
+            currentChecklistCache?.syncedIds ?? checklistIdsRef.current,
+            Boolean(currentChecklistCache?.dirty),
+          );
+          if (hasLocalPending) {
+            const syncedSignature = checklistSignatureRef.current || checklistSignature(merged);
+            saveChecklistSnapshot(merged, syncedSignature, true, currentChecklistCache?.syncedIds ?? checklistIdsRef.current);
+            checklistDirtyRef.current = true;
+            setChecklist(merged);
+          } else {
+            const syncedChecklist = forceSyncStatus<ChecklistItem>(merged, "synced");
+            const remoteSignature = checklistSignature(syncedChecklist);
+            saveChecklistSnapshot(syncedChecklist, remoteSignature, false, syncedChecklist.map((item) => item.id));
+            setChecklist(syncedChecklist);
+          }
         }
       }
 
@@ -859,21 +1021,40 @@ function AppShell() {
         const remoteNotes = notesData?.notes && Array.isArray((notesData as SupabaseNotesRow).notes)
           ? (notesData as SupabaseNotesRow).notes
           : [];
-        const { merged, hasLocalPending } = mergeBootstrapItems<TravelNote>(
-          currentNotesCache?.data ?? [],
-          forceSyncStatus<TravelNote>(remoteNotes, "synced"),
-          currentNotesCache?.syncedIds ?? notesIdsRef.current,
-        );
-        if (hasLocalPending) {
-          const syncedSignature = notesSignatureRef.current || notesSignature(merged);
-          saveNotesSnapshot(merged, syncedSignature, true, currentNotesCache?.syncedIds ?? notesIdsRef.current);
-          notesDirtyRef.current = true;
-          setNotes(merged);
+        const localNotes = currentNotesCache?.data ?? [];
+        if (remoteNotes.length === 0 && localNotes.length > 0) {
+          const localPending =
+            Boolean(currentNotesCache?.dirty) ||
+            localNotes.some((item) => isPendingLocalSync(item.syncStatus));
+          if (localPending) {
+            const syncedSignature = notesSignatureRef.current || notesSignature(localNotes);
+            saveNotesSnapshot(
+              localNotes,
+              syncedSignature,
+              true,
+              currentNotesCache?.syncedIds ?? notesIdsRef.current,
+            );
+            notesDirtyRef.current = true;
+          }
+          setNotes(localNotes);
         } else {
-          const syncedNotes = forceSyncStatus<TravelNote>(merged, "synced");
-          const remoteSignature = notesSignature(syncedNotes);
-          saveNotesSnapshot(syncedNotes, remoteSignature, false, syncedNotes.map((note) => note.id));
-          setNotes(syncedNotes);
+          const { merged, hasLocalPending } = mergeBootstrapItems<TravelNote>(
+            localNotes,
+            forceSyncStatus<TravelNote>(remoteNotes, "synced"),
+            currentNotesCache?.syncedIds ?? notesIdsRef.current,
+            Boolean(currentNotesCache?.dirty),
+          );
+          if (hasLocalPending) {
+            const syncedSignature = notesSignatureRef.current || notesSignature(merged);
+            saveNotesSnapshot(merged, syncedSignature, true, currentNotesCache?.syncedIds ?? notesIdsRef.current);
+            notesDirtyRef.current = true;
+            setNotes(merged);
+          } else {
+            const syncedNotes = forceSyncStatus<TravelNote>(merged, "synced");
+            const remoteSignature = notesSignature(syncedNotes);
+            saveNotesSnapshot(syncedNotes, remoteSignature, false, syncedNotes.map((note) => note.id));
+            setNotes(syncedNotes);
+          }
         }
       }
 
@@ -1079,24 +1260,42 @@ function AppShell() {
       // the bootstrap re-run that occurs when connectivity returns.
       const currentDiaryCache = readCachedDataset<DiaryEntry[]>(diaryCacheKey);
 
-      const { merged, hasLocalPending } = mergeBootstrapItems<DiaryEntry>(
-        currentDiaryCache?.data ?? [],
-        forceSyncStatus<DiaryEntry>(hydratedRows, "synced"),
-        currentDiaryCache?.syncedIds ?? diaryIdsRef.current,
-      );
-
-      if (hasLocalPending) {
-        const syncedSignature = diarySignatureRef.current || diarySignature(merged);
-        saveDiarySnapshot(merged, syncedSignature, true, currentDiaryCache?.syncedIds ?? diaryIdsRef.current);
-        setDiaryEntries(merged);
+      const localDiary = currentDiaryCache?.data ?? [];
+      if (hydratedRows.length === 0 && localDiary.length > 0) {
+        const localPending =
+          Boolean(currentDiaryCache?.dirty) ||
+          localDiary.some((item) => isPendingLocalSync(item.syncStatus));
+        if (localPending) {
+          const syncedSignature = diarySignatureRef.current || diarySignature(localDiary);
+          saveDiarySnapshot(
+            localDiary,
+            syncedSignature,
+            true,
+            currentDiaryCache?.syncedIds ?? diaryIdsRef.current,
+          );
+        }
+        setDiaryEntries(localDiary);
       } else {
-        const syncedDiary = forceSyncStatus<DiaryEntry>(merged, "synced");
-        const remoteSignature = diarySignature(syncedDiary);
-        saveDiarySnapshot(syncedDiary, remoteSignature, false, syncedDiary.map((entry) => entry.id));
-        setDiaryEntries((current) => {
-          if (diarySignature(current) === remoteSignature) return current;
-          return syncedDiary;
-        });
+        const { merged, hasLocalPending } = mergeBootstrapItems<DiaryEntry>(
+          localDiary,
+          forceSyncStatus<DiaryEntry>(hydratedRows, "synced"),
+          currentDiaryCache?.syncedIds ?? diaryIdsRef.current,
+          Boolean(currentDiaryCache?.dirty),
+        );
+
+        if (hasLocalPending) {
+          const syncedSignature = diarySignatureRef.current || diarySignature(merged);
+          saveDiarySnapshot(merged, syncedSignature, true, currentDiaryCache?.syncedIds ?? diaryIdsRef.current);
+          setDiaryEntries(merged);
+        } else {
+          const syncedDiary = forceSyncStatus<DiaryEntry>(merged, "synced");
+          const remoteSignature = diarySignature(syncedDiary);
+          saveDiarySnapshot(syncedDiary, remoteSignature, false, syncedDiary.map((entry) => entry.id));
+          setDiaryEntries((current) => {
+            if (diarySignature(current) === remoteSignature) return current;
+            return syncedDiary;
+          });
+        }
       }
 
       setDiaryLoaded(true);
@@ -1312,7 +1511,7 @@ function AppShell() {
               console.warn("Supabase receipt photo delete failed:", receiptDeleteError.message);
             }
           }
-          requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; });
+          requestRemovedIds.forEach((id) => { delete expenseReceiptPathsRef.current[id]; deleteReceiptBlob(tripKey, id); });
         }
 
         setExpenses((current) => {
@@ -2004,19 +2203,32 @@ function AppShell() {
   }, []);
 
   const budgetCapStorageKey = session?.user.id ? `ja-budget-cap:${tripKey}:${session.user.id}` : null;
+  const budgetCapDirtyRef = useRef(false);
+  const budgetCapReadyRef = useRef(false);
+  const budgetCapSkipSaveRef = useRef(false);
+  const budgetCapPhpRef = useRef(budgetCapPhp);
+  budgetCapPhpRef.current = budgetCapPhp;
 
   useEffect(() => {
     if (!budgetCapStorageKey) return;
     try {
       const cached = Number(localStorage.getItem(budgetCapStorageKey));
       if (!Number.isNaN(cached) && cached >= 0) {
-        setBudgetCapPhp(cached);
+        // Only skip the save effect when React state will actually change.
+        // If cached === current, setState is a no-op and skip would stick,
+        // swallowing the next real user edit.
+        if (cached !== budgetCapPhpRef.current) {
+          budgetCapSkipSaveRef.current = true;
+          setBudgetCapPhp(cached);
+        }
+        budgetCapPhpRef.current = cached;
       }
     } catch {}
+    budgetCapReadyRef.current = true;
   }, [budgetCapStorageKey]);
 
   useEffect(() => {
-    if (!supabase || !authReady || !session) return;
+    if (!supabase || !authReady || !session || !isOnline) return;
     supabase
       .from(supabaseBudgetSettingsTable)
       .select("budget_cap")
@@ -2025,31 +2237,51 @@ function AppShell() {
       .maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) return;
+        // Never clobber a local offline edit with a stale remote value.
+        if (budgetCapDirtyRef.current) return;
         const remote = Number(data["budget_cap"]);
         if (!isNaN(remote)) {
-          setBudgetCapPhp(remote);
+          if (remote !== budgetCapPhpRef.current) {
+            budgetCapSkipSaveRef.current = true;
+            setBudgetCapPhp(remote);
+          }
+          budgetCapPhpRef.current = remote;
           if (budgetCapStorageKey) {
             try { localStorage.setItem(budgetCapStorageKey, String(remote)); } catch {}
           }
         }
       });
-  }, [authReady, session, budgetCapStorageKey]);
+  }, [authReady, session, budgetCapStorageKey, isOnline]);
 
   useEffect(() => {
+    if (!budgetCapReadyRef.current) return;
+
     if (budgetCapStorageKey) {
       try {
         localStorage.setItem(budgetCapStorageKey, String(budgetCapPhp));
       } catch {}
     }
-    if (!supabase || !authReady || !session) return;
+
+    if (budgetCapSkipSaveRef.current) {
+      budgetCapSkipSaveRef.current = false;
+      return;
+    }
+
+    budgetCapDirtyRef.current = true;
+
+    if (!supabase || !authReady || !session || !isOnline) return;
     const timeout = setTimeout(async () => {
       const { error } = await supabase
         .from(supabaseBudgetSettingsTable)
         .upsert({ trip_key: tripKey, user_id: session.user.id, budget_cap: budgetCapPhp }, { onConflict: "trip_key,user_id" });
-      if (error) console.warn("Supabase settings save failed:", error.message);
+      if (error) {
+        console.warn("Supabase settings save failed:", error.message);
+        return;
+      }
+      budgetCapDirtyRef.current = false;
     }, 500);
     return () => clearTimeout(timeout);
-  }, [budgetCapPhp, authReady, session, budgetCapStorageKey]);
+  }, [budgetCapPhp, authReady, session, budgetCapStorageKey, isOnline]);
 
   useEffect(() => {
     if (activeRoute !== "/settings") {
@@ -2131,9 +2363,6 @@ function AppShell() {
   };
 
   const handleSaveSettings = async (incoming: UserTripSettings) => {
-    if (!supabase) {
-      throw new Error("Cloud sync isn't configured, so settings can't be saved right now.");
-    }
     if (!session) {
       throw new Error("Sign in first — trip settings are saved per account.");
     }
@@ -2144,6 +2373,26 @@ function AppShell() {
       userId: session.user.id,
       tripKey,
     };
+    const settingsCacheKey = makeOfflineCacheKey(tripKey, `user-settings:${session.user.id}`);
+
+    // Always keep a local copy so Kaohsiung/Malaysia settings survive offline reloads.
+    writeCachedDataset(settingsCacheKey, {
+      data: nextSettings,
+      syncedSignature: "",
+      dirty: true,
+    });
+
+    if (!supabase || !isOnline) {
+      setUserSettings(nextSettings);
+      setShowSettingsModal(false);
+      setIsFirstSetup(false);
+      setSettingsLoaded(true);
+      setIsSavingSettings(false);
+      if (activeRoute === "/settings") {
+        navigateTo("/budget");
+      }
+      return;
+    }
 
     const { error } = await supabase
       .from(supabaseSettingsTable)
@@ -2151,10 +2400,17 @@ function AppShell() {
 
     if (error) {
       console.warn("Supabase user settings save failed:", error.message);
+      // Local cache stays dirty for the offline flush / next Save tap.
+      setUserSettings(nextSettings);
       setIsSavingSettings(false);
       throw new Error("Could not save settings. Check your connection and try again.");
     }
 
+    writeCachedDataset(settingsCacheKey, {
+      data: nextSettings,
+      syncedSignature: "",
+      dirty: false,
+    });
     setUserSettings(nextSettings);
     setShowSettingsModal(false);
     setIsFirstSetup(false);

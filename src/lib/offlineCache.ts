@@ -33,14 +33,49 @@ export const readCachedDataset = <T,>(key: string): CachedDataset<T> | null => {
   }
 };
 
-export const writeCachedDataset = <T,>(key: string, snapshot: CachedDataset<T>) => {
-  if (!canUseStorage()) return;
+export const writeCachedDataset = <T,>(key: string, snapshot: CachedDataset<T>): boolean => {
+  if (!canUseStorage()) return false;
 
   try {
     window.localStorage.setItem(key, JSON.stringify(snapshot));
     window.dispatchEvent(new CustomEvent(CACHE_UPDATE_EVENT, { detail: { key } }));
+    return true;
   } catch (error) {
     console.warn(`Failed to write offline cache for ${key}:`, error);
+    return false;
+  }
+};
+
+/** Side-store for large receipt data URLs so the expenses list cache stays small. */
+export const makeReceiptBlobCacheKey = (tripKey: string, expenseId: string) =>
+  makeOfflineCacheKey(tripKey, `receipt-blob:${expenseId}`);
+
+export const writeReceiptBlob = (tripKey: string, expenseId: string, dataUrl: string): boolean => {
+  if (!canUseStorage() || !dataUrl.startsWith("data:")) return false;
+  try {
+    window.localStorage.setItem(makeReceiptBlobCacheKey(tripKey, expenseId), dataUrl);
+    return true;
+  } catch (error) {
+    console.warn(`Failed to persist receipt blob for ${expenseId}:`, error);
+    return false;
+  }
+};
+
+export const readReceiptBlob = (tripKey: string, expenseId: string): string | null => {
+  if (!canUseStorage()) return null;
+  try {
+    return window.localStorage.getItem(makeReceiptBlobCacheKey(tripKey, expenseId));
+  } catch {
+    return null;
+  }
+};
+
+export const deleteReceiptBlob = (tripKey: string, expenseId: string) => {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.removeItem(makeReceiptBlobCacheKey(tripKey, expenseId));
+  } catch {
+    // ignore
   }
 };
 
