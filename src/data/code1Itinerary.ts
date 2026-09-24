@@ -86,6 +86,8 @@ export type DaySectionData = {
     url: string;
     label: string;
   }[];
+  /** Optional static map image path under /public, e.g. /kaohsiung-maps/day2-cijijn.jpg */
+  mapImage?: string;
 };
 
 export type HeroData = {

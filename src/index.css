@@ -3777,6 +3777,55 @@ textarea::placeholder {
   color: #a8a29e;
 }
 
+.ja-day-map-controls {
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ja-day-map-toggle {
+  --border-radius: 999px;
+  --border-width: 1px;
+  --border-color: #bfdbfe;
+  --color: #1e40af;
+  --background: #eff6ff;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ja-day-map-modal {
+  --width: min(960px, calc(100vw - 24px));
+  --max-width: 960px;
+  --height: min(90dvh, 900px);
+  --border-radius: 18px;
+  --backdrop-opacity: 0.5;
+  --box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.ja-day-map-modal-content {
+  --background: #0f172a;
+}
+
+.ja-day-map-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: #0f172a;
+}
+
+.ja-day-map-img-modal {
+  max-height: none;
+  min-height: 50dvh;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+
 .ja-itinerary-images {
   display: grid;
   grid-template-columns: 1fr;

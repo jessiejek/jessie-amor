@@ -5,8 +5,14 @@ import {
   IonChip,
   IonButton,
   IonIcon,
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonContent,
 } from "@ionic/react";
-import { informationCircleOutline } from "ionicons/icons";
+import { closeOutline, informationCircleOutline, mapOutline } from "ionicons/icons";
 import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import { activeTrip } from "../lib/activeTrip";
@@ -58,10 +64,15 @@ const getMobileDayHeadline = (day: DaySectionData) => splitDayTitle(day.title).d
 
 export default function DailyItineraryView({ days, onInfoClick, selectedMobileDay, onSelectedMobileDayChange }: DailyItineraryViewProps) {
   const [internalDay, setInternalDay] = useState<number>(days[0]?.day ?? 0);
+  const [mapModalDay, setMapModalDay] = useState<number | null>(null);
   const activeMobileDay = selectedMobileDay ?? internalDay;
   const setActiveMobileDay = onSelectedMobileDayChange ?? setInternalDay;
   const selectedDay = useMemo(() => days.find((d) => d.day === activeMobileDay) ?? days[0] ?? null, [activeMobileDay, days]);
   const selectedDayIndex = selectedDay ? days.findIndex((d) => d.day === selectedDay.day) : -1;
+  const mapModalDayData = useMemo(
+    () => (mapModalDay == null ? null : days.find((d) => d.day === mapModalDay) ?? null),
+    [days, mapModalDay],
+  );
 
   const renderDayArticle = (day: DaySectionData, displayNum: number, mobileOnly = false) => (
     <article key={day.day} className={`ja-itinerary-article${mobileOnly ? " ja-itinerary-article-mobile" : " ja-itinerary-article-desktop"}`}>
@@ -72,6 +83,20 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
           <p className="ja-itinerary-day-meta"><span>{day.budgetLabel}</span></p>
         </div>
       </div>
+
+      {day.mapImage ? (
+        <div className="ja-day-map-controls">
+          <IonButton
+            fill="outline"
+            size="small"
+            className="ja-day-map-toggle"
+            onClick={() => setMapModalDay(day.day)}
+          >
+            <IonIcon icon={mapOutline} slot="start" />
+            Show map image
+          </IonButton>
+        </div>
+      ) : null}
 
       {day.outfitTip && (
         <div className="ja-outfit-tip">
@@ -237,6 +262,32 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
 
       <div className="ja-itinerary-mobile-articles">{selectedDay ? renderDayArticle(selectedDay, selectedDayIndex, true) : null}</div>
       <div className="ja-itinerary-desktop-articles">{days.map((day, i) => renderDayArticle(day, i))}</div>
+
+      <IonModal
+        isOpen={mapModalDay != null && Boolean(mapModalDayData?.mapImage)}
+        onDidDismiss={() => setMapModalDay(null)}
+        className="ja-day-map-modal"
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>{mapModalDayData ? `Day map · ${mapModalDayData.title}` : "Day map"}</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setMapModalDay(null)} aria-label="Close map">
+                <IonIcon icon={closeOutline} slot="icon-only" />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ja-day-map-modal-content">
+          {mapModalDayData?.mapImage ? (
+            <img
+              src={mapModalDayData.mapImage}
+              alt={`Map for ${mapModalDayData.title}`}
+              className="ja-day-map-img ja-day-map-img-modal"
+            />
+          ) : null}
+        </IonContent>
+      </IonModal>
     </section>
   );
 }
