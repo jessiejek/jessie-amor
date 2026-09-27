@@ -143,6 +143,11 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
             <div key={item.id} className="ja-itinerary-item-wrap">
               <div className="ja-itinerary-item-dot" />
               <IonCard className="ja-itinerary-item-card" style={{ "--ja-item-border": meta.cardBorder } as React.CSSProperties}>
+                {item.image ? (
+                  <div className="ja-itinerary-item-photo">
+                    <img src={item.image} alt={item.title} loading="lazy" />
+                  </div>
+                ) : null}
                 <IonCardContent>
                   <div className="ja-itinerary-item-layout">
                     <div className="ja-itinerary-item-main">

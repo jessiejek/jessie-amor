@@ -3905,6 +3905,31 @@ textarea::placeholder {
   }
 }
 
+.ja-itinerary-item-photo {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--ja-radius-lg) var(--ja-radius-lg) 0 0;
+  background: #e7e5e4;
+  line-height: 0;
+}
+
+.ja-itinerary-item-photo img {
+  display: block;
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .ja-itinerary-item-photo img {
+    height: 160px;
+  }
+}
+
+.ja-itinerary-item-card:has(.ja-itinerary-item-photo) {
+  overflow: hidden;
+}
+
 .ja-itinerary-item-wrap {
   position: relative;
 }

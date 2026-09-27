@@ -31,6 +31,7 @@ import type {
   TipCardData,
   GuideKey,
 } from "./code1Itinerary";
+import { KAOHSIUNG_GUIDES } from "./kaohsiungGuides";
 
 const text = (value: string): TextSegment => ({ kind: "text", value });
 const place = (label: string, placeType: string | undefined, mapQuery: string): PlaceSegment => ({
@@ -55,6 +56,7 @@ const item = (input: {
 }): TimelineItemData => {
   itemCounter += 1;
   const bullets = input.bullets;
+  const guideImage = KAOHSIUNG_GUIDES[input.guideKey]?.image;
   return {
     id: `kh-${itemCounter}`,
     time: input.time,
@@ -64,6 +66,7 @@ const item = (input: {
     bullets,
     tags: input.tags,
     mapQuery: input.mapQuery,
+    image: guideImage,
     guideKey: input.guideKey,
     warnings: input.warnings,
     infoNotes: input.infoNotes,
