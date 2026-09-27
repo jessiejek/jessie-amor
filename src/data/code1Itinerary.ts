@@ -60,6 +60,8 @@ export type TimelineItemData = {
   title: string;
   category: Category;
   description: Segment[];
+  /** When set, DailyItineraryView renders a real <ul>/<li> list (each entry is rich Segment[]). */
+  bullets?: Segment[][];
   tags: ItemTag[];
   cost?: string;
   mapQuery: string;
@@ -2034,7 +2036,9 @@ function isTransportishItem(item: TimelineItemData) {
 }
 
 function extractPlaceLabels(item: TimelineItemData) {
-  return item.description.filter((segment): segment is PlaceSegment => segment.kind === 'place');
+  const fromDescription = item.description.filter((segment): segment is PlaceSegment => segment.kind === 'place');
+  const fromBullets = (item.bullets ?? []).flat().filter((segment): segment is PlaceSegment => segment.kind === 'place');
+  return fromDescription.length ? fromDescription : fromBullets;
 }
 
 function buildTransportGuide(

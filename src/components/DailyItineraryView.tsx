@@ -156,7 +156,17 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                         <h4 className="ja-itinerary-item-title">
                           <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{item.title}</a>
                         </h4>
-                        <p className="ja-itinerary-item-desc"><RichText segments={item.description} /></p>
+                        {item.bullets?.length ? (
+                          <ul className="ja-itinerary-item-bullets">
+                            {item.bullets.map((bullet, bi) => (
+                              <li key={bi} className="ja-itinerary-item-bullet">
+                                <RichText segments={bullet} />
+                              </li>
+                            ))}
+                          </ul>
+                        ) : item.description.length ? (
+                          <p className="ja-itinerary-item-desc"><RichText segments={item.description} /></p>
+                        ) : null}
                         {item.warnings?.length ? (
                           <div className="ja-item-warnings">
                             {item.warnings.map((warning, wi) => (
