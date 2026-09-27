@@ -28,6 +28,11 @@ export default function DestinationInfoModal({ guide, onClose }: DestinationInfo
       {guide && (
         <IonContent style={{ "--background": "#fafaf9" } as React.CSSProperties}>
           <div className="ja-dest-content">
+            {guide.image ? (
+              <div className="ja-dest-hero-image">
+                <img src={guide.image} alt={guide.title} loading="lazy" />
+              </div>
+            ) : null}
             <IonCard className="ja-dest-summary-card"><IonCardContent><p className="ja-dest-text">{guide.summary}</p></IonCardContent></IonCard>
 
             {(guide.service || guide.ticket || guide.whereToBuy?.length) && (

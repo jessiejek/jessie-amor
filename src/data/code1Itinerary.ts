@@ -3,6 +3,7 @@ export const TRAVELER_2 = "Rizza Amor L. Caguco";
 
 import { activeTrip } from "../lib/activeTrip";
 import { kaohsiungPlan } from "./kaohsiungItinerary";
+import { KAOHSIUNG_GUIDES } from "./kaohsiungGuides";
 
 export type Category = 'train' | 'bus' | 'food' | 'spot' | 'hotel' | 'walk' | 'free';
 export type TagVariant = 'train' | 'bus' | 'food' | 'walk' | 'spot' | 'hotel' | 'free';
@@ -127,6 +128,8 @@ export type FoodGuide = {
 export type DestinationGuide = {
   title: string;
   summary: string;
+  /** Optional in-repo photo path, e.g. /kaohsiung-places/pier2.webp */
+  image?: string;
   service?: string;
   ticket?: string;
   whereToBuy?: string[];
@@ -1973,6 +1976,7 @@ images: [
 type GuideInput = {
   title: string;
   summary: string;
+  image?: string;
   service?: string;
   ticket?: string;
   whereToBuy?: string[];
@@ -2009,6 +2013,11 @@ function attachFoodGuide(guide: DestinationGuide, item: TimelineItemData): Desti
 }
 
 export function buildGuideForItem(item: TimelineItemData): DestinationGuide {
+  const kaohsiungGuide = KAOHSIUNG_GUIDES[item.guideKey];
+  if (kaohsiungGuide) {
+    return attachFoodGuide(kaohsiungGuide, item);
+  }
+
   const keyedGuide = GUIDES_BY_KEY[item.guideKey];
   const baseGuide = keyedGuide ?? buildFallbackGuideForItem(item);
 

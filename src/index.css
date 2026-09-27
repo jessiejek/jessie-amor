@@ -5510,6 +5510,22 @@ textarea::placeholder {
 .ja-dest-title-bar { background: #0B3530; padding: 0 16px 12px; }
 .ja-dest-title { font-size: 1.125rem; font-family: var(--font-serif); font-weight: 700; color: #ffffff; }
 .ja-dest-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.ja-dest-hero-image {
+  margin: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #e7e5e4;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.ja-dest-hero-image img {
+  display: block;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+@media (min-width: 768px) {
+  .ja-dest-hero-image img { height: 260px; }
+}
 .ja-dest-text { font-size: 0.875rem; line-height: 1.625; color: #57534e; }
 .ja-dest-section-title { margin-bottom: 12px; font-size: 11px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0B3530; }
 .ja-dest-info-grid { display: grid; gap: 12px; }
