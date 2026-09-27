@@ -126,9 +126,6 @@ const days: DaySectionData[] = [
   {
     day: 17,
     title: "DAY 1 · October 17 — Arrival",
-    images: [
-      { title: "Kaohsiung Airport", url: "/kaohsiung-places/khh-airport.webp", label: "ARRIVAL" },
-    ],
     budgetLabel: "NT$ 500–800 · arrive · no sightseeing",
     items: [
       item({
@@ -222,10 +219,6 @@ const days: DaySectionData[] = [
   {
     day: 18,
     title: "DAY 2 · October 18 — Consulate + Cijin",
-    images: [
-      { title: "British Consulate at Takao", url: "/kaohsiung-places/british-consulate.webp", label: "MORNING" },
-      { title: "Cijin Rainbow Church", url: "/kaohsiung-places/rainbow-church.webp", label: "ISLAND" },
-    ],
     budgetLabel: "NT$ 1,500–2,200 · Consulate + Cijin only",
     mapImage: "/kaohsiung-maps/day2-cijijn.jpg",
     items: [
@@ -451,10 +444,6 @@ const days: DaySectionData[] = [
   {
     day: 19,
     title: "DAY 3 · October 19 — Meteor Garden LOCKED",
-    images: [
-      { title: "CCU campus (Meteor Garden)", url: "/kaohsiung-places/ccu-campus.webp", label: "CAMPUS" },
-      { title: "Chiayi turkey rice", url: "/kaohsiung-places/turkey-rice.webp", label: "LUNCH" },
-    ],
     budgetLabel: "NT$ 2,930–3,670 · HSR FULL · no Formosa · no Liuhe",
     mapImage: "/kaohsiung-maps/day3-ccu-formosa.jpg",
     items: [
@@ -647,10 +636,6 @@ const days: DaySectionData[] = [
   {
     day: 20,
     title: "DAY 4 · October 20 — Slow birthday Amor LOCKED",
-    images: [
-      { title: "Main Public Library", url: "/kaohsiung-places/main-library.webp", label: "MORNING" },
-      { title: "Great Harbour Bridge", url: "/kaohsiung-places/harbour-bridge.webp", label: "SUNSET" },
-    ],
     budgetLabel: "NT$ 2,200–3,300 · Library · Pier-2 · Yonshin 🎂",
     mapImage: "/kaohsiung-maps/day4-pier2-bridge.jpg",
     outfitTip: {
@@ -829,10 +814,6 @@ const days: DaySectionData[] = [
   {
     day: 21,
     title: "DAY 5 · October 21 — Lotus + fly",
-    images: [
-      { title: "Dragon & Tiger Pagodas", url: "/kaohsiung-places/dragon-tiger-pagodas.webp", label: "LOTUS" },
-      { title: "Kaohsiung Airport", url: "/kaohsiung-places/khh-airport.webp", label: "DEPARTURE" },
-    ],
     budgetLabel: "NT$ 700–1,200 · Lotus morning · airport evening",
     mapImage: "/kaohsiung-maps/day5-lotus-airport.jpg",
     items: [
