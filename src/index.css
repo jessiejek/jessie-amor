@@ -3905,29 +3905,55 @@ textarea::placeholder {
   }
 }
 
-.ja-itinerary-item-photo {
-  margin: 0;
-  overflow: hidden;
-  border-radius: var(--ja-radius-lg) var(--ja-radius-lg) 0 0;
-  background: #e7e5e4;
-  line-height: 0;
+.ja-itinerary-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.ja-itinerary-item-photo img {
+.ja-item-photo-modal {
+  --width: min(960px, calc(100vw - 24px));
+  --max-width: 960px;
+  --height: min(90dvh, 900px);
+  --border-radius: 18px;
+  --backdrop-opacity: 0.5;
+  --box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.ja-item-photo-modal-content {
+  --background: #0f172a;
+}
+
+.ja-item-photo-figure {
+  margin: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 50dvh;
+}
+
+.ja-item-photo-img {
   display: block;
   width: 100%;
-  height: 128px;
-  object-fit: cover;
+  max-height: calc(90dvh - 140px);
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #0f172a;
 }
 
-@media (min-width: 768px) {
-  .ja-itinerary-item-photo img {
-    height: 160px;
-  }
-}
-
-.ja-itinerary-item-card:has(.ja-itinerary-item-photo) {
-  overflow: hidden;
+.ja-item-photo-caption {
+  margin: 0;
+  padding: 0 8px 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
 }
 
 .ja-itinerary-item-wrap {

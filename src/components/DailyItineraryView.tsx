@@ -12,7 +12,7 @@ import {
   IonButtons,
   IonContent,
 } from "@ionic/react";
-import { closeOutline, informationCircleOutline, mapOutline } from "ionicons/icons";
+import { cameraOutline, closeOutline, informationCircleOutline, mapOutline } from "ionicons/icons";
 import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import { activeTrip } from "../lib/activeTrip";
@@ -65,6 +65,7 @@ const getMobileDayHeadline = (day: DaySectionData) => splitDayTitle(day.title).d
 export default function DailyItineraryView({ days, onInfoClick, selectedMobileDay, onSelectedMobileDayChange }: DailyItineraryViewProps) {
   const [internalDay, setInternalDay] = useState<number>(days[0]?.day ?? 0);
   const [mapModalDay, setMapModalDay] = useState<number | null>(null);
+  const [photoModalItem, setPhotoModalItem] = useState<TimelineItemData | null>(null);
   const activeMobileDay = selectedMobileDay ?? internalDay;
   const setActiveMobileDay = onSelectedMobileDayChange ?? setInternalDay;
   const selectedDay = useMemo(() => days.find((d) => d.day === activeMobileDay) ?? days[0] ?? null, [activeMobileDay, days]);
@@ -143,11 +144,6 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
             <div key={item.id} className="ja-itinerary-item-wrap">
               <div className="ja-itinerary-item-dot" />
               <IonCard className="ja-itinerary-item-card" style={{ "--ja-item-border": meta.cardBorder } as React.CSSProperties}>
-                {item.image ? (
-                  <div className="ja-itinerary-item-photo">
-                    <img src={item.image} alt={item.title} loading="lazy" />
-                  </div>
-                ) : null}
                 <IonCardContent>
                   <div className="ja-itinerary-item-layout">
                     <div className="ja-itinerary-item-main">
@@ -203,11 +199,24 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                           <span className="ja-itinerary-cost-value">{item.cost}</span>
                         </div>
                       ) : <div />}
-                      {onInfoClick ? (
-                        <IonButton fill="clear" size="small" onClick={() => onInfoClick(item)} className="ja-itinerary-action-btn">
-                          <IonIcon icon={informationCircleOutline} slot="start" />Guide
-                        </IonButton>
-                      ) : null}
+                      <div className="ja-itinerary-item-actions">
+                        {item.image ? (
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            onClick={() => setPhotoModalItem(item)}
+                            className="ja-itinerary-action-btn"
+                            aria-label={`View photo of ${item.title}`}
+                          >
+                            <IonIcon icon={cameraOutline} slot="start" />Photo
+                          </IonButton>
+                        ) : null}
+                        {onInfoClick ? (
+                          <IonButton fill="clear" size="small" onClick={() => onInfoClick(item)} className="ja-itinerary-action-btn">
+                            <IonIcon icon={informationCircleOutline} slot="start" />Guide
+                          </IonButton>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   {item.alternates?.length ? (
@@ -300,6 +309,35 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
               alt={`Map for ${mapModalDayData.title}`}
               className="ja-day-map-img ja-day-map-img-modal"
             />
+          ) : null}
+        </IonContent>
+      </IonModal>
+
+      <IonModal
+        isOpen={Boolean(photoModalItem?.image)}
+        onDidDismiss={() => setPhotoModalItem(null)}
+        className="ja-item-photo-modal"
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>{photoModalItem?.title ?? "Photo"}</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setPhotoModalItem(null)} aria-label="Close photo">
+                <IonIcon icon={closeOutline} slot="icon-only" />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ja-item-photo-modal-content">
+          {photoModalItem?.image ? (
+            <figure className="ja-item-photo-figure">
+              <img
+                src={photoModalItem.image}
+                alt={photoModalItem.title}
+                className="ja-item-photo-img"
+              />
+              <figcaption className="ja-item-photo-caption">{photoModalItem.title}</figcaption>
+            </figure>
           ) : null}
         </IonContent>
       </IonModal>
