@@ -7621,9 +7621,9 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
    onto its own full-width line underneath — far less horizontal space needed
    than a single 6-column row, so this fits an iPad without side-scrolling. */
 .ja-itplus-grid { display: grid; column-gap: 10px; padding: 8px 14px 4px; font-size: 12.5px; }
-.ja-itplus-grid-head { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #78716c; padding-bottom: 6px; border-bottom: 1px solid #efeeec; margin-bottom: 6px; }
-.ja-itplus-cell { padding: 6px 0; color: #1c1917; align-self: start; }
-.ja-itplus-cell-activities { grid-column: 1 / var(--ja-itplus-activities-end, -1); padding: 2px 0 12px; color: #1c1917; border-bottom: 1px solid #f0efed; }
+.ja-itplus-grid-head { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #78716c; padding-bottom: 6px; border-bottom: 1px solid #efeeec; margin-bottom: 6px; min-width: 0; }
+.ja-itplus-cell { padding: 6px 8px 6px 0; color: #1c1917; align-self: start; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.ja-itplus-cell-activities { grid-column: 1 / var(--ja-itplus-activities-end, -1); padding: 2px 0 12px; color: #1c1917; border-bottom: 1px solid #f0efed; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .ja-itplus-cell-activities:last-child { border-bottom: none; }
 .ja-itplus-cell-activities-edit { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #f0efed; }
 .ja-itplus-cell-activities-edit .ja-itplus-cell-input { flex: 1; }
@@ -7636,6 +7636,34 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
 .ja-itplus-day > .ja-itplus-table-wrap + ion-button { margin: 10px 14px 14px; }
 
 .ja-itplus-readonly-note { font-size: 12px; color: #a8a29e; text-align: center; margin-top: 16px; }
+
+.ja-itplus-time-title-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+  padding-right: 10px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.ja-itplus-summary-time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #44403c;
+  flex-shrink: 0;
+}
+.ja-itplus-summary-sep {
+  color: #a8a29e;
+  white-space: pre;
+  flex-shrink: 0;
+}
+.ja-itplus-summary-title {
+  color: #1c1917;
+  min-width: 0;
+}
+
+
 
 /* Account avatar image (session photo) */
 .ja-app-mobile-avatar-img {

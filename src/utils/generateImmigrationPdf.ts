@@ -49,7 +49,7 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   const days = p?.itineraryDays?.length ? p.itineraryDays : itinerary.days;
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const M = 18, PW = 190, LABEL_COL = 34, TIME_COL = 18, RUNNING_HEADER_H = 12; let y = 22;
+  const M = 18, PW = 190, LABEL_COL = 34, RUNNING_HEADER_H = 12; let y = 22;
   const clean = (s: string) => s.replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/ /g, " ").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
   const sec = (t: string) => { y += 3; doc.setDrawColor(11, 53, 48); doc.setLineWidth(0.5); doc.line(M, y, PW + M - 8, y); y += 5; doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(t).toUpperCase(), M, y); y += 6; };
   const kv = (k: string, v: string) => { doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(60, 60, 60); doc.text(clean(k), M, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(v), M + LABEL_COL, y); y += 4.8; };
@@ -71,7 +71,45 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
   doc.setDrawColor(11, 53, 48); doc.line(M, y + 1, M + cw.reduce((a, b) => a + b, 0), y + 1); y += 5;
   const hr = (r: string[]) => { let rx = M; r.forEach((c2, i) => { doc.setFontSize(8.5); doc.setFont("helvetica", i === 0 ? "bold" : "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(c2), rx + 1, y); rx += cw[i]; }); y += 4.5; };
   hotels.forEach((h) => hr([h.hotel, h.location, h.checkIn, h.checkOut]));
-  sec("Daily Itinerary"); days.forEach((day) => { np(); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(day.title), M, y); y += 4.5; day.items.forEach((item) => { np(); doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(50, 50, 50); doc.text(clean(item.time), M + 3, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(item.title), M + 3 + TIME_COL, y); y += 4.5; }); y += 2; });
+  // Time + title share one line. Measure the longest time at the item font so
+  // Kaohsiung ranges (e.g. "9:00-10:00 AM") do not overflow into the title the
+  // way a fixed 18mm column did for short Malaysia times like "9:00 AM".
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  let maxTimeW = 0;
+  days.forEach((day) => {
+    day.items.forEach((item) => {
+      maxTimeW = Math.max(maxTimeW, doc.getTextWidth(clean(item.time || "")));
+    });
+  });
+  const TIME_SEP = " - ";
+  const sepW = doc.getTextWidth(TIME_SEP);
+  const timeCol = Math.max(18, maxTimeW + sepW + 1);
+  sec("Daily Itinerary");
+  days.forEach((day) => {
+    np();
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(11, 53, 48);
+    doc.text(clean(day.title), M, y);
+    y += 4.5;
+    day.items.forEach((item) => {
+      np();
+      const timeStr = clean(item.time || "");
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50, 50, 50);
+      doc.text(timeStr, M + 3, y);
+      const thisTimeW = doc.getTextWidth(timeStr);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.text("-", M + 3 + thisTimeW + 1.2, y);
+      doc.setTextColor(26, 26, 26);
+      doc.text(clean(item.title), M + 3 + timeCol, y);
+      y += 4.5;
+    });
+    y += 2;
+  });
 
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -118,9 +156,9 @@ export function generateItineraryPlusPdf(tripProfile: TripProfile | null | undef
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const M = 12, PAGE_W = 210, PAGE_H = 297, HEADER_H = 13, ROW_H = 7.5;
   const allCols = [
-    { key: "time", label: "Time", width: 16 },
-    { key: "destination", label: "Destination", width: 27 },
-    { key: "title", label: "Activities", width: 51 },
+    { key: "time", label: "Time", width: 28 },
+    { key: "destination", label: "Destination", width: 24 },
+    { key: "title", label: "Activities", width: 42 },
     { key: "fees", label: "Fees", width: 15 },
     { key: "ootdJessie", label: "OOTD - Jessie", width: 30 },
     { key: "ootdAmor", label: "OOTD - Amor", width: 30 },
