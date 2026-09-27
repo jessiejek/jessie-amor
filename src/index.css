@@ -3999,6 +3999,7 @@ textarea::placeholder {
   font-size: 0.75rem;
   line-height: 1.625;
   color: #737373;
+  white-space: pre-wrap;
 }
 
 .ja-itinerary-tags {
