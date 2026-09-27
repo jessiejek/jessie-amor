@@ -8,7 +8,7 @@
 // - No revisiting an area/island on a later day.
 // - Shade / indoors 1–3 PM when possible.
 // Day layout (LOCKED where noted):
-// - Day 1 (Oct 17 Sat): arrive KHH → ATM + MRT R4→R8 + taxi Hub → check-in → Guanghua NM dinner.
+// - Day 1 (Oct 17 Sat): arrive KHH → ATM + MRT R4→R8 + taxi Hub → check-in → walk dinner 深夜蓋飯食堂 (崑明街55號; confirm open Sat; else desk fallback on 一心二路).
 // - Day 2 (Oct 18 Sun): Consulate + Cijin only (Tunnel optional/skip). No Pier-2. 港園 dinner → home.
 // - Day 3 (Oct 19 Mon) LOCKED: HSR FULL (no B1G1) → CCU Meteor Garden → Minxiong turkey rice → hotel rest → light dinner near Hub. NO Formosa. NO Liuhe.
 // - Day 4 (Oct 20 Tue) LOCKED Amor birthday: Library + OGNI → rest → Pier-2 Dayi → Harbour Bridge sunset → Yonshin.
@@ -127,7 +127,11 @@ const days: DaySectionData[] = [
         time: "5:00–7:00 PM",
         title: "Flight Manila → Kaohsiung",
         category: "hotel",
-        description: [text("Plane MNL → KHH. About 2 hours. Flights already paid (NT$0 in trip cash).")],
+        description: [
+          text(
+            "Fly Manila (MNL) → Kaohsiung (KHH), about 2 hours. Flights are already paid — count as NT$0 in trip cash. Keep passports, boarding passes, and a charged phone handy for arrival.",
+          ),
+        ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Ninoy Aquino International Airport",
         guideKey: "kh-airport-arrival",
@@ -139,14 +143,20 @@ const days: DaySectionData[] = [
         description: [
           text("Land at "),
           place("Kaohsiung International Airport", "airport", "Kaohsiung International Airport"),
-          text(". Bags + Bank of Taiwan ATM — withdraw about NT$10,000–12,000 cash for the trip. Red Line Airport (R4) → Sanduo (R8), ~15 min. Short taxi to "),
+          text(
+            ". Collect bags, then find a Bank of Taiwan ATM in the arrivals area and withdraw about NT$10,000–12,000 cash for the whole trip. Follow station signs for the Kaohsiung MRT Red Line at Airport Terminal Station (R4). Buy single tickets or tap EasyCard / iPASS. Take the Red Line toward Gangshan / Ciaotou (northbound) and ride to Sanduo Shopping District (R8), about 15 minutes. Exit and take a short taxi (~3–5 min) to ",
+          ),
           place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
-          text(" (一心二路15號). MRT + taxi together ~NT$150–250."),
+          text(
+            " at 一心二路15號 (No. 15 Yixin 2nd Rd) — show the driver the Chinese address. Do not walk with heavy bags; do not take a taxi all the way from the airport. MRT + short taxi together ~NT$150–250 for 2.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel"), tag("Train / MRT / LRT", "train")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-airport-arrival",
-        infoNotes: ["Short taxi after R8 — bags are heavy. Not a walk. Not a taxi from the airport."],
+        infoNotes: [
+          "Short taxi after R8 — bags are heavy. Not a walk from the station with luggage. Not a long taxi from the airport.",
+        ],
       }),
       item({
         time: "8:00–9:00 PM",
@@ -155,7 +165,9 @@ const days: DaySectionData[] = [
         description: [
           text("Check in at "),
           place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
-          text(". Hotel prepaid (NT$0). Settle in before dinner."),
+          text(
+            " (一心二路15號, near Sanduo R8). Hotel is prepaid (NT$0). Drop bags, freshen up, and settle in before dinner. Ask the front desk for a paper map or Wi-Fi password if you need them.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
@@ -163,20 +175,23 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "9:00–10:30 PM",
-        title: "Dinner at Guanghua Night Market",
+        title: "Dinner: 深夜蓋飯食堂 (near Hub)",
         category: "food",
         description: [
-          text("Walk or short taxi (~1 km) to "),
-          place("Guanghua Night Market", "night market", "光華夜市 Kaohsiung"),
+          text("From Hub Hotel, walk ~10–12 min to "),
+          place("深夜蓋飯食堂", "restaurant", "深夜蓋飯食堂 崑明街55號"),
           text(
-            " on 光華二路. Share papaya milk at 光華木瓜牛奶大王 (光華二路402號). Pork rib soup + rice at 徐記排骨酥 (光華二路449號, opens 8 PM). Dinner ~NT$350–550. Skip seafood stalls.",
+            " at 崑明街55號 (open Maps for the Chinese name). Order rice bowls / pasta — meat or veg only; say 不要海鮮. Confirm Saturday hours on Google or Instagram before you leave; if closed, ask the Hub desk for the nearest non-seafood spot on 一心二路. Dinner ~NT$350–550 for 2. No long night-market walk tonight.",
           ),
         ],
         tags: [tag("Food", "food")],
-        mapQuery: "光華夜市 Kaohsiung",
+        mapQuery: "深夜蓋飯食堂 崑明街55號",
         guideKey: "kh-liuhe-night-market",
-        infoNotes: ["No sightseeing on Day 1. Save energy for Cijin tomorrow."],
-        warnings: ["No fish or shrimp. Say 不要海鮮."],
+        infoNotes: [
+          "Prefer this nearby walk dinner — not the far Guanghua night-market walk on Day 1.",
+          "No sightseeing tonight. Save energy for Cijin tomorrow.",
+        ],
+        warnings: ["No fish or shrimp. Say 不要海鮮.", "Confirm open Saturday via Google/IG before walking over."],
       }),
     ],
   },
@@ -190,7 +205,11 @@ const days: DaySectionData[] = [
         time: "7:30–8:30 AM",
         title: "Breakfast at Hub Hotel",
         category: "food",
-        description: [text("Hotel breakfast included (NT$0). Leave by ~8:30.")],
+        description: [
+          text(
+            "Eat the included hotel breakfast at Hub (NT$0). Leave the lobby by ~8:30 so you reach the Consulate soon after it opens.",
+          ),
+        ],
         tags: [tag("Food", "food")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-departure-breakfast",
@@ -200,22 +219,31 @@ const days: DaySectionData[] = [
         title: "MRT to Sizihwan (O1)",
         category: "train",
         description: [
-          text("Red Line → Formosa Boulevard (R10), change to Orange Line → "),
-          place("Sizihwan (O1)", "MRT station", "Sizihwan Station Kaohsiung"),
-          text(". Walk up to the Consulate (~15 min). MRT ~NT$60–100 for 2."),
+          text(
+            "From Hub Hotel, walk ~12 min (about 850 m) along Yixin 2nd Rd toward Sanduo Shopping District MRT (R8), or take a short taxi (~3 min, flag-fall only). Buy tickets or tap EasyCard / iPASS. Take the Red Line toward Gangshan / Ciaotou (northbound). Ride to Formosa Boulevard (R10). Follow the Orange Line transfer signs upstairs/across — stay inside the paid area. Take the Orange Line toward Sizihwan (O1), last stop. Exit toward the university / seaside side, then walk ~10–15 min uphill to the Philippine Consulate area / British Consulate at Takao (open Maps for ",
+          ),
+          place("British Consulate at Takao", "landmark", "British Consulate at Takao"),
+          text(
+            " and follow walking directions). Alternative: Uber direct Hub → Consulate (~15–25 min, ~NT$180–280 for 2) if you prefer door-to-door. MRT option ~NT$60–100 for 2.",
+          ),
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Sizihwan Station Kaohsiung",
         guideKey: "kh-hamasen-railway-museum",
-        infoNotes: ["Today is Consulate + Cijin only. No Pier-2. No Lotus Pond. Tunnel of Stars optional/skip."],
+        infoNotes: [
+          "Today is Consulate + Cijin only. No Pier-2. No Lotus Pond. Tunnel of Stars optional/skip.",
+        ],
       }),
       item({
         time: "9:00–10:00 AM",
         title: "British Consulate at Takao",
         category: "spot",
         description: [
+          text("Arrive at "),
           place("British Consulate at Takao", "landmark", "British Consulate at Takao"),
-          text(" — opens 9 AM Sunday. Ticket NT$99 each (NT$198 for 2). Harbor view from the red-brick porch. Photos."),
+          text(
+            " (opens 9 AM Sunday). Buy tickets at the entrance — NT$99 each (NT$198 for 2). Walk the red-brick porch for harbor views and photos. Keep it to about an hour so you still catch the morning ferry to Cijin.",
+          ),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "British Consulate at Takao",
@@ -226,9 +254,11 @@ const days: DaySectionData[] = [
         title: "Ferry to Cijin Island",
         category: "bus",
         description: [
-          text("Walk down to "),
+          text("Walk downhill from the Consulate area to "),
           place("Gushan Ferry Pier", "ferry", "Gushan Ferry Pier Kaohsiung"),
-          text(". Tap iPASS. NT$30 each (~NT$60 for 2). Short boat to Cijin."),
+          text(
+            " (open Maps if unsure of the pier entrance). Tap EasyCard / iPASS at the gate — NT$30 each (~NT$60 for 2). Board the short public ferry across to Cijin Island; boats run frequently.",
+          ),
         ],
         tags: [tag("Bus", "bus")],
         mapQuery: "Gushan Ferry Pier Kaohsiung",
@@ -239,11 +269,13 @@ const days: DaySectionData[] = [
         title: "Cijin Old Street + Tianhou Temple",
         category: "spot",
         description: [
-          text("Walk "),
+          text("From the Cijin ferry exit, walk straight onto "),
           place("Cijin Old Street", "street", "Cijin Old Street Kaohsiung"),
-          text(" to "),
+          text(". Continue a short way to "),
           place("Cijin Tianhou Temple", "temple", "Cijin Tianhou Temple Kaohsiung"),
-          text(". Both near the ferry. Quiet inside the temple."),
+          text(
+            " near the ferry — both are close together. Step inside the temple for a quiet look, then continue along Old Street for photos.",
+          ),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Cijin Old Street Kaohsiung",
@@ -254,9 +286,11 @@ const days: DaySectionData[] = [
         title: "Lunch on Cijin (non-seafood)",
         category: "food",
         description: [
-          text("Eat near Old Street — e.g. "),
+          text("Eat near Old Street — for example "),
           place("不一樣赤肉羹", "noodle shop", "不一樣赤肉羹 旗津 廟前路56號"),
-          text(" (廟前路56號). Pork soup noodles + pork rice. Say 不要海鮮. Lunch ~NT$250–400."),
+          text(
+            " at 廟前路56號 (open Maps for the Chinese name). Order pork soup noodles and/or pork rice. Say 不要海鮮 before ordering and skip fish/squid stalls. Lunch ~NT$250–400 for 2.",
+          ),
         ],
         tags: [tag("Food", "food")],
         mapQuery: "不一樣赤肉羹 旗津 廟前路56號",
@@ -268,9 +302,11 @@ const days: DaySectionData[] = [
         title: "Aesthetic café · share coffee",
         category: "food",
         description: [
-          text("Sit indoors / shade. Share one coffee (~NT$150–280). Try "),
+          text("Stay indoors or in shade through the hot 1–3 PM window. Share one coffee (~NT$150–280). Try "),
           place("津樓 Jinlou", "café", "津樓 Liquid Building Coffee 旗津"),
-          text(" (廟前路30巷13號, opens ~1 PM) or another aesthetic café on Old Street. Optional mango ice at 有間冰舖. Tunnel of Stars is optional/skip — not required."),
+          text(
+            " at 廟前路30巷13號 (often opens ~1 PM — confirm on Maps) or another aesthetic café on Old Street. Optional mango ice at 有間冰舖 nearby. Tunnel of Stars is optional/skip — not required today.",
+          ),
         ],
         tags: [tag("Food", "food")],
         mapQuery: "津樓 Liquid Building Coffee 旗津",
@@ -282,7 +318,11 @@ const days: DaySectionData[] = [
         time: "2:30–3:30 PM",
         title: "Shade stroll",
         category: "walk",
-        description: [text("Easy shade walk near Old Street / covered paths. Keep water. Soft transition toward the beach side.")],
+        description: [
+          text(
+            "Easy shade walk near Old Street and covered lanes. Keep water with you. Soft transition toward the beach / Rainbow Church side — no rush, no full island loop.",
+          ),
+        ],
         tags: [tag("Walk / Free", "walk")],
         mapQuery: "Cijin Old Street Kaohsiung",
         guideKey: "kh-cijin-old-street",
@@ -292,10 +332,11 @@ const days: DaySectionData[] = [
         title: "Rainbow Church + beach",
         category: "spot",
         description: [
+          text("Open Maps for "),
           place("Cijin Rainbow Church", "landmark", "Cijin Rainbow Church Kaohsiung"),
-          text(" arch on "),
+          text(" and walk there from Old Street. Photo stop at the colorful arch on "),
           place("Cijin Beach", "beach", "Cijin Beach Kaohsiung"),
-          text(". Photos, then keep moving toward the fort hill."),
+          text(", then keep moving toward the fort hill — do not linger too long in full sun."),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Cijin Rainbow Church Kaohsiung",
@@ -306,10 +347,13 @@ const days: DaySectionData[] = [
         title: "Cihou Fort · sunset (~5:32 PM)",
         category: "spot",
         description: [
+          text("Walk uphill to "),
           place("Cihou Fort", "fort", "Cihou Fort Kaohsiung"),
-          text(" (free). Climb for sunset — about 5:32 PM in mid-October. Optional "),
+          text(
+            " (free entry). Climb for sunset — about 5:32 PM in mid-October. Optional stop at ",
+          ),
           place("Kaohsiung Lighthouse", "lighthouse", "Kaohsiung Lighthouse"),
-          text(" same hill if energy allows."),
+          text(" on the same hill if energy allows. Start down before dark."),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Cihou Fort Kaohsiung",
@@ -320,7 +364,11 @@ const days: DaySectionData[] = [
         title: "Ferry back to Gushan",
         category: "bus",
         description: [
-          text("Ferry back (~NT$60 for 2). Cijin is done for this trip — do not return later."),
+          text("Walk back to the Cijin ferry pier (open Maps for "),
+          place("Cijin Ferry Pier", "ferry", "Cijin Ferry Pier Kaohsiung"),
+          text(
+            "). Tap EasyCard / iPASS again — ~NT$60 for 2. Short boat back to Gushan. Cijin is done for this trip — do not return on a later day.",
+          ),
         ],
         tags: [tag("Bus", "bus")],
         mapQuery: "Cijin Ferry Pier Kaohsiung",
@@ -331,14 +379,16 @@ const days: DaySectionData[] = [
         title: "Uber → 港園牛肉麵 → home",
         category: "food",
         description: [
-          text("Uber from the pier to "),
+          text("From Gushan Ferry Pier, order Uber to "),
           place("港園牛肉麵", "noodle shop", "港園牛肉麵 鹽埕總店"),
-          text(" (大成街55號). Order 牛肉拌麵 + one soup to share. Closes 8:00 PM — go straight. Then Uber back to Hub. Dinner + Ubers ~NT$470–750."),
+          text(
+            " at 大成街55號 (show the driver the Chinese name). Order 牛肉拌麵 plus one soup to share. Closes 8:00 PM — go straight from the pier, no detours. After dinner, Uber back to Hub Hotel Yisin. Dinner + both Ubers ~NT$470–750 for 2.",
+          ),
         ],
         tags: [tag("Food", "food"), tag("Hotel / Taxi", "hotel")],
         mapQuery: "港園牛肉麵 鹽埕總店",
         guideKey: "kh-gushan-dinner",
-        warnings: ["No fish or shrimp.", "Closes 8:00 PM."],
+        warnings: ["No fish or shrimp.", "Closes 8:00 PM — leave the pier promptly."],
       }),
     ],
   },
@@ -352,7 +402,11 @@ const days: DaySectionData[] = [
         time: "7:00–8:00 AM",
         title: "Breakfast at Hub Hotel",
         category: "food",
-        description: [text("Hotel breakfast included (NT$0). Leave ~8:00 for Sanduo.")],
+        description: [
+          text(
+            "Hotel breakfast included (NT$0). Finish and leave the lobby by ~8:00 so you reach Zuoying HSR with time to spare.",
+          ),
+        ],
         tags: [tag("Food", "food")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-departure-breakfast",
@@ -362,7 +416,9 @@ const days: DaySectionData[] = [
         title: "MRT R8 → Zuoying R16",
         category: "train",
         description: [
-          text("Sanduo (R8) Red Line → Zuoying (R16), ~20 min. MRT ~NT$40–80 for 2."),
+          text(
+            "From Hub Hotel, walk ~12 min to Sanduo Shopping District MRT (R8), or short taxi with bags if needed. Tap EasyCard / iPASS. Take the Red Line toward Gangshan / Ciaotou (northbound) and ride to Zuoying (R16) — about 20 minutes. Follow station signs for HSR / Taiwan High Speed Rail (same complex). MRT ~NT$40–80 for 2.",
+          ),
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Zuoying HSR Station",
@@ -375,7 +431,7 @@ const days: DaySectionData[] = [
         category: "train",
         description: [
           text(
-            "High Speed Rail ~40–45 min. Book T Express ahead. FULL fare NT$410 × 2 = NT$820 this leg. Do NOT assume B1G1 — budget full price. Round trip HSR = NT$1,640.",
+            "At Zuoying HSR, board the reserved High Speed Rail train to Chiayi HSR Station (~40–45 min). Book ahead on T Express. FULL fare NT$410 × 2 = NT$820 this leg — do NOT assume B1G1; budget full price. Round-trip HSR for the day = NT$1,640.",
           ),
         ],
         tags: [tag("Train / MRT / LRT", "train")],
@@ -388,9 +444,11 @@ const days: DaySectionData[] = [
         title: "Taxi HSR → 國立中正大學",
         category: "hotel",
         description: [
-          text("Taxi Chiayi HSR → "),
+          text("From Chiayi HSR Station taxi stand or Uber, go to "),
           place("National Chung Cheng University", "university", "National Chung Cheng University"),
-          text(" (~35–40 min). Uber or call 55178. ~NT$350–500."),
+          text(
+            " (~35–40 min). Show the driver 國立中正大學. Backup phone taxi: call 55178. Cost ~NT$350–500 for this leg.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "National Chung Cheng University",
@@ -401,10 +459,10 @@ const days: DaySectionData[] = [
         title: "Meteor Garden campus photos",
         category: "spot",
         description: [
-          text("Walk "),
+          text("Walk the open campus of "),
           place("National Chung Cheng University", "university", "National Chung Cheng University"),
           text(
-            " — the real Meteor Garden school. Photos at the red-brick gym gate, fountain square, and 寧靜湖 (Quiet Lake). Leave ~12:00.",
+            " — the real Meteor Garden school. Photo stops at the red-brick gym gate, fountain square, and 寧靜湖 (Quiet Lake). Stay polite around students/classes. Leave by ~12:00 for lunch.",
           ),
         ],
         tags: [tag("Tourist spot", "spot")],
@@ -416,7 +474,9 @@ const days: DaySectionData[] = [
         title: "Taxi → turkey rice (Minxiong)",
         category: "hotel",
         description: [
-          text("Short taxi (~10 min) to Minxiong turkey-rice area. ~NT$150–250."),
+          text(
+            "From CCU, short taxi (~10 min) to the Minxiong turkey-rice area. Destination: 在地食坊, 文化路26-10號 (open Maps). Uber or local taxi ~NT$150–250.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "在地食坊 民雄 文化路26-10號",
@@ -430,7 +490,7 @@ const days: DaySectionData[] = [
           text("Eat at "),
           place("在地食坊", "turkey rice shop", "在地食坊 民雄 文化路26-10號"),
           text(
-            " (文化路26-10號, across from Minxiong town office; Mon open). Order 火雞肉飯 + 燙青菜. Lunch ~NT$250–400. Say 不要海鮮.",
+            " (文化路26-10號, across from Minxiong town office; Monday open). Order 火雞肉飯 + 燙青菜. Lunch ~NT$250–400 for 2. Say 不要海鮮.",
           ),
         ],
         tags: [tag("Food", "food")],
@@ -443,7 +503,9 @@ const days: DaySectionData[] = [
         title: "Taxi → Chiayi HSR",
         category: "hotel",
         description: [
-          text("Taxi back to Chiayi HSR (~25–35 min). Uber or 55178. ~NT$350–500. (Taxis ×3 today total ~NT$850–1,250.)"),
+          text(
+            "From the restaurant, taxi back to Chiayi HSR Station (~25–35 min). Uber or call 55178. ~NT$350–500. (Today’s three named taxis — CCU / lunch / HSR — total ~NT$850–1,250.)",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Chiayi HSR Station",
@@ -454,7 +516,9 @@ const days: DaySectionData[] = [
         title: "HSR Chiayi → Zuoying (FULL fare)",
         category: "train",
         description: [
-          text("Return HSR FULL fare NT$410 × 2 = NT$820. Combined HSR RT NT$1,640."),
+          text(
+            "Board return HSR Chiayi → Zuoying. FULL fare NT$410 × 2 = NT$820. Combined HSR round trip for the day = NT$1,640. Sit, rest, and hydrate on the ~40–45 min ride.",
+          ),
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Zuoying HSR Station",
@@ -465,7 +529,11 @@ const days: DaySectionData[] = [
         time: "3:15–4:00 PM",
         title: "MRT back to Hub",
         category: "train",
-        description: [text("Zuoying (R16) → Sanduo (R8) → short walk/taxi to Hub. No Formosa stop.")],
+        description: [
+          text(
+            "At Zuoying, follow signs to the MRT Red Line (R16). Take Red Line toward Siaogang (southbound) to Sanduo Shopping District (R8), about 20 minutes. Walk ~12 min or short taxi to Hub Hotel. Do NOT get off at Formosa Boulevard — go straight home and rest. MRT ~NT$40–80 for 2.",
+          ),
+        ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-hub-hotel-checkin",
@@ -475,7 +543,11 @@ const days: DaySectionData[] = [
         time: "4:00–7:00 PM",
         title: "Hotel rest",
         category: "hotel",
-        description: [text("Rest at Hub Yisin. Shower, nap, recharge after the Chiayi run.")],
+        description: [
+          text(
+            "Rest at Hub Yisin. Shower, nap, and recharge after the Chiayi run. Stay indoors through the hot afternoon.",
+          ),
+        ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-hub-hotel-checkin",
@@ -486,7 +558,7 @@ const days: DaySectionData[] = [
         category: "food",
         description: [
           text(
-            "Easy dinner near Sanduo / Hub — noodles, rice, or simple café food. ~NT$150–300. NO Formosa, NO Liuhe Night Market tonight.",
+            "Easy dinner within a short walk of Hub / Sanduo — noodles, rice, or simple café food on 一心二路 or nearby. Ask the desk if you want a specific non-seafood suggestion. ~NT$150–300 for 2. NO Formosa Boulevard stop, NO Liuhe Night Market tonight.",
           ),
         ],
         tags: [tag("Food", "food")],
@@ -517,7 +589,11 @@ const days: DaySectionData[] = [
         time: "8:00–9:30 AM",
         title: "Breakfast at Hub Hotel — happy birthday, Amor!",
         category: "food",
-        description: [text("Slow hotel breakfast (NT$0). Easy morning. No Lotus Pond or Cijin today.")],
+        description: [
+          text(
+            "Slow hotel breakfast (NT$0). Easy morning — no Lotus Pond or Cijin today. Leave when ready for the library (~10 AM open).",
+          ),
+        ],
         tags: [tag("Food", "food")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-birthday-outfit",
@@ -528,8 +604,11 @@ const days: DaySectionData[] = [
         title: "Main Public Library + rooftop",
         category: "spot",
         description: [
+          text("From Hub, open Maps for "),
           place("Kaohsiung Main Public Library", "library", "Kaohsiung Main Public Library"),
-          text(" — glass building, free. Opens 10 AM (closed Mondays — today is Tuesday). Lift to rooftop garden for the view."),
+          text(
+            " and walk or take a short Uber (~10–20 min depending on traffic). Glass building, free entry. Opens 10 AM (closed Mondays — today is Tuesday). Take the lift to the rooftop garden for the city view, then continue toward 85 / OGNI.",
+          ),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Kaohsiung Main Public Library",
@@ -540,8 +619,11 @@ const days: DaySectionData[] = [
         title: "85 Sky Tower — street photo (optional)",
         category: "spot",
         description: [
+          text("Short optional stop at "),
           place("85 Sky Tower", "landmark", "85 Sky Tower Kaohsiung"),
-          text(" — top deck closed. Optional street photo only. Short stop."),
+          text(
+            " for a street-level photo only. The top deck (floor 74) is closed — do not queue for the observation deck. Keep this brief before coffee.",
+          ),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "85 Sky Tower Kaohsiung",
@@ -553,9 +635,11 @@ const days: DaySectionData[] = [
         title: "OGNI Coffee + pastry",
         category: "food",
         description: [
-          text("Walk to "),
+          text("Walk from 85 to "),
           place("OGNI Coffee 每咖啡", "café", "每咖啡 OGNI COFFEE 自強三路17號"),
-          text(" (自強三路17號, near 85). Share one coffee + one pastry. ~NT$200–350."),
+          text(
+            " at 自強三路17號 (open Maps). Share one coffee + one pastry between you. ~NT$200–350. Say 不要海鮮 if anything savory looks fishy.",
+          ),
         ],
         tags: [tag("Food", "food")],
         mapQuery: "每咖啡 OGNI COFFEE 自強三路17號",
@@ -566,7 +650,11 @@ const days: DaySectionData[] = [
         time: "1:30–4:00 PM",
         title: "Hotel rest",
         category: "hotel",
-        description: [text("Back to Hub Yisin. Nap, shower, get ready for birthday night.")],
+        description: [
+          text(
+            "Return to Hub Yisin (walk + MRT via R8, or Uber). Nap, shower, and get ready for birthday night. Stay indoors through the hot 1–3 PM window.",
+          ),
+        ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-hub-hotel-checkin",
@@ -577,9 +665,11 @@ const days: DaySectionData[] = [
         title: "Uber to Pier-2",
         category: "hotel",
         description: [
-          text("Uber to "),
+          text("From Hub Hotel, order Uber to "),
           place("Pier-2 Art Center", "art district", "Pier-2 Art Center Kaohsiung"),
-          text(". ~NT$100–180."),
+          text(
+            " (棧貳庫 / Pier-2). Ride ~15–25 min depending on traffic. ~NT$100–180 for 2. Drop near the Dayi warehouse area if the app offers a pin.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Pier-2 Art Center Kaohsiung",
@@ -590,11 +680,13 @@ const days: DaySectionData[] = [
         title: "Pier-2 Dayi → Great Harbour Bridge sunset",
         category: "walk",
         description: [
-          text("Walk Dayi warehouses (大義倉庫群) at "),
+          text("Walk the Dayi warehouses (大義倉庫群) at "),
           place("Pier-2 Art Center", "art district", "Pier-2 Art Center Kaohsiung"),
-          text(", then "),
+          text(", then continue on foot to "),
           place("Great Harbour Bridge", "landmark", "Great Harbour Bridge Kaohsiung"),
-          text(" for sunset. Bridge weekday turn is 3 PM — we skip that; lights later."),
+          text(
+            " for sunset photos. Bridge weekday turn is 3 PM — you skip that; enjoy the walk and later lights instead. Keep an eye on time for the 7 PM dinner booking.",
+          ),
         ],
         tags: [tag("Walk / Free", "walk"), tag("Tourist spot", "spot")],
         mapQuery: "Great Harbour Bridge Kaohsiung",
@@ -605,9 +697,11 @@ const days: DaySectionData[] = [
         title: "Birthday dinner: Yonshin Fudopia",
         category: "food",
         description: [
-          text("Dinner at "),
+          text("Walk or short Uber from the bridge to "),
           place("永心浮島 Yonshin Fudopia", "restaurant", "Yonshin Fudopia Kaohsiung"),
-          text(" (蓬萊路6之6號, by the bridge). Book on inline (opens 30 days ahead). Meat / veg only — 不要海鮮. ~NT$1,800–2,600. Backup: "),
+          text(
+            " at 蓬萊路6之6號 (by the bridge — open Maps). Book on inline (opens 30 days ahead). Order meat / veg only — say 不要海鮮. ~NT$1,800–2,600 for 2. Backup if needed: ",
+          ),
           place("掌門·棧貳庫", "restaurant", "掌門精釀啤酒 棧貳庫 Kaohsiung"),
           text("."),
         ],
@@ -624,7 +718,11 @@ const days: DaySectionData[] = [
         time: "~9:30 PM",
         title: "Uber home to Hub",
         category: "hotel",
-        description: [text("Uber back to Hub Yisin. ~NT$100–180. Harbor / Pier-2 done — do not redo on Day 5.")],
+        description: [
+          text(
+            "From Yonshin / Pier-2, Uber back to Hub Hotel Yisin (~15–25 min). ~NT$100–180 for 2. Harbor / Pier-2 is done for this trip — do not redo on Day 5.",
+          ),
+        ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-hub-hotel-checkin",
@@ -643,7 +741,7 @@ const days: DaySectionData[] = [
         category: "food",
         description: [
           text(
-            "Hotel breakfast (NT$0). Morning is Lotus Pond only — short photo stops. Evening flight ~8:00 PM.",
+            "Hotel breakfast (NT$0). Morning is Lotus Pond only — short photo stops at the pagodas, not a full loop. Evening flight ~8:00 PM — leave bags organized before you head out.",
           ),
         ],
         tags: [tag("Food", "food")],
@@ -655,9 +753,13 @@ const days: DaySectionData[] = [
         title: "MRT / Uber to Lotus Pond",
         category: "train",
         description: [
-          text("Sanduo (R8) → Zuoying (R16) then short Uber, or Uber direct to "),
+          text(
+            "Option A: Walk to Sanduo (R8), Red Line northbound to Zuoying (R16), then short Uber to the pagoda side of ",
+          ),
           place("Lotus Pond", "pond", "Lotus Pond Kaohsiung"),
-          text(". ~NT$150–250."),
+          text(
+            ". Option B: Uber direct Hub → Dragon & Tiger Pagodas (~25–40 min). Combined transport ~NT$150–250 for 2. Open Maps for Dragon and Tiger Pagodas as the drop pin.",
+          ),
         ],
         tags: [tag("Train / MRT / LRT", "train"), tag("Hotel / Taxi", "hotel")],
         mapQuery: "Lotus Pond Kaohsiung",
@@ -668,10 +770,15 @@ const days: DaySectionData[] = [
         title: "Dragon & Tiger Pagodas + Spring & Autumn Pavilion",
         category: "spot",
         description: [
+          text("At "),
           place("Dragon and Tiger Pagodas", "pagoda", "Dragon and Tiger Pagodas Lotus Pond Kaohsiung"),
-          text(" — free. In the dragon's mouth, out the tiger's. Then "),
+          text(
+            " (free): enter through the dragon’s mouth and exit through the tiger’s. Then walk a short way to ",
+          ),
           place("Spring and Autumn Pavilion", "pavilion", "Spring and Autumn Pavilion Kaohsiung"),
-          text(". Short stops only — no full pond loop."),
+          text(
+            " for photos. Short stops only — finish before late-morning heat; no full walk around Lotus Pond.",
+          ),
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Dragon and Tiger Pagodas Lotus Pond Kaohsiung",
@@ -683,9 +790,11 @@ const days: DaySectionData[] = [
         title: "Lunch near Lotus Pond",
         category: "food",
         description: [
-          text("Indoor lunch — e.g. "),
+          text("Indoor lunch near the pond — e.g. "),
           place("西安麵食館", "noodle shop", "西安麵食館 左營 勝利路115巷6號"),
-          text(" belt noodles, or 三牛牛肉麵. ~NT$250–400. Say 不要海鮮."),
+          text(
+            " (belt noodles) or 三牛牛肉麵. Open Maps for the Chinese name. ~NT$250–400 for 2. Say 不要海鮮.",
+          ),
         ],
         tags: [tag("Food", "food")],
         mapQuery: "西安麵食館 左營 勝利路115巷6號",
@@ -697,9 +806,11 @@ const days: DaySectionData[] = [
         title: "Uber Hub · get bags",
         category: "hotel",
         description: [
-          text("Uber to "),
+          text("Uber from lunch back to "),
           place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
-          text(". Check out if needed. Pick up bags. ~NT$150–250."),
+          text(
+            ". Check out if not already done. Pick up bags and confirm you have passports + tickets. ~NT$150–250.",
+          ),
         ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
@@ -710,7 +821,9 @@ const days: DaySectionData[] = [
         title: "MRT R8 → R4 Airport",
         category: "train",
         description: [
-          text("Uber/walk to Sanduo with bags. Red Line R8 → Airport R4 (~15–20 min). MRT ~NT$40–80 for 2."),
+          text(
+            "With bags, walk or short taxi from Hub to Sanduo Shopping District MRT (R8). Tap EasyCard / iPASS. Take the Red Line toward Siaogang / Airport (southbound) to Kaohsiung International Airport (R4), about 15–20 minutes. Follow station signs into the terminal. Aim to be at KHH by ~4:00 PM for the ~8:00 PM flight. MRT ~NT$40–80 for 2.",
+          ),
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Kaohsiung International Airport",
@@ -721,7 +834,9 @@ const days: DaySectionData[] = [
         title: "At KHH · snacks + wait",
         category: "food",
         description: [
-          text("Check in for the evening flight. Airport snacks ~NT$100–200. Rest inside."),
+          text(
+            "Check in for the evening Manila flight, drop bags, and clear security with time to spare. Airport snacks / drinks ~NT$100–200 for 2. Rest inside air-conditioning until boarding.",
+          ),
         ],
         tags: [tag("Food", "food"), tag("Hotel / Taxi", "hotel")],
         mapQuery: "Kaohsiung International Airport",
@@ -731,7 +846,11 @@ const days: DaySectionData[] = [
         time: "~8:00 PM",
         title: "Flight Kaohsiung → Manila",
         category: "hotel",
-        description: [text("KHH → MNL evening flight (prepaid, NT$0 in trip cash). Trip done.")],
+        description: [
+          text(
+            "KHH → MNL evening flight (prepaid — NT$0 in trip cash). Trip done. Keep boarding passes and arrival cards handy.",
+          ),
+        ],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: "Kaohsiung International Airport",
         guideKey: "kh-airport-departure",

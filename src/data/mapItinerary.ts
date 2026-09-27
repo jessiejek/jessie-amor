@@ -364,10 +364,10 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 1 - October 17 - Arrival",
       destinations: [
         { id: "17-1", name: "Ninoy Aquino International Airport", lat: 14.5086, lng: 121.0197, time: "5:00 PM", notes: "Flight MNL -> KHH ~5:00-7:00 PM. Prepaid (NT$0 cash)." },
-        { id: "17-2", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "ATM NT$10-12k cash, then MRT R4." },
-        { id: "17-3", name: "Sanduo Shopping District MRT Station", lat: 22.6103, lng: 120.3020, time: "7:20 PM", notes: "R4 -> R8 ~15 min. MRT+taxi to Hub ~NT$150-250." },
+        { id: "17-2", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "ATM NT$10-12k cash. MRT Red Line Airport (R4) northbound toward Gangshan/Ciaotou." },
+        { id: "17-3", name: "Sanduo Shopping District MRT Station", lat: 22.6103, lng: 120.3020, time: "7:20 PM", notes: "R4->R8 ~15 min. Short taxi to Hub (一心二路15號). MRT+taxi ~NT$150-250. Not a walk with bags." },
         { id: "17-4", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 PM", notes: "Check in 8-9 PM. Whole stay Oct 17-21." },
-        { id: "17-5", name: "Guanghua Night Market", lat: 22.6228, lng: 120.3125, time: "9:00 PM", notes: "Dinner ~NT$350-550. No seafood." },
+        { id: "17-5", name: "Shenye Gaifan Shidang (深夜蓋飯食堂)", lat: 22.6095, lng: 120.3058, time: "9:00 PM", notes: "Walk ~10-12 min from Hub to 崑明街55號. Confirm Sat open via Google/IG; else ask desk for non-seafood on 一心二路. Dinner ~NT$350-550. No seafood." },
       ],
     },
     {
@@ -376,7 +376,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 2 - October 18 - Consulate + Cijin",
       destinations: [
         { id: "18-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:30 AM", notes: "Hotel breakfast NT$0. Leave ~8:30." },
-        { id: "18-1", name: "Sizihwan Station", lat: 22.6266, lng: 120.2658, time: "8:30 AM", notes: "MRT to O1. ~NT$60-100 for 2." },
+        { id: "18-1", name: "Sizihwan Station", lat: 22.6266, lng: 120.2658, time: "8:30 AM", notes: "Hub->R8 walk/taxi, Red northbound to R10, Orange to O1 Sizihwan. Walk uphill ~10-15 min to Consulate. MRT ~NT$60-100 for 2. Or Uber Hub->Consulate ~NT$180-280." },
         { id: "18-2", name: "British Consulate at Takao", lat: 22.6215, lng: 120.2657, time: "9:00 AM", notes: "NT$99 each (NT$198 for 2)." },
         { id: "18-3", name: "Gushan Ferry Pier", lat: 22.6224, lng: 120.2664, time: "10:00 AM", notes: "Ferry to Cijin ~NT$60 for 2." },
         { id: "18-4", name: "Cijin Old Street", lat: 22.6167, lng: 120.2717, time: "10:30 AM", notes: "Old Street + Tianhou Temple." },
@@ -394,7 +394,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 3 - October 19 - Meteor Garden LOCKED",
       destinations: [
         { id: "19-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:00 AM", notes: "Breakfast NT$0. LOCKED day: no Formosa, no Liuhe, no B1G1." },
-        { id: "19-1", name: "Zuoying HSR Station", lat: 22.6879, lng: 120.3086, time: "8:25 AM", notes: "MRT R8->R16 ~NT$40-80. HSR FULL NT$820 (410x2)." },
+        { id: "19-1", name: "Zuoying HSR Station", lat: 22.6879, lng: 120.3086, time: "8:25 AM", notes: "Hub->R8, Red northbound R8->R16 ~20 min (~NT$40-80). HSR FULL NT$820 (410x2). No B1G1." },
         { id: "19-2", name: "Chiayi HSR Station", lat: 23.4590, lng: 120.3221, time: "9:15 AM", notes: "Taxi to CCU ~NT$350-500." },
         { id: "19-3", name: "National Chung Cheng University", lat: 23.5502, lng: 120.4869, time: "10:00 AM", notes: "Meteor Garden campus photos 10-12." },
         { id: "19-4", name: "Zaidishifang Turkey Rice Minxiong", lat: 23.5518, lng: 120.4285, time: "12:30 PM", notes: "在地食坊 turkey rice lunch ~NT$250-400. Taxi from campus ~NT$150-250." },
@@ -428,7 +428,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
         { id: "21-3", name: "Spring and Autumn Pavilion", lat: 22.6780, lng: 120.2935, time: "9:45 AM", notes: "" },
         { id: "21-4", name: "Xian Noodle House Lotus Pond", lat: 22.6755, lng: 120.2975, time: "10:30 AM", notes: "Lunch ~NT$250-400. No seafood." },
         { id: "21-5", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "11:30 AM", notes: "Uber bags ~NT$150-250. Check out." },
-        { id: "21-6", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "2:00 PM", notes: "MRT R8->R4 ~NT$40-80. Snacks ~NT$100-200. Flight ~8:00 PM." },
+        { id: "21-6", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "2:00 PM", notes: "With bags: Hub->R8, Red southbound to Airport R4 (~15-20 min, ~NT$40-80). Be at KHH ~4:00 PM. Snacks ~NT$100-200. Flight ~8:00 PM." },
       ],
     },
   ],
