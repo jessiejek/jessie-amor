@@ -178,7 +178,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "From the ferry, walk into Cijin Old Street and take it slow.",
       "Duck into Tianhou Temple for incense, courtyard photos, and shade.",
       "Browse snacks that are clearly non-seafood; share portions.",
-      "Continue toward lunch, café, beach, or Rainbow Church as timed in the day plan.",
+      "Continue toward lunch, café, or Rainbow Church as timed in the day plan.",
     ],
     tips: [
       "Temple doors may ask for modest dress — cover shoulders if needed.",
@@ -195,23 +195,22 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Choose a busy lunch shop with rice / noodles / fried items that are not seafood-first.",
       "Say 不要海鮮 clearly when ordering.",
       "Share plates and one drink to stay on budget.",
-      "Rest in shade before the afternoon beach / fort walk.",
+      "Rest in shade before the afternoon Rainbow Church / fort walk.",
     ],
     tips: ["If a menu is all seafood, walk to the next shop — Old Street has options.", "Keep lunch medium so you still want 港園 later."],
   }),
 
   "kh-cijin-beach": guide({
-    title: "Rainbow Church + Cijin Beach",
+    title: "Rainbow Church · quick photo",
     image: img("rainbow-church.webp"),
     summary:
-      "Two Cijin icons in one stretch: the colorful Rainbow Church photo frame, then the open beach and seaside park. You get the postcard shot plus wind and sand before climbing to Cihou Fort.",
+      "The colorful Rainbow Church arch is Cijin's postcard photo. Quick 20–30 min stop only — no beach time (we have better beaches in PH), then straight up to Cihou Fort.",
     steps: [
       "Walk to the Rainbow Church installation and take couple photos under the colored arches.",
-      "Continue to Cijin Beach / seaside park for open-sky views.",
       "Stay on marked paths; keep valuables zipped if it is windy.",
-      "When ready, head toward the tunnel / path up to Cihou Fort for sunset.",
+      "Head straight to the path up to Cihou Fort and the lighthouse — more time there before sunset.",
     ],
-    tips: ["Rainbow Church is an art installation — quick stop, not a long visit.", "Sunscreen and a hat matter more here than on Old Street."],
+    tips: ["Rainbow Church is an art installation — quick stop, not a long visit.", "Sunscreen and a hat — the arch area has little shade."],
   }),
 
   "kh-cihou-fort": guide({
@@ -220,7 +219,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     summary:
       "Qing-era hillside fort at the tip of Cijin with harbor-mouth views. You get golden-hour walls, cannons, and one of Kaohsiung’s best free sunset lookouts (~5:32 PM in your plan).",
     steps: [
-      "Follow signs up from the beach / tunnel toward Cihou Fort.",
+      "Follow signs up from Rainbow Church toward Cihou Fort.",
       "Walk the walls and find a safe open viewpoint facing the harbor mouth.",
       "Stay for sunset light, then walk down carefully before dark.",
       "Head to the Cijin ferry for the ride back to Gushan.",
