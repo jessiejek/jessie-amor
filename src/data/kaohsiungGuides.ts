@@ -40,13 +40,13 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     title: "Leave for KHH · evening flight",
     image: img("khh-airport.webp"),
     summary:
-      "Reverse of arrival: Red Line from Sanduo Shopping District (R8 · Red Line) back to Airport (R4 · Red Line), then check-in and security for your Manila flight. Buffer time matters more than a last snack run.",
+      "With bags: Red Line from Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line) (easiest taxi curb). Alt light bags: Shihjia (R7 · Red Line) → R4. Then check-in and security. Buffer time matters more than a last snack run.",
     service: "Kaohsiung MRT Red Line (R8 · Red Line → R4 · Red Line)",
     ticket: "Token or EasyCard / iPASS.",
     whereToBuy: ["Sanduo Shopping District (R8 · Red Line) MRT ticket machines", "Hotel desk can confirm Uber timing if you skip MRT"],
     steps: [
       "Check out of Hub with bags packed and passports ready.",
-      "MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line), or Uber straight to KHH if you are tired or running late.",
+      "MRT Sanduo (R8 · Red Line) → Airport (R4 · Red Line) with bags; or Shihjia (R7 · Red Line) → R4 if walking with light bags; or Uber Hub → KHH if tired/late.",
       "Allow time for check-in, security, and immigration before the evening departure.",
       "Buy water or a small snack after security if needed — keep liquids rules in mind before the gate.",
     ],
@@ -246,9 +246,9 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Red Line from the Hub area up to Zuoying (R16 · Red Line) / HSR. Pure transit so you can catch the Chiayi high-speed train for Meteor Garden day.",
     service: "Kaohsiung MRT Red Line → Zuoying (R16 · Red Line)",
     ticket: "EasyCard / iPASS or token.",
-    whereToBuy: ["Sanduo Shopping District (R8 · Red Line) or nearest Red Line station"],
+    whereToBuy: ["Shihjia (R7 · Red Line) — closer to Hub; Sanduo (R8 · Red Line) only if already there"],
     steps: [
-      "Board Red Line toward Gangshan Station.",
+      "Walk from Hub to Shihjia (R7 · Red Line) — nearer than Sanduo — and board Red Line toward Gangshan Station.",
       "Get off at Zuoying (R16 · Red Line) and follow signs to the HSR (THSR) hall.",
       "Have HSR tickets ready before the gate.",
     ],
@@ -281,7 +281,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     steps: [
       "From Minxiong / CCU taxi, arrive Chiayi HSR with buffer.",
       "Board your reserved train south to Zuoying.",
-      "Transfer to MRT Red Line toward Sanduo Shopping District (R8 · Red Line) / Hub.",
+      "Transfer to MRT Red Line southbound; get off at Shihjia (R7 · Red Line) and walk ~8–10 min to Hub — no Sanduo stop needed.",
     ],
     tips: ["Do not cut the return train close after lunch.", "Hotel rest is part of the Day-3 lock — protect energy for birthday tomorrow."],
   }),
@@ -460,7 +460,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     steps: [
       "Pick a nearby restaurant or noodle shop (不要海鮮).",
       "Eat, pay, then Uber back to Hub for bags.",
-      "Continue MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line) for KHH.",
+      "Continue MRT Sanduo (R8 · Red Line) → Airport (R4 · Red Line) with bags (alt: Shihjia R7 → R4).",
     ],
     tips: ["Do not discover a far new district — stay near the pond.", "Leave buffer for check-out and airport security."],
   }),

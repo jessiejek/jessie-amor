@@ -35,13 +35,13 @@ export const HOTEL_STATIONS: RideHotelStation[] = [
     label: R("R8"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "Our main station. Walk ~12 min from Hub Hotel Yisin along Yisin 2nd Rd, or a short taxi with bags.",
+    note: "Arrival / bags / taxi curb. Day 1 airport stop + Day 2 Formosa transfer + Day 5 bags-to-airport. Walk ~12 min from Hub, or short taxi with luggage.",
   },
   {
     label: R("R7"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "One stop south of Sanduo Shopping District (R8 · Red Line). Backup station near Labor Park — use whichever is closer to where you are.",
+    note: "Closer walk from Hub (~8–10 min). Prefer for Day 3 Zuoying and Day 5 Lotus when you have no heavy bags. One stop south of Sanduo.",
   },
 ];
 
@@ -68,9 +68,9 @@ export const MRT_RIDES: RideStep[] = [
     title: "Hotel → Chiayi (CCU) and back",
     color: HSR_LINE.color,
     steps: [
-      `Red Line ${RED_NORTHBOUND}: ${R("R8")} → ${R("R16")}`,
+      `Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")} (prefer Shihjia — no Sanduo needed)`,
       `High Speed Rail: ${HSR("ZUY")} → ${HSR("CHY")} · then taxi to CCU (National Chung Cheng University)`,
-      `Return: ${HSR("CHY")} → ${HSR("ZUY")}, Red Line ${RED_SOUTHBOUND}: ${R("R16")} → ${R("R8")}`,
+      `Return: ${HSR("CHY")} → ${HSR("ZUY")}, Red Line ${RED_SOUTHBOUND}: ${R("R16")} → ${R("R7")}`,
     ],
   },
   {
@@ -78,8 +78,8 @@ export const MRT_RIDES: RideStep[] = [
     title: "Lotus Pond, then airport",
     color: KAOHSIUNG_RED_LINE.color,
     steps: [
-      `Lotus Pond option: Red Line ${RED_NORTHBOUND}: ${R("R8")} → ${R("R16")}, then short Uber`,
-      `Airport: Red Line ${RED_SOUTHBOUND}: ${R("R8")} → ${R("R4")}`,
+      `Lotus Pond option: Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")}, then short Uber (or Uber direct Hub → pagodas)`,
+      `Airport with bags: Red Line ${RED_SOUTHBOUND}: ${R("R8")} → ${R("R4")} (taxi curb); alt light bags: ${R("R7")} → ${R("R4")}`,
     ],
   },
 ];

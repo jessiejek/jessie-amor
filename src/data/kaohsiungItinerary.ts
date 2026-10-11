@@ -10,9 +10,9 @@
 // Day layout (LOCKED where noted):
 // - Day 1 (Oct 17 Sat): arrive KHH → ATM + MRT Airport (R4 · Red Line) → Sanduo (R8 · Red Line) + taxi Hub → check-in → walk dinner 深夜蓋飯食堂 (崑明街55號; confirm open Sat; else desk fallback on 一心二路) → optional late café 一盞咖啡 Yi Zhan Coffee.
 // - Day 2 (Oct 18 Sun): Consulate → 新濱·駅前 café → Cijin (Old Street, Tianhou, Jinlou café, Rainbow Church, Cihou Fort + lighthouse, Shoreline Coffee sunset). No Pier-2. 港園 dinner → back at Hub ~9:30–10:30 PM latest.
-// - Day 3 (Oct 19 Mon) LOCKED: HSR FULL (no B1G1) → CCU Meteor Garden (+ short 湖畔咖啡 Lakeside Café) → Minxiong turkey rice → hotel rest → light dinner near Hub → back ~8:30–9:30 PM. NO Formosa. NO Liuhe.
-// - Day 4 (Oct 20 Tue) LOCKED Amor birthday: Library + OGNI → rest → NOW & THEN (Pier-2) → Pier-2 Dayi → Harbour Bridge sunset → Yonshin → back at Hub ~9:30–10:30 PM.
-// - Day 5 (Oct 21 Wed): Lotus Pond pagodas + pavilion → PAMMA Coffee → lunch → checkout + bags → leave hotel ~2–3 PM → KHH ~4 PM → ~8 PM flight → MNL ~10 PM.
+// - Day 3 (Oct 19 Mon) LOCKED: MRT Shihjia (R7)→Zuoying (not Sanduo) → HSR FULL (no B1G1) → CCU Meteor Garden (+ short 湖畔咖啡 Lakeside Café) → Minxiong turkey rice → MRT back get off R7 → hotel rest → light dinner near Hub → back ~8:30–9:30 PM. NO Formosa. NO Liuhe. NO Sanduo required.
+// - Day 4 (Oct 20 Tue) LOCKED Amor birthday: Library + OGNI → Uber/walk rest at Hub (no Sanduo MRT) → Uber Pier-2 → NOW & THEN → Pier-2 Dayi → Harbour Bridge sunset → Yonshin → Uber Hub ~9:30–10:30 PM.
+// - Day 5 (Oct 21 Wed): Lotus (MRT Shihjia R7→Zuoying or Uber direct) → PAMMA → lunch → checkout → leave ~2–3 PM → MRT Sanduo R8→Airport R4 (bags; alt R7→R4) → KHH ~4 PM → ~8 PM flight → MNL ~10 PM.
 
 import type {
   AlertBoxData,
@@ -87,7 +87,7 @@ const hero: HeroData = {
   ],
   note: [
     text(
-      "We stay at one hotel the whole trip: Hub Hotel Kaohsiung Yisin Branch (一心二路15號, near Sanduo Shopping District (R8 · Red Line)). Flights, hotel, and hotel breakfast are already paid (count as 0). Two people, all cash figures in NT$. Do not go back to the same island or area on a later day. No fish or shrimp — say 不要海鮮. Share coffee (one cup). Day 3 is LOCKED: full-price HSR to Chiayi for Meteor Garden campus, then turkey rice, then rest + light dinner near the Hub — no Formosa dome, no Liuhe. Day 4 is Amor's birthday (LOCKED): library + OGNI, rest, NOW & THEN → Pier-2 Dayi → Harbour Bridge sunset, Yonshin Fudopia. Aesthetic cafés: Day 1 Yi Zhan (optional), Day 2 新濱·駅前 + Jinlou + Shoreline, Day 3 Lakeside Café (CCU), Day 4 OGNI + NOW & THEN, Day 5 PAMMA. Back at Hub: Day 2 & Day 4 ~9:30–10:30 PM, Day 3 ~8:30–9:30 PM. Day 5 leave hotel ~2–3 PM → KHH ~4 PM → flight ~8 PM → Manila ~10 PM.",
+      "We stay at one hotel the whole trip: Hub Hotel Kaohsiung Yisin Branch (一心二路15號). Sanduo Shopping District (R8 · Red Line) is the arrival taxi hub (bags); day rides without bags prefer nearer Shihjia (R7 · Red Line) or Uber — Day 2 still uses R8 for Formosa transfer. Flights, hotel, and hotel breakfast are already paid (count as 0). Two people, all cash figures in NT$. Do not go back to the same island or area on a later day. No fish or shrimp — say 不要海鮮. Share coffee (one cup). Day 3 is LOCKED: full-price HSR to Chiayi for Meteor Garden campus, then turkey rice, then rest + light dinner near the Hub — no Formosa dome, no Liuhe. Day 4 is Amor's birthday (LOCKED): library + OGNI, rest, NOW & THEN → Pier-2 Dayi → Harbour Bridge sunset, Yonshin Fudopia. Aesthetic cafés: Day 1 Yi Zhan (optional), Day 2 新濱·駅前 + Jinlou + Shoreline, Day 3 Lakeside Café (CCU), Day 4 OGNI + NOW & THEN, Day 5 PAMMA. Back at Hub: Day 2 & Day 4 ~9:30–10:30 PM, Day 3 ~8:30–9:30 PM. Day 5 leave hotel ~2–3 PM → KHH ~4 PM → flight ~8 PM → Manila ~10 PM.",
     ),
   ],
 };
@@ -520,19 +520,19 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "8:00–8:25 AM",
-        title: "MRT Sanduo Shopping District (R8 · Red Line) → Zuoying (R16 · Red Line)",
+        title: "MRT Shihjia (R7 · Red Line) → Zuoying (R16 · Red Line)",
         category: "train",
         bullets: [
-          [text("From Hub Hotel, walk ~12 min to Sanduo Shopping District (R8 · Red Line), or short taxi with bags if needed")],
+          [text("From Hub Hotel, walk ~8–10 min (~600–700 m) to Shihjia (R7 · Red Line) — nearer than Sanduo; no need to go to Sanduo Shopping District (R8 · Red Line) today")],
           [text("Tap EasyCard / iPASS")],
-          [text("Red Line northbound (toward Gangshan Station) → Zuoying (R16 · Red Line), ~20 min")],
+          [text("Red Line northbound (toward Gangshan Station) → Zuoying (R16 · Red Line), ~20–22 min")],
           [text("Follow station signs for HSR / Taiwan High Speed Rail (same complex)")],
           [text("MRT ~NT$40–80 for 2")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Zuoying HSR Station",
         guideKey: "kh-mrt-to-zuoying",
-        infoNotes: ["LOCKED day. No harbor / Cijin / Formosa / Liuhe today."],
+        infoNotes: ["LOCKED day. No harbor / Cijin / Formosa / Liuhe today. Prefer Shihjia (R7 · Red Line) — skip Sanduo unless you already are there."],
       }),
       item({
         time: "8:30–9:15 AM",
@@ -666,19 +666,19 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "3:15–4:00 PM",
-        title: "MRT back to Hub",
+        title: "MRT back to Hub — get off Shihjia (R7 · Red Line)",
         category: "train",
         bullets: [
           [text("At Zuoying, follow signs to the MRT Red Line at Zuoying (R16 · Red Line)")],
-          [text("Red Line southbound (toward Siaogang) → Sanduo Shopping District (R8 · Red Line), ~20 min")],
-          [text("Walk ~12 min or short taxi to Hub Hotel")],
+          [text("Red Line southbound (toward Siaogang) → Shihjia (R7 · Red Line), ~20–22 min — skip Sanduo Shopping District (R8 · Red Line)")],
+          [text("Walk ~8–10 min to Hub Hotel (closer than from Sanduo)")],
           [text("Do NOT get off at Formosa Boulevard (R10 · Red Line) — go straight home and rest")],
           [text("MRT ~NT$40–80 for 2")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
         guideKey: "kh-hub-hotel-checkin",
-        infoNotes: ["NO Formosa Boulevard (R10 · Red Line) stop. Go home and rest."],
+        infoNotes: ["NO Formosa. NO Sanduo required — Shihjia (R7 · Red Line) is the home stop today."],
       }),
       item({
         time: "4:00–7:00 PM",
@@ -698,7 +698,7 @@ const days: DaySectionData[] = [
         title: "Light dinner near Hub",
         category: "food",
         bullets: [
-          [text("Easy dinner within a short walk of Hub / Sanduo Shopping District (R8 · Red Line) — noodles, rice, or simple café food on 一心二路 or nearby")],
+          [text("Easy dinner within a short walk of Hub / Yisin area — noodles, rice, or simple café food on 一心二路 or nearby (no Sanduo MRT needed)")],
           [text("Ask the desk if you want a specific non-seafood suggestion")],
           [text("~NT$150–300 for 2")],
           [text("NO Formosa Boulevard (R10 · Red Line) stop, NO Liuhe Night Market tonight")],
@@ -813,7 +813,7 @@ const days: DaySectionData[] = [
         title: "Hotel rest",
         category: "hotel",
         bullets: [
-          [text("Return to Hub Yisin (walk + MRT via Sanduo Shopping District (R8 · Red Line), or Uber)")],
+          [text("Return to Hub Yisin by Uber (~10–15 min) or walk — no Sanduo Shopping District (R8 · Red Line) / MRT required this afternoon")],
           [text("Nap, shower, and get ready for birthday night")],
           [text("Stay indoors through the hot 1–3 PM window")],
         ],
@@ -944,10 +944,10 @@ const days: DaySectionData[] = [
         category: "train",
         bullets: [
           [
-            text("Option A: Walk to Sanduo Shopping District (R8 · Red Line), Red Line northbound → Zuoying (R16 · Red Line), then short Uber to the pagoda side of "),
+            text("Option A: Walk to Shihjia (R7 · Red Line) — nearer than Sanduo — Red Line northbound → Zuoying (R16 · Red Line), then short Uber to the pagoda side of "),
             place("Lotus Pond", "pond", "Lotus Pond Kaohsiung"),
           ],
-          [text("Option B: Uber direct Hub → Dragon & Tiger Pagodas (~25–40 min)")],
+          [text("Option B: Uber direct Hub → Dragon & Tiger Pagodas (~25–40 min) — no MRT / no Sanduo")],
           [text("Combined transport ~NT$150–250 for 2")],
           [text("Open Maps for Dragon and Tiger Pagodas as the drop pin")],
         ],
@@ -1032,19 +1032,21 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "~2:00–3:00 PM",
-        title: "Leave hotel — MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line)",
+        title: "Leave hotel — MRT Sanduo (R8 · Red Line) → Airport (R4 · Red Line)",
         category: "train",
         bullets: [
-          [text("With bags, walk or short taxi from Hub to Sanduo Shopping District (R8 · Red Line)")],
+          [text("With bags, short taxi (or walk) from Hub to Sanduo Shopping District (R8 · Red Line) — easiest curb for luggage, same as arrival")],
+          [text("Alt without Sanduo: walk to nearer Shihjia (R7 · Red Line), then Red Line southbound → Airport (R4 · Red Line)")],
           [text("Tap EasyCard / iPASS")],
           [text("Red Line southbound (toward Siaogang / Airport) → Kaohsiung International Airport (R4 · Red Line), ~15–20 min")],
           [text("Follow station signs into the terminal")],
           [text("Aim to be at KHH by ~4:00 PM for the ~8:00 PM flight")],
-          [text("MRT ~NT$40–80 for 2")],
+          [text("MRT ~NT$40–80 for 2 · or Uber Hub → KHH if tired")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Kaohsiung International Airport",
         guideKey: "kh-airport-departure",
+        infoNotes: ["Bags: Sanduo (R8 · Red Line) taxi curb is easiest. Light bags OK: Shihjia (R7 · Red Line) is closer on foot."],
       }),
       item({
         time: "~4:00 PM",
