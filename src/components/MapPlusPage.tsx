@@ -272,11 +272,8 @@ export default function MapPlusPage({ isActive = true }: Props) {
       <div className="mp-header">
         <div>
           <h1 className="mp-title">Map+</h1>
-          <p className="mp-sub">Taiwan trains &amp; buses — tap a line or stop to check the route number, direction and next stop.</p>
+          <p className="mp-sub">Taiwan trains &amp; buses — tap a line or stop to check the route number, direction and next stop. Open Filters to locate yourself.</p>
         </div>
-        <button type="button" className="mp-locate" onClick={handleLocate} disabled={locate.status === "locating"}>
-          {locate.status === "locating" ? "Locating…" : "📍 Locate me"}
-        </button>
       </div>
 
       {locate.status === "error" && <div className="mp-alert mp-alert-error">{locate.message}</div>}
@@ -357,6 +354,24 @@ export default function MapPlusPage({ isActive = true }: Props) {
               </button>
             </div>
             <div className="mp-modal-body">
+              <div className="mp-modal-locate">
+                <button
+                  type="button"
+                  className="mp-locate"
+                  onClick={handleLocate}
+                  disabled={locate.status === "locating"}
+                >
+                  {locate.status === "locating" ? "Locating…" : "📍 Locate me"}
+                </button>
+                {locate.status === "error" && (
+                  <p className="mp-modal-locate-hint mp-modal-locate-error">{locate.message}</p>
+                )}
+                {locate.status === "found" && locate.nearest[0] && (
+                  <p className="mp-modal-locate-hint">
+                    Nearest: <b>{locate.nearest[0].station.name}</b> ({fmtMeters(locate.nearest[0].meters)})
+                  </p>
+                )}
+              </div>
               {legendGroups.map(({ overlay, lines }) => (
                 <div key={overlay.key} className={`mp-legend-group ${enabled[overlay.key] ? "" : "is-off"}`}>
                   <label className={`mp-toggle ${enabled[overlay.key] ? "is-on" : ""}`}>
