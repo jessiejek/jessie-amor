@@ -8,11 +8,11 @@
 // - No revisiting an area/island on a later day.
 // - Shade / indoors 1–3 PM when possible.
 // Day layout (LOCKED where noted):
-// - Day 1 (Oct 17 Sat): arrive KHH → ATM + MRT Airport (R4 · Red Line) → Sanduo (R8 · Red Line) + taxi Hub → check-in → walk dinner 深夜蓋飯食堂 (崑明街55號; confirm open Sat; else desk fallback on 一心二路).
-// - Day 2 (Oct 18 Sun): Consulate + Cijin only (Tunnel optional/skip). No Pier-2. 港園 dinner → home.
-// - Day 3 (Oct 19 Mon) LOCKED: HSR FULL (no B1G1) → CCU Meteor Garden → Minxiong turkey rice → hotel rest → light dinner near Hub. NO Formosa. NO Liuhe.
-// - Day 4 (Oct 20 Tue) LOCKED Amor birthday: Library + OGNI → rest → Pier-2 Dayi → Harbour Bridge sunset → Yonshin.
-// - Day 5 (Oct 21 Wed): Lotus Pond morning → lunch → bags → KHH → evening flight.
+// - Day 1 (Oct 17 Sat): arrive KHH → ATM + MRT Airport (R4 · Red Line) → Sanduo (R8 · Red Line) + taxi Hub → check-in → walk dinner 深夜蓋飯食堂 (崑明街55號; confirm open Sat; else desk fallback on 一心二路) → optional late café 一盞咖啡 Yi Zhan Coffee.
+// - Day 2 (Oct 18 Sun): Consulate → 新濱·駅前 café → Cijin (Old Street, Tianhou, Jinlou café, Rainbow Church, Cihou Fort + lighthouse, Shoreline Coffee sunset). No Pier-2. 港園 dinner → back at Hub ~9:30–10:30 PM latest.
+// - Day 3 (Oct 19 Mon) LOCKED: HSR FULL (no B1G1) → CCU Meteor Garden (+ short 湖畔咖啡 Lakeside Café) → Minxiong turkey rice → hotel rest → light dinner near Hub → back ~8:30–9:30 PM. NO Formosa. NO Liuhe.
+// - Day 4 (Oct 20 Tue) LOCKED Amor birthday: Library + OGNI → rest → NOW & THEN (Pier-2) → Pier-2 Dayi → Harbour Bridge sunset → Yonshin → back at Hub ~9:30–10:30 PM.
+// - Day 5 (Oct 21 Wed): Lotus Pond pagodas + pavilion → PAMMA Coffee → lunch → checkout + bags → leave hotel ~2–3 PM → KHH ~4 PM → ~8 PM flight → MNL ~10 PM.
 
 import type {
   AlertBoxData,
@@ -79,7 +79,7 @@ const hero: HeroData = {
   subtitle: "October 17–21 · Kaohsiung, Taiwan",
   meta: [
     "MNL–KHH: Oct 17, ~5:00–7:00 PM",
-    "KHH–MNL: Oct 21, ~8:00 PM",
+    "KHH–MNL: Oct 21, ~8:00 PM → MNL ~10 PM",
     "Hub Hotel Yisin Branch, Oct 17–21",
     "Oct 20 — Amor's birthday 🎂",
     "No seafood · share coffee · hotel breakfast",
@@ -87,7 +87,7 @@ const hero: HeroData = {
   ],
   note: [
     text(
-      "We stay at one hotel the whole trip: Hub Hotel Kaohsiung Yisin Branch (一心二路15號, near Sanduo Shopping District (R8 · Red Line)). Flights, hotel, and hotel breakfast are already paid (count as 0). Two people, all cash figures in NT$. Do not go back to the same island or area on a later day. No fish or shrimp — say 不要海鮮. Share coffee (one cup). Day 3 is LOCKED: full-price HSR to Chiayi for Meteor Garden campus, then turkey rice, then rest + light dinner near the Hub — no Formosa dome, no Liuhe. Day 4 is Amor's birthday (LOCKED): library + OGNI, rest, Pier-2 Dayi → Harbour Bridge sunset, Yonshin Fudopia.",
+      "We stay at one hotel the whole trip: Hub Hotel Kaohsiung Yisin Branch (一心二路15號, near Sanduo Shopping District (R8 · Red Line)). Flights, hotel, and hotel breakfast are already paid (count as 0). Two people, all cash figures in NT$. Do not go back to the same island or area on a later day. No fish or shrimp — say 不要海鮮. Share coffee (one cup). Day 3 is LOCKED: full-price HSR to Chiayi for Meteor Garden campus, then turkey rice, then rest + light dinner near the Hub — no Formosa dome, no Liuhe. Day 4 is Amor's birthday (LOCKED): library + OGNI, rest, NOW & THEN → Pier-2 Dayi → Harbour Bridge sunset, Yonshin Fudopia. Aesthetic cafés: Day 1 Yi Zhan (optional), Day 2 新濱·駅前 + Jinlou + Shoreline, Day 3 Lakeside Café (CCU), Day 4 OGNI + NOW & THEN, Day 5 PAMMA. Back at Hub: Day 2 & Day 4 ~9:30–10:30 PM, Day 3 ~8:30–9:30 PM. Day 5 leave hotel ~2–3 PM → KHH ~4 PM → flight ~8 PM → Manila ~10 PM.",
     ),
   ],
 };
@@ -214,6 +214,25 @@ const days: DaySectionData[] = [
         ],
         warnings: ["No fish or shrimp. Say 不要海鮮.", "Confirm open Saturday via Google/IG before walking over."],
       }),
+      item({
+        time: "10:30–11:30 PM",
+        title: "Optional late café: Yi Zhan Coffee (一盞咖啡)",
+        category: "food",
+        bullets: [
+          [
+            text("Only if you still have energy — "),
+            place("一盞咖啡 Yi Zhan Coffee", "café", "Yi Zhan Coffee 一盞咖啡 Kaohsiung"),
+            text(" (old house, retro, near Sanduo Shopping District (R8 · Red Line))"),
+          ],
+          [text("Open late on Saturday — tiny place, call ahead / check Maps before walking over")],
+          [text("Share one coffee (~NT$150–250)")],
+          [text("Skip it if tired — back at Hub right after dinner is fine")],
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "Yi Zhan Coffee 一盞咖啡 Kaohsiung",
+        guideKey: "kh-city-walk-snack",
+        infoNotes: ["Optional. Back at Hub after dinner (~10:30 PM) or after this café (~11:30 PM)."],
+      }),
     ],
   },
   {
@@ -278,11 +297,29 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "10:00–10:30 AM",
+        title: "Coffee: Hamasen Station Front (新濱·駅前)",
+        category: "food",
+        bullets: [
+          [
+            text("Walk downhill from the Consulate toward Hamasen (O1 · Orange Line) to "),
+            place("新濱·駅前 Hamasen Station Front", "café", "Hamasen Station Front 新濱駅前 Kaohsiung"),
+            text(" (Taisho-era bank building)"),
+          ],
+          [text("Quick stop — share one coffee (~NT$150–250), photos of the old building")],
+          [text("Then continue to Gushan Ferry Pier (short walk)")],
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "Hamasen Station Front 新濱駅前 Kaohsiung",
+        guideKey: "kh-hamasen-railway-museum",
+        infoNotes: ["Keep it ~30 min so the Cijin day doesn't slip."],
+      }),
+      item({
+        time: "10:30–10:50 AM",
         title: "Ferry to Cijin Island",
         category: "bus",
         bullets: [
           [
-            text("Walk downhill from the Consulate area to "),
+            text("From the café, walk to "),
             place("Gushan Ferry Pier", "ferry", "Gushan Ferry Pier Kaohsiung"),
             text(" (open Maps if unsure of the pier entrance)"),
           ],
@@ -294,7 +331,7 @@ const days: DaySectionData[] = [
         guideKey: "kh-ferry-to-cijin",
       }),
       item({
-        time: "10:30–11:30 AM",
+        time: "10:50–11:45 AM",
         title: "Cijin Old Street + Tianhou Temple",
         category: "spot",
         bullets: [
@@ -314,7 +351,7 @@ const days: DaySectionData[] = [
         guideKey: "kh-cijin-old-street",
       }),
       item({
-        time: "11:30 AM–12:30 PM",
+        time: "11:45 AM–12:45 PM",
         title: "Lunch on Cijin (non-seafood)",
         category: "food",
         bullets: [
@@ -333,8 +370,8 @@ const days: DaySectionData[] = [
         warnings: ["No fish or shrimp. Ask before you order."],
       }),
       item({
-        time: "12:30–2:30 PM",
-        title: "Aesthetic café · share coffee",
+        time: "12:45–2:30 PM",
+        title: "Coffee: Jinlou (津樓) — Cijin old house",
         category: "food",
         bullets: [
           [text("Stay indoors or in shade through the hot 1–3 PM window")],
@@ -342,7 +379,7 @@ const days: DaySectionData[] = [
           [
             text("Try "),
             place("津樓 Jinlou", "café", "津樓 Liquid Building Coffee 旗津"),
-            text(" at 廟前路30巷13號 (often opens ~1 PM — confirm on Maps) or another aesthetic café on Old Street"),
+            text(" at 廟前路30巷13號 — old-house café (often opens ~1 PM; closed Tue — Sunday OK; confirm on Maps)"),
           ],
           [text("Optional mango ice at 有間冰舖 nearby")],
           [text("Tunnel of Stars is optional/skip — not required today")],
@@ -385,7 +422,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "4:00–5:45 PM",
-        title: "Cihou Fort + Lighthouse · sunset (~5:32 PM)",
+        title: "Cihou Fort + Lighthouse · sunset (~5:32 PM) + Shoreline Coffee",
         category: "spot",
         bullets: [
           [text("Walk uphill to "), place("Cihou Fort", "fort", "Cihou Fort Kaohsiung"), text(" (free entry)")],
@@ -394,6 +431,11 @@ const days: DaySectionData[] = [
             text("Visit "),
             place("Kaohsiung Lighthouse", "lighthouse", "Kaohsiung Lighthouse"),
             text(" on the same hill before sunset — no rush now"),
+          ],
+          [
+            text("Sunset coffee: "),
+            place("Shoreline Coffee", "café", "Shoreline Coffee Kaohsiung Lighthouse"),
+            text(" at the lighthouse — takeaway, outdoor stools (share one, ~NT$150–250)"),
           ],
           [text("Start down before dark")],
         ],
@@ -438,6 +480,23 @@ const days: DaySectionData[] = [
         mapQuery: "港園牛肉麵 鹽埕總店",
         guideKey: "kh-gushan-dinner",
         warnings: ["No fish or shrimp.", "Closes 8:00 PM — leave the pier promptly."],
+      }),
+      item({
+        time: "~9:30–10:30 PM",
+        title: "Back at Hub Hotel",
+        category: "hotel",
+        bullets: [
+          [
+            text("Back at "),
+            place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
+            text(" by ~9:30–10:30 PM at the latest"),
+          ],
+          [text("Straight Uber after 港園 can get you in earlier (~8:30 PM) — the window allows for a slow evening / convenience-store stop")],
+          [text("Cijin is done for this trip")],
+        ],
+        tags: [tag("Hotel / Taxi", "hotel")],
+        mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
+        guideKey: "kh-hub-hotel-checkin",
       }),
     ],
   },
@@ -509,7 +568,7 @@ const days: DaySectionData[] = [
         guideKey: "kh-taxi-to-ccu",
       }),
       item({
-        time: "10:00 AM–12:00 PM",
+        time: "10:00–11:30 AM",
         title: "Meteor Garden campus photos",
         category: "spot",
         bullets: [
@@ -520,11 +579,29 @@ const days: DaySectionData[] = [
           ],
           [text("Photo stops: red-brick gym gate, fountain square, 寧靜湖 (Quiet Lake)")],
           [text("Stay polite around students/classes")],
-          [text("Leave by ~12:00 for lunch")],
+          [text("Then short coffee at the lake before lunch")],
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "National Chung Cheng University",
         guideKey: "kh-chung-cheng-university",
+      }),
+      item({
+        time: "11:30 AM–12:00 PM",
+        title: "Coffee: Lakeside Café (湖畔咖啡) inside CCU — short",
+        category: "food",
+        bullets: [
+          [
+            text("Inside campus — "),
+            place("湖畔咖啡 Lakeside Café", "café", "Lakeside Cafe National Chung Cheng University 湖畔咖啡"),
+            text(" with lake windows (only pretty café walkable from CCU)"),
+          ],
+          [text("Keep it short (~30 min) — share one coffee (~NT$100–200)")],
+          [text("Leave by ~12:00 for turkey rice; skip if running late for HSR")],
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "Lakeside Cafe National Chung Cheng University 湖畔咖啡",
+        guideKey: "kh-chung-cheng-university",
+        infoNotes: ["Tight day — quick stop only, not a linger."],
       }),
       item({
         time: "12:00–12:30 PM",
@@ -631,6 +708,18 @@ const days: DaySectionData[] = [
         guideKey: "kh-city-walk-snack",
         warnings: ["No fish or shrimp.", "No Liuhe. No Formosa."],
       }),
+      item({
+        time: "~8:30–9:30 PM",
+        title: "Back at Hub Hotel",
+        category: "hotel",
+        bullets: [
+          [text("Walk back to Hub after the light dinner — in by ~8:30–9:30 PM")],
+          [text("Early night — tomorrow is Amor's birthday")],
+        ],
+        tags: [tag("Hotel / Taxi", "hotel")],
+        mapQuery: "Hub Hotel Kaohsiung Yisin Branch",
+        guideKey: "kh-hub-hotel-checkin",
+      }),
     ],
   },
   {
@@ -734,7 +823,7 @@ const days: DaySectionData[] = [
         infoNotes: ["Hot 1–3 — rest inside."],
       }),
       item({
-        time: "4:30 PM",
+        time: "4:00–4:20 PM",
         title: "Uber to Pier-2",
         category: "hotel",
         bullets: [
@@ -752,7 +841,25 @@ const days: DaySectionData[] = [
         guideKey: "kh-pier2-art-center",
       }),
       item({
-        time: "4:30–5:45 PM",
+        time: "4:20–4:50 PM",
+        title: "Coffee: NOW & THEN by nybc (Pier-2)",
+        category: "food",
+        bullets: [
+          [
+            text("First stop at Pier-2 — "),
+            place("NOW & THEN by nybc", "café", "NOW & THEN by nybc Pier-2 Kaohsiung"),
+            text(" (warehouse, industrial-cute)"),
+          ],
+          [text("Weekdays closes ~5:30 PM — go before sunset")],
+          [text("Share one coffee (~NT$150–250)")],
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "NOW & THEN by nybc Pier-2 Kaohsiung",
+        guideKey: "kh-pier2-art-center",
+        warnings: ["Closes ~5:30 PM on weekdays — confirm on Maps."],
+      }),
+      item({
+        time: "4:50–5:45 PM",
         title: "Pier-2 Dayi → Great Harbour Bridge sunset",
         category: "walk",
         bullets: [
@@ -797,11 +904,12 @@ const days: DaySectionData[] = [
         ],
       }),
       item({
-        time: "~9:30 PM",
-        title: "Uber home to Hub",
+        time: "~9:30–10:30 PM",
+        title: "Uber home — back at Hub",
         category: "hotel",
         bullets: [
           [text("From Yonshin / Pier-2, Uber back to Hub Hotel Yisin (~15–25 min)")],
+          [text("Back at Hub ~9:30–10:30 PM")],
           [text("~NT$100–180 for 2")],
           [text("Harbor / Pier-2 is done for this trip — do not redo on Day 5")],
         ],
@@ -848,7 +956,7 @@ const days: DaySectionData[] = [
         guideKey: "kh-lotus-pond-taxi",
       }),
       item({
-        time: "8:40–10:30 AM",
+        time: "8:40–10:15 AM",
         title: "Dragon & Tiger Pagodas + Spring & Autumn Pavilion",
         category: "spot",
         bullets: [
@@ -871,7 +979,23 @@ const days: DaySectionData[] = [
         warnings: ["Finish before the heat builds.", "No full walk around Lotus Pond."],
       }),
       item({
-        time: "10:30–11:30 AM",
+        time: "10:15–11:00 AM",
+        title: "Coffee: PAMMA Coffee (泮咖啡) — Lotus Pond",
+        category: "food",
+        bullets: [
+          [
+            text("On the pond — "),
+            place("泮咖啡 PAMMA Coffee", "café", "PAMMA Coffee 泮咖啡 Lotus Pond Kaohsiung"),
+            text(" (glass house, lake + temple views)"),
+          ],
+          [text("Share one coffee (~NT$150–250) — before lunch and checkout")],
+        ],
+        tags: [tag("Food", "food")],
+        mapQuery: "PAMMA Coffee 泮咖啡 Lotus Pond Kaohsiung",
+        guideKey: "kh-dragon-tiger-pagodas",
+      }),
+      item({
+        time: "11:00 AM–12:00 PM",
         title: "Lunch near Lotus Pond",
         category: "food",
         bullets: [
@@ -890,15 +1014,15 @@ const days: DaySectionData[] = [
         warnings: ["No fish or shrimp."],
       }),
       item({
-        time: "11:30 AM–12:30 PM",
-        title: "Uber Hub · get bags",
+        time: "12:00–2:00 PM",
+        title: "Uber Hub — checkout + bags",
         category: "hotel",
         bullets: [
           [
             text("Uber from lunch back to "),
             place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
           ],
-          [text("Check out if not already done")],
+          [text("Check out in the afternoon (ask the desk to hold bags if checkout time is earlier)")],
           [text("Pick up bags and confirm you have passports + tickets")],
           [text("~NT$150–250")],
         ],
@@ -907,8 +1031,8 @@ const days: DaySectionData[] = [
         guideKey: "kh-hub-hotel-checkin",
       }),
       item({
-        time: "~2:00 PM",
-        title: "MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line)",
+        time: "~2:00–3:00 PM",
+        title: "Leave hotel — MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line)",
         category: "train",
         bullets: [
           [text("With bags, walk or short taxi from Hub to Sanduo Shopping District (R8 · Red Line)")],
@@ -938,10 +1062,11 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "~8:00 PM",
-        title: "Flight Kaohsiung → Manila",
+        title: "Flight Kaohsiung → Manila — land MNL ~10 PM",
         category: "hotel",
         bullets: [
           [text("KHH → MNL evening flight (prepaid — NT$0 in trip cash)")],
+          [text("Land Manila (MNL) ~10:00 PM — same clock (both UTC+8)")],
           [text("Trip done")],
           [text("Keep boarding passes and arrival cards handy")],
         ],

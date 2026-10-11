@@ -50,7 +50,7 @@ export function generateImmigrationPdf(tripProfile: TripProfile | null | undefin
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const M = 18, PW = 190, LABEL_COL = 34, RUNNING_HEADER_H = 12; let y = 22;
-  const clean = (s: string) => s.replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/ /g, " ").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
+  const clean = (s: string) => s.normalize("NFD").replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/ /g, " ").replace(/[^\x20-\x7E]/g, "").replace(/\(\s*[.,]?\s*\)/g, "").replace(/\s+/g, " ").replace(/\s+([,.)])/g, "$1").trim();
   const sec = (t: string) => { y += 3; doc.setDrawColor(11, 53, 48); doc.setLineWidth(0.5); doc.line(M, y, PW + M - 8, y); y += 5; doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(11, 53, 48); doc.text(clean(t).toUpperCase(), M, y); y += 6; };
   const kv = (k: string, v: string) => { doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(60, 60, 60); doc.text(clean(k), M, y); doc.setFont("helvetica", "normal"); doc.setTextColor(26, 26, 26); doc.text(clean(v), M + LABEL_COL, y); y += 4.8; };
   const addRunningHeader = () => {
@@ -167,7 +167,7 @@ export function generateItineraryPlusPdf(tripProfile: TripProfile | null | undef
   const shownWidth = shownCols.reduce((a, c) => a + c.width, 0);
   const totalWidth = allCols.reduce((a, c) => a + c.width, 0);
   const cols = shownCols.map((c) => ({ ...c, width: (c.width / shownWidth) * totalWidth }));
-  const clean = (s: string) => (s ?? "").replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim();
+  const clean = (s: string) => (s ?? "").normalize("NFD").replace(/’|‘/g, "'").replace(/“|”/g, '"').replace(/–|—/g, "-").replace(/→/g, "-").replace(/·/g, ".").replace(/•/g, "-").replace(/…/g, "...").replace(/[^\x20-\x7E]/g, "").replace(/\(\s*[.,]?\s*\)/g, "").replace(/\s+/g, " ").replace(/\s+([,.)])/g, "$1").trim();
   let y = 19;
 
   const addRunningHeader = () => {
