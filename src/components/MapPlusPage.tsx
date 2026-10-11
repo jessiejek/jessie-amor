@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import type { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { maplibreGL } from "@maplibre/maplibre-gl-leaflet";
+import type { StyleSpecification } from "maplibre-gl";
 import "./MapPlusPage.css";
 import {
   DEFAULT_HIDDEN_LINE_IDS,
@@ -22,6 +25,48 @@ type LocateState =
   | { status: "found"; lat: number; lng: number; accuracy: number; nearest: NearestResult[] };
 
 const WALK_M_PER_MIN = 80;
+
+/**
+ * English-label basemap: OpenFreeMap "liberty" vector style (free, no API key),
+ * with every label forced to English (name:en) or a romanized fallback (name:latin).
+ * The stock style prints "Latin\n中文", so we strip the Chinese line.
+ * (Carto raster tiles now need an API key; OSM/Esri raster show Chinese in Taiwan.)
+ */
+const BASEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const BASEMAP_ATTRIBUTION =
+  '<a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
+const ENGLISH_TEXT_FIELD = ["coalesce", ["get", "name:en"], ["get", "name:latin"], ""];
+
+async function loadEnglishStyle(): Promise<StyleSpecification> {
+  const res = await fetch(BASEMAP_STYLE_URL);
+  if (!res.ok) throw new Error(`basemap style ${res.status}`);
+  const style = (await res.json()) as StyleSpecification;
+  style.layers = style.layers.map((layer) => {
+    if (layer.type !== "symbol" || !layer.layout || !("text-field" in layer.layout)) return layer;
+    const tf = JSON.stringify(layer.layout["text-field"]);
+    if (!/name/.test(tf)) return layer; // keep road ref shields etc.
+    return { ...layer, layout: { ...layer.layout, "text-field": ENGLISH_TEXT_FIELD } } as typeof layer;
+  });
+  return style;
+}
+
+const HAN_RE = /\p{Script=Han}/gu;
+const HAN_TEST = /\p{Script=Han}/u;
+const LATIN_RE = /[A-Za-z]/g;
+/** Never show raw Chinese: keep Latin text, drop Han runs, fall back to a placeholder. */
+const englishName = (name: string | undefined | null, fallback = "Stop"): string => {
+  if (!name) return fallback;
+  const han = (name.match(HAN_RE) ?? []).length;
+  if (han === 0) return name;
+  const latin = (name.match(LATIN_RE) ?? []).length;
+  // "Foo (中文)" or "中文 (Foo)" → whichever part is Latin.
+  const parts = name.split(/[()（）]/).map((p) => p.trim()).filter(Boolean);
+  const latinPart = parts.find((p) => !HAN_TEST.test(p) && /[A-Za-z]/.test(p));
+  if (latin < han && latinPart) return latinPart;
+  const stripped = name.replace(HAN_RE, " ").replace(/[()（）]\s*[()（）]/g, " ").replace(/\s+/g, " ").trim();
+  return /[A-Za-z0-9]/.test(stripped) ? stripped : fallback;
+};
+const en = (v: string | undefined | null) => englishName(v);
 const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const fmtMeters = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
 const fmtWalk = (m: number) => (m > 5000 ? "too far to walk" : `~${Math.max(1, Math.round(m / WALK_M_PER_MIN))} min walk`);
@@ -43,10 +88,10 @@ const routePopup = (line: TransitLine) => {
   const last = line.stations[line.stations.length - 1];
   return `<div class="mp-popup">
     <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.city)}</div>
-    <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${escapeHtml(line.name)}</div>
+    <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${escapeHtml(en(line.name))}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ Not running right now (suspended).</div>` : ""}
-    ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(first.name)}</b> → <b>${escapeHtml(last.name)}</b> (${line.stations.length} stops)</div>` : ""}
-    ${line.kind === "bus" ? `<div class="mp-popup-stops"><b>Key stops:</b><ol>${keyStops(line).map((st) => `<li>${escapeHtml(st.name)}</li>`).join("")}</ol></div>` : ""}
+    ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(en(first.name))}</b> → <b>${escapeHtml(en(last.name))}</b> (${line.stations.length} stops)</div>` : ""}
+    ${line.kind === "bus" ? `<div class="mp-popup-stops"><b>Key stops:</b><ol>${keyStops(line).map((st) => `<li>${escapeHtml(en(st.name))}</li>`).join("")}</ol></div>` : ""}
     ${line.note ? `<div class="mp-popup-note">${escapeHtml(line.note)}</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-note">Shown direction is outbound; the return bus runs roughly the reverse. Check the number and destination sign on the bus.</div>` : ""}
     ${line.source ? `<div class="mp-popup-src"><a href="${escapeHtml(line.source)}" target="_blank" rel="noopener noreferrer">Source</a></div>` : ""}
@@ -60,9 +105,9 @@ const stationPopup = (line: TransitLine, idx: number) => {
   const prev = line.stations[idx - 1];
   const next = line.stations[idx + 1];
   return `<div class="mp-popup">
-    <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.name)}</div>
-    <div class="mp-popup-name">${st.code ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(st.name)}</div>
-    <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(first.name)}</b>: next ${escapeHtml(prev.name)}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(last.name)}</b>: next ${escapeHtml(next.name)}` : ""}</div>
+    <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(en(line.name))}</div>
+    <div class="mp-popup-name">${st.code ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(en(st.name))}</div>
+    <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(en(first.name))}</b>: next ${escapeHtml(en(prev.name))}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(en(last.name))}</b>: next ${escapeHtml(en(next.name))}` : ""}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ This route is suspended — use another bus.</div>` : ""}
     ${line.approximate ? `<div class="mp-popup-note">Approximate line — confirm the route number at the stop.</div>` : ""}
   </div>`;
@@ -110,10 +155,22 @@ export default function MapPlusPage({ isActive = true }: Props) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, { zoomControl: true, preferCanvas: true, maxBounds: [[20.5, 118.5], [26.8, 123.5]] }).setView(TAIWAN_CENTER, 7);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    map.attributionControl.addAttribution(BASEMAP_ATTRIBUTION);
+    let cancelled = false;
+    let basemap: L.Layer | null = null;
+    loadEnglishStyle()
+      .then((style) => {
+        if (cancelled) return;
+        basemap = maplibreGL({ style }).addTo(map);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fallback: label-free raster so no Chinese text appears; our English overlays still show.
+        basemap = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+          maxZoom: 16,
+          attribution: "Tiles &copy; Esri",
+        }).addTo(map);
+      });
     map.fitBounds(TAIWAN_BOUNDS);
 
     OVERLAYS.forEach((overlay) => {
@@ -127,7 +184,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
           opacity: line.suspended ? 0.5 : line.kind === "bus" ? 0.75 : 0.85,
           dashArray: line.approximate ? "8 8" : undefined,
         })
-          .bindTooltip(`${line.ref && line.kind === "bus" ? `Bus ${line.ref} · ` : ""}${line.name}${line.approximate ? " (approx.)" : ""}`, { sticky: true })
+          .bindTooltip(`${line.ref && line.kind === "bus" ? `Bus ${line.ref} · ` : ""}${en(line.name)}${line.approximate ? " (approx.)" : ""}`, { sticky: true })
           .bindPopup(routePopup(line), { maxWidth: 300 })
           .addTo(lineGroup);
         line.stations.forEach((st, idx) => {
@@ -139,7 +196,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
             fillOpacity: 1,
           })
             .bindPopup(stationPopup(line, idx), { maxWidth: 260 })
-            .bindTooltip(`${line.kind === "bus" && line.ref ? `[${line.ref}] ` : ""}${st.code ? st.code + " " : ""}${st.name}`, { direction: "top", offset: [0, -6] })
+            .bindTooltip(`${line.kind === "bus" && line.ref ? `[${line.ref}] ` : ""}${st.code ? st.code + " " : ""}${en(st.name)}`, { direction: "top", offset: [0, -6] })
             .addTo(lineGroup);
         });
         lineLayersRef.current[line.id] = lineGroup;
@@ -164,7 +221,9 @@ export default function MapPlusPage({ isActive = true }: Props) {
     });
     ro.observe(containerRef.current);
     return () => {
+      cancelled = true;
       ro.disconnect();
+      if (basemap) map.removeLayer(basemap);
       map.remove();
       mapRef.current = null;
       layersRef.current = {};
@@ -229,7 +288,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
       L.popup({ closeButton: true, autoClose: false, closeOnClick: false })
         .setLatLng([best.station.lat, best.station.lng])
         .setContent(
-          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(best.station.name)}</div><div class="mp-popup-dir">${escapeHtml(best.line.name)}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
+          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(en(best.station.name))}</div><div class="mp-popup-dir">${escapeHtml(en(best.line.name))}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
         )
         .addTo(layer);
       const bounds = L.latLngBounds([[lat, lng], [best.station.lat, best.station.lng]]);
@@ -288,7 +347,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                 {locate.nearest.map((n) => (
                   <li key={`${n.line.id}-${n.station.code ?? n.station.name}`}>
                     <span className="mp-dot" style={{ background: n.line.color }} />
-                    <b>{n.station.name}</b> — {n.line.kind === "bus" ? `Bus · ${n.line.name}` : kindLabel(n.line)} · {n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
+                    <b>{en(n.station.name)}</b> — {n.line.kind === "bus" ? `Bus · ${en(n.line.name)}` : kindLabel(n.line)} · {n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
                   </li>
                 ))}
               </ol>
@@ -325,7 +384,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                   className={`mp-swatch ${line.approximate ? "is-dashed" : ""}`}
                   style={{ borderColor: line.color, background: line.approximate ? "transparent" : line.color }}
                 />
-                {line.kind === "bus" && line.ref ? `Bus ${line.ref}` : line.name}
+                {line.kind === "bus" && line.ref ? `Bus ${line.ref}` : en(line.name)}
               </span>
             )),
         )}
@@ -368,7 +427,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                 )}
                 {locate.status === "found" && locate.nearest[0] && (
                   <p className="mp-modal-locate-hint">
-                    Nearest: <b>{locate.nearest[0].station.name}</b> ({fmtMeters(locate.nearest[0].meters)})
+                    Nearest: <b>{en(locate.nearest[0].station.name)}</b> ({fmtMeters(locate.nearest[0].meters)})
                   </p>
                 )}
               </div>
@@ -405,7 +464,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                               {line.ref}
                             </span>
                           ) : null}{" "}
-                          <b>{line.name}</b>
+                          <b>{en(line.name)}</b>
                           {line.note ? <span className="mp-legend-note"> — {line.note}</span> : null}
                         </span>
                       </label>

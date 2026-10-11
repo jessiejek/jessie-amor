@@ -89,3 +89,14 @@ URL will be refused location by the browser).
 Query Overpass for the relation IDs above with `out geom;` + member nodes, stitch
 the `role=""` ways, take `stop`/`platform` member nodes as stops, and write
 `src/data/taiwanBusRoutes.ts` in the same shape.
+
+## Basemap (English labels)
+- **Style:** OpenFreeMap "liberty" vector tiles — `https://tiles.openfreemap.org/styles/liberty` (free, no API key),
+  rendered in Leaflet via `@maplibre/maplibre-gl-leaflet` + `maplibre-gl`.
+- On load, every name label's `text-field` is rewritten to `coalesce(name:en, name:latin)`, so the map shows
+  English names, or a romanized (pinyin-style) fallback — never Chinese characters. Road ref shields are kept.
+- Why not others: OSM standard and Esri raster tiles print Chinese in Taiwan; Carto `rastertiles/voyager` now
+  returns "API key required" tiles.
+- Fallback if the style can't load: Esri `Canvas/World_Light_Gray_Base` (no labels at all).
+- Overlay labels go through `englishName()` in `MapPlusPage.tsx` (strips Han characters / keeps the Latin part).
+- Attribution: OpenFreeMap © OpenMapTiles, data © OpenStreetMap contributors.
