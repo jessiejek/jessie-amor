@@ -85,6 +85,7 @@ import { useLiveExchangeRates } from "./lib/exchangeRates";
 import SettingsModal from "./components/SettingsModal";
 import PdfEditorPage from "./components/PdfEditorPage";
 import ItineraryPlusTab from "./components/ItineraryPlusTab";
+import MapPlusPage from "./components/MapPlusPage";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -508,6 +509,7 @@ function AppShell() {
     if (pathname === "/settings") return "/settings";
     if (pathname === "/pdf-editor") return "/pdf-editor";
     if (pathname === "/itinerary-plus") return "/itinerary-plus";
+    if (pathname === "/map-plus") return "/map-plus";
     return "/";
   };
 
@@ -2844,6 +2846,12 @@ function AppShell() {
                 canEdit={Boolean(session)}
               />,
               { routeKey: "/itinerary-plus" }
+            )}
+          </Route>
+          <Route exact path="/map-plus">
+            {renderPage(
+              <MapPlusPage isActive={activeRoute === "/map-plus"} />,
+              { routeKey: "/map-plus", showFooter: false }
             )}
           </Route>
           <Redirect to="/" />
