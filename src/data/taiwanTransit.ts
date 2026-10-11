@@ -49,6 +49,39 @@ export type TransitLine = {
 
 const s = (code: string, name: string, zh: string, lat: number, lng: number): TransitStation => ({ code, name, zh, lat, lng });
 
+
+/** Short color name for rider-facing labels: "Red Line", "Orange Line", "HSR". */
+export const lineColorLabel = (line: TransitLine): string => {
+  if (line.kind === "hsr") return "HSR";
+  if (/orange/i.test(line.name) || line.id.includes("orange")) return "Orange Line";
+  if (/red/i.test(line.name) || line.id.includes("red")) return "Red Line";
+  return "Metro";
+};
+
+/**
+ * Rider-facing station label with line color.
+ * Metro: "Sanduo Shopping District (R8 · Red Line)"
+ * Taipei: "Tamsui (R28 · Red Line)"
+ * HSR:   "Zuoying HSR (HSR)"
+ * Bus:   plain English name (no code/line suffix)
+ */
+export const stationDisplayLabel = (line: TransitLine, station: TransitStation): string => {
+  const name = station.name;
+  if (line.kind === "hsr") {
+    return /\(HSR\)\s*$/.test(name) ? name : `${name} (HSR)`;
+  }
+  if (line.kind === "bus" || !station.code) return name;
+  return `${name} (${station.code} · ${lineColorLabel(line)})`;
+};
+
+/** Lookup by code on a line → full rider label. */
+export const stationLabelByCode = (line: TransitLine, code: string): string => {
+  const st = line.stations.find((x) => x.code === code);
+  if (!st) throw new Error(`Unknown station ${code} on ${line.id}`);
+  return stationDisplayLabel(line, st);
+};
+
+
 export const TAIPEI_RED_LINE: TransitLine = {
   id: "taipei-red",
   name: "Taipei Metro Red Line (Tamsui–Xinyi)",
@@ -95,7 +128,7 @@ export const KAOHSIUNG_RED_LINE: TransitLine = {
   kind: "metro",
   city: "Kaohsiung",
   color: "#E2231A",
-  note: "Northbound trains say \"toward Gangshan Station\"; southbound say \"toward Siaogang\". Hotel stations: Sanduo Shopping District (R8) and Shihjia (R7). Transfer to Orange Line at Formosa Boulevard (R10/O5); Zuoying HSR at Zuoying (R16).",
+  note: "Northbound trains say \"toward Gangshan Station\"; southbound say \"toward Siaogang\". Hotel stations: Sanduo Shopping District (R8 · Red Line) and Shihjia (R7 · Red Line). Transfer to Orange Line at Formosa Boulevard (R10 · Red Line / O5 · Orange Line); Zuoying HSR at Zuoying (R16 · Red Line).",
   stations: [
     s("R3", "Siaogang", "小港", 22.5647, 120.3541),
     s("R4", "Kaohsiung International Airport", "高雄國際機場", 22.5701, 120.3412),
@@ -132,7 +165,7 @@ export const KAOHSIUNG_ORANGE_LINE: TransitLine = {
   kind: "metro",
   city: "Kaohsiung",
   color: "#F39800",
-  note: "Hamasen (O1, old name Sizihwan) ↔ Daliao. Westbound trains say \"toward Hamasen\". East end (O10–OT1) positions approximate.",
+  note: "Hamasen (O1 · Orange Line, old name Sizihwan) ↔ Daliao. Westbound trains say \"toward Hamasen\". East end (O10–OT1) positions approximate.",
   stations: [
     s("O1", "Hamasen", "哈瑪星", 22.62137, 120.2748),
     s("O2", "Yanchengpu", "鹽埕埔", 22.62416, 120.28408),

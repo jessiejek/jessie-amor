@@ -12,9 +12,11 @@ import {
   TAIWAN_BOUNDS,
   TAIWAN_CENTER,
   findNearestStations,
+  stationDisplayLabel,
   type NearestResult,
   type OverlayKey,
   type TransitLine,
+  type TransitStation,
 } from "../data/taiwanTransit";
 
 type Props = { isActive?: boolean };
@@ -67,6 +69,8 @@ const englishName = (name: string | undefined | null, fallback = "Stop"): string
   return /[A-Za-z0-9]/.test(stripped) ? stripped : fallback;
 };
 const en = (v: string | undefined | null) => englishName(v);
+/** English station name + (code · Color Line) / (HSR). Bus stays plain. */
+const stLabel = (line: TransitLine, st: TransitStation) => en(stationDisplayLabel(line, st));
 const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const fmtMeters = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
 const fmtWalk = (m: number) => (m > 5000 ? "too far to walk" : `~${Math.max(1, Math.round(m / WALK_M_PER_MIN))} min walk`);
@@ -90,7 +94,7 @@ const routePopup = (line: TransitLine) => {
     <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.city)}</div>
     <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${escapeHtml(en(line.name))}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ Not running right now (suspended).</div>` : ""}
-    ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(en(first.name))}</b> → <b>${escapeHtml(en(last.name))}</b> (${line.stations.length} stops)</div>` : ""}
+    ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(stLabel(line, first))}</b> → <b>${escapeHtml(stLabel(line, last))}</b> (${line.stations.length} stops)</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-stops"><b>Key stops:</b><ol>${keyStops(line).map((st) => `<li>${escapeHtml(en(st.name))}</li>`).join("")}</ol></div>` : ""}
     ${line.note ? `<div class="mp-popup-note">${escapeHtml(line.note)}</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-note">Shown direction is outbound; the return bus runs roughly the reverse. Check the number and destination sign on the bus.</div>` : ""}
@@ -106,8 +110,8 @@ const stationPopup = (line: TransitLine, idx: number) => {
   const next = line.stations[idx + 1];
   return `<div class="mp-popup">
     <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(en(line.name))}</div>
-    <div class="mp-popup-name">${st.code ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(en(st.name))}</div>
-    <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(en(first.name))}</b>: next ${escapeHtml(en(prev.name))}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(en(last.name))}</b>: next ${escapeHtml(en(next.name))}` : ""}</div>
+    <div class="mp-popup-name">${st.code && line.kind !== "hsr" ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(stLabel(line, st))}</div>
+    <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(stLabel(line, first))}</b>: next ${escapeHtml(stLabel(line, prev))}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(stLabel(line, last))}</b>: next ${escapeHtml(stLabel(line, next))}` : ""}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ This route is suspended — use another bus.</div>` : ""}
     ${line.approximate ? `<div class="mp-popup-note">Approximate line — confirm the route number at the stop.</div>` : ""}
   </div>`;
@@ -288,7 +292,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
       L.popup({ closeButton: true, autoClose: false, closeOnClick: false })
         .setLatLng([best.station.lat, best.station.lng])
         .setContent(
-          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(en(best.station.name))}</div><div class="mp-popup-dir">${escapeHtml(en(best.line.name))}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
+          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(stLabel(best.line, best.station))}</div><div class="mp-popup-dir">${escapeHtml(en(best.line.name))}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
         )
         .addTo(layer);
       const bounds = L.latLngBounds([[lat, lng], [best.station.lat, best.station.lng]]);

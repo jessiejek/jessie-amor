@@ -19,20 +19,20 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     title: "Arrive KHH · ATM + MRT to Hub",
     image: img("khh-airport.webp"),
     summary:
-      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4) to Sanduo Shopping District (R8), then a short taxi to Hub Hotel Yisin.",
-    service: "Kaohsiung MRT Red Line (R4 → R8)",
+      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4 · Red Line) to Sanduo Shopping District (R8 · Red Line), then a short taxi to Hub Hotel Yisin.",
+    service: "Kaohsiung MRT Red Line (R4 · Red Line → R8 · Red Line)",
     ticket: "Single-journey token or EasyCard / iPASS at the airport MRT gate.",
-    whereToBuy: ["MRT ticket machines at R4 Kaohsiung International Airport", "Airport ATM near arrivals for NT$ cash"],
+    whereToBuy: ["MRT ticket machines at Kaohsiung International Airport (R4 · Red Line)", "Airport ATM near arrivals for NT$ cash"],
     steps: [
       "Clear immigration and pick up bags at KHH arrivals.",
       "Find an ATM and withdraw enough NT$ for a few days (cash is handy for small food shops).",
-      "Follow signs to the MRT (R4). Buy a token or tap EasyCard / iPASS.",
-      "Ride Red Line toward Gangshan Station; get off at Sanduo Shopping District (R8).",
+      "Follow signs to the MRT (R4 · Red Line). Buy a token or tap EasyCard / iPASS.",
+      "Ride Red Line toward Gangshan Station; get off at Sanduo Shopping District (R8 · Red Line).",
       "Exit toward a taxi stand or Uber pick-up and go to Hub Hotel Yisin Branch.",
     ],
     tips: [
       "Keep passports and boarding passes together until you are in the hotel lobby.",
-      "R4 → R8 is one line — no transfer. Watch the station map once so you know Sanduo.",
+      "R4 · Red Line → R8 · Red Line is one line — no transfer. Watch the station map once so you know Sanduo.",
     ],
   }),
 
@@ -40,13 +40,13 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     title: "Leave for KHH · evening flight",
     image: img("khh-airport.webp"),
     summary:
-      "Reverse of arrival: Red Line from R8 Sanduo back to R4 Airport, then check-in and security for your Manila flight. Buffer time matters more than a last snack run.",
-    service: "Kaohsiung MRT Red Line (R8 → R4)",
+      "Reverse of arrival: Red Line from Sanduo Shopping District (R8 · Red Line) back to Airport (R4 · Red Line), then check-in and security for your Manila flight. Buffer time matters more than a last snack run.",
+    service: "Kaohsiung MRT Red Line (R8 · Red Line → R4 · Red Line)",
     ticket: "Token or EasyCard / iPASS.",
-    whereToBuy: ["R8 Sanduo MRT ticket machines", "Hotel desk can confirm Uber timing if you skip MRT"],
+    whereToBuy: ["Sanduo Shopping District (R8 · Red Line) MRT ticket machines", "Hotel desk can confirm Uber timing if you skip MRT"],
     steps: [
       "Check out of Hub with bags packed and passports ready.",
-      "MRT R8 → R4, or Uber straight to KHH if you are tired or running late.",
+      "MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line), or Uber straight to KHH if you are tired or running late.",
       "Allow time for check-in, security, and immigration before the evening departure.",
       "Buy water or a small snack after security if needed — keep liquids rules in mind before the gate.",
     ],
@@ -121,19 +121,19 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
   }),
 
   "kh-hamasen-railway-museum": guide({
-    title: "MRT to Hamasen (O1)",
+    title: "MRT to Hamasen (O1 · Orange Line)",
     image: img("sizihwan.webp"),
     summary:
-      "Orange Line ride out to Hamasen (O1, old name Sizihwan) — the gateway for the British Consulate and the Gushan–Cijin ferry. Short transit step with a big bay payoff.",
-    service: "Kaohsiung MRT Orange Line to Hamasen (O1)",
+      "Orange Line ride out to Hamasen (O1 · Orange Line, old name Sizihwan) — the gateway for the British Consulate and the Gushan–Cijin ferry. Short transit step with a big bay payoff.",
+    service: "Kaohsiung MRT Orange Line to Hamasen (O1 · Orange Line)",
     ticket: "EasyCard / iPASS or single token.",
     whereToBuy: ["Any MRT station ticket machine"],
     steps: [
-      "From Hub / Sanduo area, connect at Formosa Boulevard (R10) to the Orange Line toward Hamasen (O1).",
-      "Ride to Hamasen (O1), the last stop, and exit toward the bay / ferry signs.",
+      "From Hub / Sanduo Shopping District (R8 · Red Line) area, connect at Formosa Boulevard (R10 · Red Line) to the Orange Line toward Hamasen (O1 · Orange Line).",
+      "Ride to Hamasen (O1 · Orange Line), the last stop, and exit toward the bay / ferry signs.",
       "Walk or short-hop toward the British Consulate, then Gushan Ferry Pier.",
     ],
-    tips: ["O1 is the end of the Orange Line — hard to overshoot.", "Keep water; the walk after the station is sunny."],
+    tips: ["Hamasen (O1 · Orange Line) is the end of the Orange Line — hard to overshoot.", "Keep water; the walk after the station is sunny."],
   }),
 
   "kh-ferry-to-cijin": guide({
@@ -241,15 +241,15 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
   }),
 
   "kh-mrt-to-zuoying": guide({
-    title: "MRT to Zuoying HSR",
+    title: "MRT to Zuoying HSR (HSR)",
     summary:
-      "Red Line from the Hub area up to R16 Zuoying / HSR. Pure transit so you can catch the Chiayi high-speed train for Meteor Garden day.",
-    service: "Kaohsiung MRT Red Line → R16 Zuoying",
+      "Red Line from the Hub area up to Zuoying (R16 · Red Line) / HSR. Pure transit so you can catch the Chiayi high-speed train for Meteor Garden day.",
+    service: "Kaohsiung MRT Red Line → Zuoying (R16 · Red Line)",
     ticket: "EasyCard / iPASS or token.",
-    whereToBuy: ["R8 Sanduo or nearest Red Line station"],
+    whereToBuy: ["Sanduo Shopping District (R8 · Red Line) or nearest Red Line station"],
     steps: [
       "Board Red Line toward Gangshan Station.",
-      "Get off at R16 Zuoying and follow signs to the HSR (THSR) hall.",
+      "Get off at Zuoying (R16 · Red Line) and follow signs to the HSR (THSR) hall.",
       "Have HSR tickets ready before the gate.",
     ],
     tips: ["Zuoying combines TRA / HSR / MRT — follow the green HSR deer signs.", "Full HSR fare today — no B1G1 assumption."],
@@ -261,9 +261,9 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Taiwan High Speed Rail north to Chiayi. You get a fast, reserved-seat ride out of Kaohsiung so the Meteor Garden campus morning still fits.",
     service: "THSR Zuoying → Chiayi (full fare)",
     ticket: "Reserved HSR ticket (buy ahead on the app / kiosk / counter).",
-    whereToBuy: ["THSR app / website", "Zuoying HSR ticket machines or counters"],
+    whereToBuy: ["THSR app / website", "Zuoying HSR (HSR) ticket machines or counters"],
     steps: [
-      "At Zuoying HSR, check your car and seat on the ticket.",
+      "At Zuoying HSR (HSR), check your car and seat on the ticket.",
       "Pass the gate, wait on the correct platform, board your car.",
       "Ride to Chiayi HSR; keep bags in the overhead or at your feet.",
       "Exit toward the taxi rank for the CCU ride.",
@@ -277,11 +277,11 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Return high-speed ride after turkey rice. Same full-fare rules — then MRT back to Hub for rest and a light dinner nearby.",
     service: "THSR Chiayi → Zuoying (full fare)",
     ticket: "Reserved HSR ticket.",
-    whereToBuy: ["Chiayi HSR machines / counters", "THSR app"],
+    whereToBuy: ["Chiayi HSR (HSR) machines / counters", "THSR app"],
     steps: [
       "From Minxiong / CCU taxi, arrive Chiayi HSR with buffer.",
       "Board your reserved train south to Zuoying.",
-      "Transfer to MRT Red Line toward Sanduo / Hub.",
+      "Transfer to MRT Red Line toward Sanduo Shopping District (R8 · Red Line) / Hub.",
     ],
     tips: ["Do not cut the return train close after lunch.", "Hotel rest is part of the Day-3 lock — protect energy for birthday tomorrow."],
   }),
@@ -460,7 +460,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     steps: [
       "Pick a nearby restaurant or noodle shop (不要海鮮).",
       "Eat, pay, then Uber back to Hub for bags.",
-      "Continue MRT R8 → R4 for KHH.",
+      "Continue MRT Sanduo Shopping District (R8 · Red Line) → Airport (R4 · Red Line) for KHH.",
     ],
     tips: ["Do not discover a far new district — stay near the pond.", "Leave buffer for check-out and airport security."],
   }),

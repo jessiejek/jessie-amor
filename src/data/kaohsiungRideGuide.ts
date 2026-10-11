@@ -4,29 +4,29 @@
 // (./taiwanTransit.ts + ./taiwanBusRoutes.ts), so the trip page and
 // /khaoshiong/map-plus always show the exact same English names.
 
-import { BUS_LINES, HSR_LINE, KAOHSIUNG_ORANGE_LINE, KAOHSIUNG_RED_LINE, type TransitLine } from "./taiwanTransit";
+import { BUS_LINES, HSR_LINE, KAOHSIUNG_ORANGE_LINE, KAOHSIUNG_RED_LINE, stationLabelByCode, type TransitLine } from "./taiwanTransit";
 
-const station = (line: TransitLine, code: string): string => {
+const stationName = (line: TransitLine, code: string): string => {
   const st = line.stations.find((s) => s.code === code);
   if (!st) throw new Error(`Unknown station ${code} on ${line.id}`);
   return st.name;
 };
 
-/** "Sanduo Shopping District (R8)" — same name + code as the Map+ popup. */
-export const stationLabel = (line: TransitLine, code: string): string => `${station(line, code)} (${code})`;
+/** "Sanduo Shopping District (R8 · Red Line)" — same name as Map+ popup. */
+export const stationLabel = (line: TransitLine, code: string): string => stationLabelByCode(line, code);
 
 const R = (code: string) => stationLabel(KAOHSIUNG_RED_LINE, code);
 const O = (code: string) => stationLabel(KAOHSIUNG_ORANGE_LINE, code);
-const HSR = (code: string) => station(HSR_LINE, code);
+const HSR = (code: string) => stationLabel(HSR_LINE, code);
 
 export const RED_LINE_NAME = KAOHSIUNG_RED_LINE.name; // "Kaohsiung Metro Red Line"
 export const ORANGE_LINE_NAME = KAOHSIUNG_ORANGE_LINE.name; // "Kaohsiung Metro Orange Line"
 export const HSR_NAME = HSR_LINE.name; // "Taiwan High Speed Rail (THSR)"
 
 /** Direction text exactly as it appears on platform signs (= last station). */
-export const RED_NORTHBOUND = `toward ${station(KAOHSIUNG_RED_LINE, "RK1")}`; // toward Gangshan Station
-export const RED_SOUTHBOUND = `toward ${station(KAOHSIUNG_RED_LINE, "R3")}`; // toward Siaogang
-export const ORANGE_WESTBOUND = `toward ${station(KAOHSIUNG_ORANGE_LINE, "O1")}`; // toward Hamasen
+export const RED_NORTHBOUND = `toward ${stationName(KAOHSIUNG_RED_LINE, "RK1")}`; // toward Gangshan Station
+export const RED_SOUTHBOUND = `toward ${stationName(KAOHSIUNG_RED_LINE, "R3")}`; // toward Siaogang
+export const ORANGE_WESTBOUND = `toward ${stationName(KAOHSIUNG_ORANGE_LINE, "O1")}`; // toward Hamasen
 
 export type RideHotelStation = { label: string; line: string; color: string; note: string };
 
@@ -41,7 +41,7 @@ export const HOTEL_STATIONS: RideHotelStation[] = [
     label: R("R7"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "One stop south of Sanduo. Backup station near Labor Park — use whichever is closer to where you are.",
+    note: "One stop south of Sanduo Shopping District (R8 · Red Line). Backup station near Labor Park — use whichever is closer to where you are.",
   },
 ];
 
