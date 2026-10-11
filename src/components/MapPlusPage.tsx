@@ -44,7 +44,6 @@ const routePopup = (line: TransitLine) => {
   return `<div class="mp-popup">
     <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.city)}</div>
     <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${escapeHtml(line.name)}</div>
-    <div class="mp-popup-zh">${escapeHtml(line.zh)}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ Not running right now (suspended).</div>` : ""}
     ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(first.name)}</b> → <b>${escapeHtml(last.name)}</b> (${line.stations.length} stops)</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-stops"><b>Key stops:</b><ol>${keyStops(line).map((st) => `<li>${escapeHtml(st.name)}</li>`).join("")}</ol></div>` : ""}
@@ -63,7 +62,6 @@ const stationPopup = (line: TransitLine, idx: number) => {
   return `<div class="mp-popup">
     <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.name)}</div>
     <div class="mp-popup-name">${st.code ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(st.name)}</div>
-    ${st.zh ? `<div class="mp-popup-zh">${escapeHtml(st.zh)}</div>` : ""}
     <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(first.name)}</b>: next ${escapeHtml(prev.name)}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(last.name)}</b>: next ${escapeHtml(next.name)}` : ""}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ This route is suspended — use another bus.</div>` : ""}
     ${line.approximate ? `<div class="mp-popup-note">Approximate line — confirm the route number at the stop.</div>` : ""}
@@ -93,6 +91,18 @@ export default function MapPlusPage({ isActive = true }: Props) {
       return next;
     });
   const [locate, setLocate] = useState<LocateState>({ status: "idle" });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = OVERLAYS.filter((o) => enabled[o.key]).length;
+
+  // Close the filter modal with Escape.
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtersOpen]);
 
   const legendGroups = useMemo(() => OVERLAYS.map((o) => ({ overlay: o, lines: o.lines })), []);
 
@@ -219,7 +229,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
       L.popup({ closeButton: true, autoClose: false, closeOnClick: false })
         .setLatLng([best.station.lat, best.station.lng])
         .setContent(
-          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(best.station.name)}</div>${best.station.zh ? `<div class="mp-popup-zh">${escapeHtml(best.station.zh)}</div>` : ""}<div class="mp-popup-dir">${escapeHtml(best.line.name)}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
+          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(best.station.name)}</div><div class="mp-popup-dir">${escapeHtml(best.line.name)}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
         )
         .addTo(layer);
       const bounds = L.latLngBounds([[lat, lng], [best.station.lat, best.station.lng]]);
@@ -269,19 +279,6 @@ export default function MapPlusPage({ isActive = true }: Props) {
         </button>
       </div>
 
-      <div className="mp-toggles" role="group" aria-label="Map overlays">
-        {OVERLAYS.map((o) => (
-          <label key={o.key} className={`mp-toggle ${enabled[o.key] ? "is-on" : ""}`}>
-            <input
-              type="checkbox"
-              checked={enabled[o.key]}
-              onChange={(e) => setEnabled((prev) => ({ ...prev, [o.key]: e.target.checked }))}
-            />
-            {o.label}
-          </label>
-        ))}
-      </div>
-
       {locate.status === "error" && <div className="mp-alert mp-alert-error">{locate.message}</div>}
       {locate.status === "found" && (
         <div className="mp-alert">
@@ -294,8 +291,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                 {locate.nearest.map((n) => (
                   <li key={`${n.line.id}-${n.station.code ?? n.station.name}`}>
                     <span className="mp-dot" style={{ background: n.line.color }} />
-                    <b>{n.station.name}</b>
-                    {n.station.zh ? <span className="mp-legend-zh"> {n.station.zh}</span> : null} — {n.line.kind === "bus" ? `Bus · ${n.line.name}` : kindLabel(n.line)} · {n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
+                    <b>{n.station.name}</b> — {n.line.kind === "bus" ? `Bus · ${n.line.name}` : kindLabel(n.line)} · {n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
                   </li>
                 ))}
               </ol>
@@ -305,44 +301,112 @@ export default function MapPlusPage({ isActive = true }: Props) {
         </div>
       )}
 
-      <div ref={containerRef} className="mp-map" />
-
-      <div className="mp-legend">
-        {legendGroups.map(({ overlay, lines }) => (
-          <div key={overlay.key} className={`mp-legend-group ${enabled[overlay.key] ? "" : "is-off"}`}>
-            <div className="mp-legend-heading">{overlay.label}</div>
-            {lines.map((line) => {
-              const visible = !hiddenLines.has(line.id);
-              const isBus = line.kind === "bus";
-              return (
-                <label key={line.id} className={`mp-legend-row ${visible ? "" : "is-off"} ${isBus ? "is-toggle" : ""}`}>
-                  {isBus ? <input type="checkbox" checked={visible} onChange={() => toggleLine(line.id)} aria-label={`Show bus ${line.ref ?? line.name}`} /> : null}
-                  <span
-                    className={`mp-swatch ${line.approximate ? "is-dashed" : ""}`}
-                    style={{ borderColor: line.color, background: line.approximate ? "transparent" : line.color }}
-                  />
-                  <span>
-                    {isBus && line.ref ? (
-                      <span className="mp-ref" style={{ background: line.suspended ? "#9E9E9E" : line.color }}>
-                        {line.ref}
-                      </span>
-                    ) : null}{" "}
-                    <b>{line.name}</b> <span className="mp-legend-zh">{line.zh}</span>
-                    {line.note ? <span className="mp-legend-note"> — {line.note}</span> : null}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        ))}
-        <div className="mp-legend-row">
-          <span className="mp-swatch mp-swatch-user" />
-          <span>
-            You (after Locate me). Bus routes come from OpenStreetMap — always confirm the route number and destination on the front of the bus.
-            No direct Kaohsiung ↔ Chiayi bus right now: use HSR (Zuoying → Chiayi) or TRA trains.
-          </span>
-        </div>
+      <div className="mp-map-wrap">
+        <div ref={containerRef} className="mp-map" />
+        <button
+          type="button"
+          className="mp-fab"
+          onClick={() => setFiltersOpen(true)}
+          aria-label="Open map filters"
+          aria-haspopup="dialog"
+          aria-expanded={filtersOpen}
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5z" fill="currentColor" />
+          </svg>
+          <span className="mp-fab-badge">{activeFilterCount}</span>
+        </button>
       </div>
+
+      <div className="mp-key" aria-label="Line colors">
+        {legendGroups.map(({ overlay, lines }) =>
+          lines
+            .filter((line) => enabled[overlay.key] && !hiddenLines.has(line.id))
+            .map((line) => (
+              <span key={line.id} className="mp-key-item">
+                <span
+                  className={`mp-swatch ${line.approximate ? "is-dashed" : ""}`}
+                  style={{ borderColor: line.color, background: line.approximate ? "transparent" : line.color }}
+                />
+                {line.kind === "bus" && line.ref ? `Bus ${line.ref}` : line.name}
+              </span>
+            )),
+        )}
+        <span className="mp-key-item">
+          <span className="mp-swatch mp-swatch-user" /> You
+        </span>
+      </div>
+      <p className="mp-hint">
+        Bus routes come from OpenStreetMap — always confirm the route number and destination on the front of the bus. No direct Kaohsiung ↔
+        Chiayi bus right now: use HSR (Zuoying → Chiayi) or TRA trains.
+      </p>
+
+      {filtersOpen && (
+        <div className="mp-modal-backdrop" onClick={() => setFiltersOpen(false)}>
+          <div
+            className="mp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mp-filters-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mp-modal-head">
+              <h2 id="mp-filters-title" className="mp-modal-title">Filters</h2>
+              <button type="button" className="mp-modal-close" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
+                ✕
+              </button>
+            </div>
+            <div className="mp-modal-body">
+              {legendGroups.map(({ overlay, lines }) => (
+                <div key={overlay.key} className={`mp-legend-group ${enabled[overlay.key] ? "" : "is-off"}`}>
+                  <label className={`mp-toggle ${enabled[overlay.key] ? "is-on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={enabled[overlay.key]}
+                      onChange={(e) => setEnabled((prev) => ({ ...prev, [overlay.key]: e.target.checked }))}
+                    />
+                    <b>{overlay.label}</b>
+                  </label>
+                  {lines.map((line) => {
+                    const visible = !hiddenLines.has(line.id);
+                    const isBus = line.kind === "bus";
+                    return (
+                      <label key={line.id} className={`mp-legend-row ${visible ? "" : "is-off"} ${isBus ? "is-toggle" : ""}`}>
+                        {isBus ? (
+                          <input
+                            type="checkbox"
+                            checked={visible}
+                            onChange={() => toggleLine(line.id)}
+                            aria-label={`Show bus ${line.ref ?? line.name}`}
+                          />
+                        ) : null}
+                        <span
+                          className={`mp-swatch ${line.approximate ? "is-dashed" : ""}`}
+                          style={{ borderColor: line.color, background: line.approximate ? "transparent" : line.color }}
+                        />
+                        <span>
+                          {isBus && line.ref ? (
+                            <span className="mp-ref" style={{ background: line.suspended ? "#9E9E9E" : line.color }}>
+                              {line.ref}
+                            </span>
+                          ) : null}{" "}
+                          <b>{line.name}</b>
+                          {line.note ? <span className="mp-legend-note"> — {line.note}</span> : null}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="mp-modal-foot">
+              <button type="button" className="mp-modal-done" onClick={() => setFiltersOpen(false)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
