@@ -1,5 +1,6 @@
 import React from "react";
 import type { Segment } from "../data/code1Itinerary";
+import { boldTransit } from "../utils/boldTransit";
 
 interface RichTextProps {
   segments: Segment[];
@@ -10,17 +11,17 @@ export default function RichText({ segments }: RichTextProps) {
     <>
       {segments.map((segment, index) => {
         if (segment.kind === "text") {
-          return <span key={`${segment.kind}-${index}`}>{segment.value}</span>;
+          return <span key={`${segment.kind}-${index}`}>{boldTransit(segment.value)}</span>;
         }
 
         if (segment.kind === "strong") {
-          return <strong key={`${segment.kind}-${index}`}>{segment.value}</strong>;
+          return <strong key={`${segment.kind}-${index}`}>{boldTransit(segment.value)}</strong>;
         }
 
         if (segment.kind === "strike") {
           return (
             <s key={`${segment.kind}-${index}`} className="ja-rt-strike">
-              {segment.value}
+              {boldTransit(segment.value)}
             </s>
           );
         }

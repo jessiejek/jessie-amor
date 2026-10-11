@@ -17,6 +17,7 @@ import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } 
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import { activeTrip } from "../lib/activeTrip";
 import RichText from "./RichText";
+import { boldTransit } from "../utils/boldTransit";
 
 interface DailyItineraryViewProps {
   days: DaySectionData[];
@@ -155,7 +156,7 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                       </div>
                       <div className="ja-itinerary-item-content">
                         <h4 className="ja-itinerary-item-title">
-                          <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{item.title}</a>
+                          <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{boldTransit(item.title)}</a>
                         </h4>
                         {item.bullets?.length ? (
                           <ul className="ja-itinerary-item-bullets">
@@ -171,14 +172,14 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                         {item.warnings?.length ? (
                           <div className="ja-item-warnings">
                             {item.warnings.map((warning, wi) => (
-                              <div key={wi} className="ja-item-warning-badge">{warning}</div>
+                              <div key={wi} className="ja-item-warning-badge">{boldTransit(warning)}</div>
                             ))}
                           </div>
                         ) : null}
                         {item.infoNotes?.length ? (
                           <div className="ja-item-info-notes">
                             {item.infoNotes.map((note, ni) => (
-                              <span key={ni} className="ja-item-info-note">{note}</span>
+                              <span key={ni} className="ja-item-info-note">{boldTransit(note)}</span>
                             ))}
                           </div>
                         ) : null}

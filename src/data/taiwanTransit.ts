@@ -64,6 +64,7 @@ export const lineColorLabel = (line: TransitLine): string => {
  * Taipei: "Tamsui (R28 · Red Line)"
  * HSR:   "Zuoying HSR (HSR)"
  * Bus:   plain English name (no code/line suffix)
+ * Render with boldTransit() / boldTransitHtml() so codes & lines stand out.
  */
 export const stationDisplayLabel = (line: TransitLine, station: TransitStation): string => {
   const name = station.name;

@@ -7694,3 +7694,23 @@ ion-col.ja-page-col > .ja-app-settings-wrap {
   color: #57534e;
   font-size: 13px;
 }
+
+
+/* transit name glance bold */
+.ja-transit-name,
+.kr-list p strong,
+.kr-list p b.ja-transit-name,
+.ja-itinerary-item-title .ja-transit-name,
+.ja-itinerary-item-bullet .ja-transit-name,
+.ja-item-warning-badge .ja-transit-name,
+.ja-item-info-notes .ja-transit-name,
+.ja-dest-info-value .ja-transit-name,
+.ja-dest-step-text .ja-transit-name,
+.ja-dest-guide-row .ja-transit-name,
+.mp-popup .ja-transit-name,
+.mp-key-item .ja-transit-name,
+.mp-nearest .ja-transit-name,
+.leaflet-tooltip .ja-transit-name {
+  font-weight: 800;
+  color: inherit;
+}

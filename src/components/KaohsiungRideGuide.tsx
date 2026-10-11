@@ -8,6 +8,7 @@ import {
   RED_SOUTHBOUND,
   type RideBus,
 } from "../data/kaohsiungRideGuide";
+import { boldTransit } from "../utils/boldTransit";
 import "./KaohsiungRideGuide.css";
 
 type Props = { onOpenMapPlus: () => void };
@@ -16,8 +17,8 @@ const BusRow = ({ b }: { b: RideBus }) => (
   <li className="kr-bus">
     <span className="kr-ref" style={{ background: b.color }}>{b.ref}</span>
     <div>
-      <b>{b.name}</b>
-      {b.note ? <p>{b.note}</p> : null}
+      <b className="ja-transit-name">{b.name}</b>
+      {b.note ? <p>{boldTransit(b.note)}</p> : null}
     </div>
   </li>
 );
@@ -28,7 +29,7 @@ const KaohsiungRideGuide = ({ onOpenMapPlus }: Props) => (
       <div>
         <h3 className="ja-app-section-title">How to Ride · MRT &amp; Bus</h3>
         <p className="ja-app-section-desc">
-          Same English names as Map+. Red Line platform signs say <b>{RED_NORTHBOUND}</b> (north) or <b>{RED_SOUTHBOUND}</b> (south).
+          Same English names as Map+. {boldTransit("Red Line")} platform signs say <b className="ja-transit-name">{RED_NORTHBOUND}</b> (north) or <b className="ja-transit-name">{RED_SOUTHBOUND}</b> (south).
         </p>
       </div>
     </div>
@@ -41,8 +42,8 @@ const KaohsiungRideGuide = ({ onOpenMapPlus }: Props) => (
             <li key={s.label}>
               <span className="kr-dot" style={{ background: s.color }} />
               <div>
-                <b>{s.label}</b> <span className="kr-muted">· {s.line}</span>
-                <p>{s.note}</p>
+                <b className="ja-transit-name">{s.label}</b> <span className="kr-muted">· {boldTransit(s.line)}</span>
+                <p>{boldTransit(s.note)}</p>
               </div>
             </li>
           ))}
@@ -57,7 +58,7 @@ const KaohsiungRideGuide = ({ onOpenMapPlus }: Props) => (
               <span className="kr-dot" style={{ background: r.color }} />
               <div>
                 <b>{r.day}</b> <span className="kr-muted">· {r.title}</span>
-                {r.steps.map((s) => <p key={s}>{s}</p>)}
+                {r.steps.map((s) => <p key={s}>{boldTransit(s)}</p>)}
               </div>
             </li>
           ))}

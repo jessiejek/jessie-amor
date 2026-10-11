@@ -18,6 +18,7 @@ import {
   type TransitLine,
   type TransitStation,
 } from "../data/taiwanTransit";
+import { boldTransit, boldTransitHtml } from "../utils/boldTransit";
 
 type Props = { isActive?: boolean };
 type LocateState =
@@ -91,12 +92,12 @@ const routePopup = (line: TransitLine) => {
   const first = line.stations[0];
   const last = line.stations[line.stations.length - 1];
   return `<div class="mp-popup">
-    <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(line.city)}</div>
-    <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${escapeHtml(en(line.name))}</div>
+    <div class="mp-popup-line" style="color:${line.color}"><b class="ja-transit-name">${escapeHtml(kindLabel(line))}</b> · ${escapeHtml(line.city)}</div>
+    <div class="mp-popup-name">${line.ref ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(line.ref)}</span> ` : ""}${boldTransitHtml(en(line.name))}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ Not running right now (suspended).</div>` : ""}
-    ${first && last ? `<div class="mp-popup-dir"><b>${escapeHtml(stLabel(line, first))}</b> → <b>${escapeHtml(stLabel(line, last))}</b> (${line.stations.length} stops)</div>` : ""}
+    ${first && last ? `<div class="mp-popup-dir"><b class="ja-transit-name">${escapeHtml(stLabel(line, first))}</b> → <b class="ja-transit-name">${escapeHtml(stLabel(line, last))}</b> (${line.stations.length} stops)</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-stops"><b>Key stops:</b><ol>${keyStops(line).map((st) => `<li>${escapeHtml(en(st.name))}</li>`).join("")}</ol></div>` : ""}
-    ${line.note ? `<div class="mp-popup-note">${escapeHtml(line.note)}</div>` : ""}
+    ${line.note ? `<div class="mp-popup-note">${boldTransitHtml(line.note)}</div>` : ""}
     ${line.kind === "bus" ? `<div class="mp-popup-note">Shown direction is outbound; the return bus runs roughly the reverse. Check the number and destination sign on the bus.</div>` : ""}
     ${line.source ? `<div class="mp-popup-src"><a href="${escapeHtml(line.source)}" target="_blank" rel="noopener noreferrer">Source</a></div>` : ""}
   </div>`;
@@ -109,9 +110,9 @@ const stationPopup = (line: TransitLine, idx: number) => {
   const prev = line.stations[idx - 1];
   const next = line.stations[idx + 1];
   return `<div class="mp-popup">
-    <div class="mp-popup-line" style="color:${line.color}">${escapeHtml(kindLabel(line))} · ${escapeHtml(en(line.name))}</div>
-    <div class="mp-popup-name">${st.code && line.kind !== "hsr" ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${escapeHtml(stLabel(line, st))}</div>
-    <div class="mp-popup-dir">${prev ? `← toward <b>${escapeHtml(stLabel(line, first))}</b>: next ${escapeHtml(stLabel(line, prev))}<br/>` : ""}${next ? `→ toward <b>${escapeHtml(stLabel(line, last))}</b>: next ${escapeHtml(stLabel(line, next))}` : ""}</div>
+    <div class="mp-popup-line" style="color:${line.color}"><b class="ja-transit-name">${escapeHtml(kindLabel(line))}</b> · ${boldTransitHtml(en(line.name))}</div>
+    <div class="mp-popup-name">${st.code && line.kind !== "hsr" ? `<span class="mp-code" style="background:${line.color}">${escapeHtml(st.code)}</span> ` : ""}${boldTransitHtml(stLabel(line, st))}</div>
+    <div class="mp-popup-dir">${prev ? `← toward <b class="ja-transit-name">${escapeHtml(stLabel(line, first))}</b>: next <b class="ja-transit-name">${escapeHtml(stLabel(line, prev))}</b><br/>` : ""}${next ? `→ toward <b class="ja-transit-name">${escapeHtml(stLabel(line, last))}</b>: next <b class="ja-transit-name">${escapeHtml(stLabel(line, next))}</b>` : ""}</div>
     ${line.suspended ? `<div class="mp-popup-warn">⚠️ This route is suspended — use another bus.</div>` : ""}
     ${line.approximate ? `<div class="mp-popup-note">Approximate line — confirm the route number at the stop.</div>` : ""}
   </div>`;
@@ -188,7 +189,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
           opacity: line.suspended ? 0.5 : line.kind === "bus" ? 0.75 : 0.85,
           dashArray: line.approximate ? "8 8" : undefined,
         })
-          .bindTooltip(`${line.ref && line.kind === "bus" ? `Bus ${line.ref} · ` : ""}${en(line.name)}${line.approximate ? " (approx.)" : ""}`, { sticky: true })
+          .bindTooltip(`${line.ref && line.kind === "bus" ? `<b class="ja-transit-name">Bus ${escapeHtml(line.ref)}</b> · ` : ""}<b class="ja-transit-name">${escapeHtml(en(line.name))}</b>${line.approximate ? " (approx.)" : ""}`, { sticky: true, direction: "top" })
           .bindPopup(routePopup(line), { maxWidth: 300 })
           .addTo(lineGroup);
         line.stations.forEach((st, idx) => {
@@ -200,7 +201,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
             fillOpacity: 1,
           })
             .bindPopup(stationPopup(line, idx), { maxWidth: 260 })
-            .bindTooltip(`${line.kind === "bus" && line.ref ? `[${line.ref}] ` : ""}${st.code ? st.code + " " : ""}${en(st.name)}`, { direction: "top", offset: [0, -6] })
+            .bindTooltip(`${line.kind === "bus" && line.ref ? `<b class="ja-transit-name">Bus ${escapeHtml(line.ref)}</b> · ` : st.code ? `<b class="ja-transit-name">${escapeHtml(st.code)}</b> ` : ""}${boldTransitHtml(stLabel(line, st))}`, { direction: "top", offset: [0, -6] })
             .addTo(lineGroup);
         });
         lineLayersRef.current[line.id] = lineGroup;
@@ -292,7 +293,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
       L.popup({ closeButton: true, autoClose: false, closeOnClick: false })
         .setLatLng([best.station.lat, best.station.lng])
         .setContent(
-          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · ${escapeHtml(kindLabel(best.line))}</div><div class="mp-popup-name">${escapeHtml(stLabel(best.line, best.station))}</div><div class="mp-popup-dir">${escapeHtml(en(best.line.name))}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
+          `<div class="mp-popup"><div class="mp-popup-line" style="color:${best.line.color}">Nearest · <b class="ja-transit-name">${escapeHtml(kindLabel(best.line))}</b></div><div class="mp-popup-name">${boldTransitHtml(stLabel(best.line, best.station))}</div><div class="mp-popup-dir">${boldTransitHtml(en(best.line.name))}<br/>${fmtMeters(best.meters)} · ${fmtWalk(best.meters)}</div></div>`,
         )
         .addTo(layer);
       const bounds = L.latLngBounds([[lat, lng], [best.station.lat, best.station.lng]]);
@@ -351,7 +352,10 @@ export default function MapPlusPage({ isActive = true }: Props) {
                 {locate.nearest.map((n) => (
                   <li key={`${n.line.id}-${n.station.code ?? n.station.name}`}>
                     <span className="mp-dot" style={{ background: n.line.color }} />
-                    <b>{en(n.station.name)}</b> — {n.line.kind === "bus" ? `Bus · ${en(n.line.name)}` : kindLabel(n.line)} · {n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
+                    <b className="ja-transit-name">{stLabel(n.line, n.station)}</b>
+                    {" — "}
+                    <b className="ja-transit-name">{n.line.kind === "bus" ? (n.line.ref ? `Bus ${n.line.ref}` : `Bus · ${en(n.line.name)}`) : kindLabel(n.line)}</b>
+                    {" · "}{n.line.city} · {fmtMeters(n.meters)} ({fmtWalk(n.meters)})
                   </li>
                 ))}
               </ol>
@@ -388,7 +392,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                   className={`mp-swatch ${line.approximate ? "is-dashed" : ""}`}
                   style={{ borderColor: line.color, background: line.approximate ? "transparent" : line.color }}
                 />
-                {line.kind === "bus" && line.ref ? `Bus ${line.ref}` : en(line.name)}
+                <b className="ja-transit-name">{line.kind === "bus" && line.ref ? `Bus ${line.ref}` : en(line.name)}</b>
               </span>
             )),
         )}
@@ -397,8 +401,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
         </span>
       </div>
       <p className="mp-hint">
-        Bus routes come from OpenStreetMap — always confirm the route number and destination on the front of the bus. No direct Kaohsiung ↔
-        Chiayi bus right now: use HSR (Zuoying → Chiayi) or TRA trains.
+        {boldTransit("Bus routes come from OpenStreetMap — always confirm the route number and destination on the front of the bus. No direct Kaohsiung ↔ Chiayi bus right now: use HSR (Zuoying HSR (HSR) → Chiayi HSR (HSR)) or TRA trains.")}
       </p>
 
       {filtersOpen && (
@@ -431,7 +434,7 @@ export default function MapPlusPage({ isActive = true }: Props) {
                 )}
                 {locate.status === "found" && locate.nearest[0] && (
                   <p className="mp-modal-locate-hint">
-                    Nearest: <b>{en(locate.nearest[0].station.name)}</b> ({fmtMeters(locate.nearest[0].meters)})
+                    Nearest: <b className="ja-transit-name">{stLabel(locate.nearest[0].line, locate.nearest[0].station)}</b> ({fmtMeters(locate.nearest[0].meters)})
                   </p>
                 )}
               </div>
