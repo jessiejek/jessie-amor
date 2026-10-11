@@ -8,7 +8,7 @@
 //   locations (approximate to ~100 m).
 // - Buses: real numbered routes from OpenStreetMap route relations (see
 //   ./taiwanBusRoutes.ts, generated). Kaohsiung city buses around Hub Hotel
-//   Yisin / Sanduo / Shijia, and Chiayi county buses to NCCU (7309, 7306),
+//   Yisin / Sanduo / Shihjia, and Chiayi county buses to CCU (7309, 7306),
 //   Chiayi BRT 7212 and Yellow 9. Always confirm the route number on the bus.
 // OSM data © OpenStreetMap contributors (ODbL).
 
@@ -95,10 +95,10 @@ export const KAOHSIUNG_RED_LINE: TransitLine = {
   kind: "metro",
   city: "Kaohsiung",
   color: "#E2231A",
-  note: "Siaogang ↔ Gangshan. Transfer to Orange Line at Formosa Boulevard (R10/O5); HSR/TRA at Zuoying (R16).",
+  note: "Northbound trains say \"toward Gangshan Station\"; southbound say \"toward Siaogang\". Hotel stations: Sanduo Shopping District (R8) and Shihjia (R7). Transfer to Orange Line at Formosa Boulevard (R10/O5); Zuoying HSR at Zuoying (R16).",
   stations: [
     s("R3", "Siaogang", "小港", 22.5647, 120.3541),
-    s("R4", "Kaohsiung Int'l Airport", "高雄國際機場", 22.5701, 120.3412),
+    s("R4", "Kaohsiung International Airport", "高雄國際機場", 22.5701, 120.3412),
     s("R4A", "Caoya", "草衙", 22.58055, 120.32877),
     s("R5", "Cianjhen Senior High School", "前鎮高中", 22.58841, 120.32174),
     s("R6", "Kaisyuan", "凱旋", 22.59702, 120.31511),
@@ -111,7 +111,7 @@ export const KAOHSIUNG_RED_LINE: TransitLine = {
     s("R13", "Aozihdi", "凹子底", 22.65712, 120.30308),
     s("R14", "Kaohsiung Arena", "巨蛋", 22.66562, 120.30326),
     s("R15", "Ecological District", "生態園區", 22.67646, 120.30634),
-    s("R16", "Zuoying (HSR)", "左營", 22.68817, 120.30902),
+    s("R16", "Zuoying", "左營", 22.68817, 120.30902),
     s("R17", "World Games", "世運", 22.70175, 120.30251),
     s("R18", "Oil Refinery Elementary School", "油廠國小", 22.70875, 120.30231),
     s("R19", "Nanzih Technology Industrial Park", "楠梓科技園區", 22.71871, 120.30717),
@@ -132,7 +132,7 @@ export const KAOHSIUNG_ORANGE_LINE: TransitLine = {
   kind: "metro",
   city: "Kaohsiung",
   color: "#F39800",
-  note: "Hamasen ↔ Daliao. East end (O10–OT1) positions approximate.",
+  note: "Hamasen (O1, old name Sizihwan) ↔ Daliao. Westbound trains say \"toward Hamasen\". East end (O10–OT1) positions approximate.",
   stations: [
     s("O1", "Hamasen", "哈瑪星", 22.62137, 120.2748),
     s("O2", "Yanchengpu", "鹽埕埔", 22.62416, 120.28408),
@@ -158,20 +158,20 @@ export const HSR_LINE: TransitLine = {
   kind: "hsr",
   city: "West corridor",
   color: "#F26B21",
-  note: "Nangang ↔ Zuoying. Chiayi HSR is far from the city — take BRT bus 7212 to Chiayi TRA, then 7309 to NCCU.",
+  note: "Nangang ↔ Zuoying HSR. Our Day 3 plan: Zuoying HSR → Chiayi HSR, then taxi to CCU (National Chung Cheng University). Bus backup: BRT 7212 to Chiayi TRA, then 7309 to CCU.",
   stations: [
-    s("NAG", "Nangang", "南港", 25.0531, 121.607),
-    s("TPE", "Taipei", "台北", 25.04755, 121.51705),
-    s("BAQ", "Banqiao", "板橋", 25.0137, 121.4637),
-    s("TAY", "Taoyuan", "桃園", 25.013, 121.2149),
-    s("HSC", "Hsinchu", "新竹", 24.8081, 121.0402),
-    s("MIL", "Miaoli", "苗栗", 24.6054, 120.8254),
-    s("TAC", "Taichung", "台中", 24.1123, 120.6157),
-    s("CHH", "Changhua", "彰化", 23.8743, 120.5745),
-    s("YUL", "Yunlin", "雲林", 23.7362, 120.4165),
-    s("CHY", "Chiayi", "嘉義", 23.4595, 120.3233),
-    s("TAN", "Tainan", "台南", 22.9248, 120.2858),
-    s("ZUY", "Zuoying", "左營", 22.68724, 120.30767),
+    s("NAG", "Nangang HSR", "南港", 25.0531, 121.607),
+    s("TPE", "Taipei HSR", "台北", 25.04755, 121.51705),
+    s("BAQ", "Banqiao HSR", "板橋", 25.0137, 121.4637),
+    s("TAY", "Taoyuan HSR", "桃園", 25.013, 121.2149),
+    s("HSC", "Hsinchu HSR", "新竹", 24.8081, 121.0402),
+    s("MIL", "Miaoli HSR", "苗栗", 24.6054, 120.8254),
+    s("TAC", "Taichung HSR", "台中", 24.1123, 120.6157),
+    s("CHH", "Changhua HSR", "彰化", 23.8743, 120.5745),
+    s("YUL", "Yunlin HSR", "雲林", 23.7362, 120.4165),
+    s("CHY", "Chiayi HSR", "嘉義", 23.4595, 120.3233),
+    s("TAN", "Tainan HSR", "台南", 22.9248, 120.2858),
+    s("ZUY", "Zuoying HSR", "左營", 22.68724, 120.30767),
   ],
 };
 
@@ -189,7 +189,7 @@ export const OVERLAYS: { key: OverlayKey; label: string; lines: TransitLine[] }[
   { key: "taipeiRed", label: "Taipei Red Line", lines: [TAIPEI_RED_LINE] },
   { key: "hsr", label: "High Speed Rail", lines: [HSR_LINE] },
   { key: "busKaohsiung", label: "Kaohsiung buses (hotel area)", lines: KAOHSIUNG_BUS_LINES },
-  { key: "busChiayi", label: "Chiayi / NCCU buses", lines: CHIAYI_BUS_LINES },
+  { key: "busChiayi", label: "Chiayi / CCU buses", lines: CHIAYI_BUS_LINES },
 ];
 
 export const TAIWAN_CENTER: [number, number] = [23.7, 120.95];

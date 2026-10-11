@@ -19,7 +19,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     title: "Arrive KHH · ATM + MRT to Hub",
     image: img("khh-airport.webp"),
     summary:
-      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from R4 Airport to R8 Sanduo Shopping District, then a short taxi to Hub Hotel Yisin.",
+      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4) to Sanduo Shopping District (R8), then a short taxi to Hub Hotel Yisin.",
     service: "Kaohsiung MRT Red Line (R4 → R8)",
     ticket: "Single-journey token or EasyCard / iPASS at the airport MRT gate.",
     whereToBuy: ["MRT ticket machines at R4 Kaohsiung International Airport", "Airport ATM near arrivals for NT$ cash"],
@@ -27,7 +27,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Clear immigration and pick up bags at KHH arrivals.",
       "Find an ATM and withdraw enough NT$ for a few days (cash is handy for small food shops).",
       "Follow signs to the MRT (R4). Buy a token or tap EasyCard / iPASS.",
-      "Ride Red Line toward Gangshan South / Ciaotou; get off at R8 Sanduo Shopping District.",
+      "Ride Red Line toward Gangshan Station; get off at Sanduo Shopping District (R8).",
       "Exit toward a taxi stand or Uber pick-up and go to Hub Hotel Yisin Branch.",
     ],
     tips: [
@@ -121,16 +121,16 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
   }),
 
   "kh-hamasen-railway-museum": guide({
-    title: "MRT to Sizihwan (O1)",
+    title: "MRT to Hamasen (O1)",
     image: img("sizihwan.webp"),
     summary:
-      "Orange Line ride out to O1 Sizihwan — the gateway for the British Consulate and the Gushan–Cijin ferry. Short transit step with a big bay payoff.",
-    service: "Kaohsiung MRT Orange Line to O1 Sizihwan",
+      "Orange Line ride out to Hamasen (O1, old name Sizihwan) — the gateway for the British Consulate and the Gushan–Cijin ferry. Short transit step with a big bay payoff.",
+    service: "Kaohsiung MRT Orange Line to Hamasen (O1)",
     ticket: "EasyCard / iPASS or single token.",
     whereToBuy: ["Any MRT station ticket machine"],
     steps: [
-      "From Hub / Sanduo area, connect to Orange Line toward Sizihwan.",
-      "Ride to O1 Sizihwan and exit toward the bay / ferry signs.",
+      "From Hub / Sanduo area, connect at Formosa Boulevard (R10) to the Orange Line toward Hamasen (O1).",
+      "Ride to Hamasen (O1), the last stop, and exit toward the bay / ferry signs.",
       "Walk or short-hop toward the British Consulate, then Gushan Ferry Pier.",
     ],
     tips: ["O1 is the end of the Orange Line — hard to overshoot.", "Keep water; the walk after the station is sunny."],
@@ -248,7 +248,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     ticket: "EasyCard / iPASS or token.",
     whereToBuy: ["R8 Sanduo or nearest Red Line station"],
     steps: [
-      "Board Red Line toward Gangshan South / Ciaotou.",
+      "Board Red Line toward Gangshan Station.",
       "Get off at R16 Zuoying and follow signs to the HSR (THSR) hall.",
       "Have HSR tickets ready before the gate.",
     ],

@@ -153,13 +153,13 @@ const days: DaySectionData[] = [
           ],
           [text("Collect bags")],
           [text("Bank of Taiwan ATM in arrivals — withdraw ~NT$10,000–12,000 for the trip")],
-          [text("Follow signs to MRT Red Line at Airport Terminal (R4)")],
+          [text("Follow signs to MRT Red Line at Kaohsiung International Airport (R4)")],
           [text("Buy tickets or tap EasyCard / iPASS")],
-          [text("Red Line northbound (toward Gangshan / Ciaotou) → Sanduo Shopping District (R8), ~15 min")],
+          [text("Red Line northbound (toward Gangshan Station) → Sanduo Shopping District (R8), ~15 min")],
           [
             text("Short taxi (~3–5 min) to "),
             place("Hub Hotel Kaohsiung Yisin Branch", "hotel", "Hub Hotel Kaohsiung Yisin Branch"),
-            text(" (一心二路15號 / No. 15 Yixin 2nd Rd) — show driver the Chinese address"),
+            text(" (一心二路15號 / No. 15 Yisin 2nd Rd) — show driver the Chinese address"),
           ],
           [text("Do not walk with heavy bags; do not taxi all the way from the airport")],
           [text("MRT + short taxi ~NT$150–250 for 2")],
@@ -236,13 +236,13 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "8:30–9:00 AM",
-        title: "MRT to Sizihwan (O1)",
+        title: "MRT to Hamasen (O1)",
         category: "train",
         bullets: [
-          [text("From Hub Hotel, walk ~12 min (~850 m) along Yixin 2nd Rd to Sanduo Shopping District MRT (R8), or short taxi (~3 min, flag-fall)")],
+          [text("From Hub Hotel, walk ~12 min (~850 m) along Yisin 2nd Rd to Sanduo Shopping District MRT (R8), or short taxi (~3 min, flag-fall)")],
           [text("Buy tickets or tap EasyCard / iPASS")],
-          [text("Red Line northbound (toward Gangshan / Ciaotou) → Formosa Boulevard (R10)")],
-          [text("Transfer inside paid area to Orange Line toward Sizihwan (O1), last stop")],
+          [text("Red Line northbound (toward Gangshan Station) → Formosa Boulevard (R10)")],
+          [text("Transfer inside paid area to Orange Line toward Hamasen (O1, old name Sizihwan), last stop")],
           [
             text("Exit toward university / seaside, then walk ~10–15 min uphill to "),
             place("British Consulate at Takao", "landmark", "British Consulate at Takao"),
@@ -252,7 +252,7 @@ const days: DaySectionData[] = [
           [text("MRT option ~NT$60–100 for 2")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
-        mapQuery: "Sizihwan Station Kaohsiung",
+        mapQuery: "Hamasen Station Kaohsiung",
         guideKey: "kh-hamasen-railway-museum",
         infoNotes: [
           "Today is Consulate + Cijin only. No Pier-2. No Lotus Pond. Tunnel of Stars optional/skip.",
@@ -466,7 +466,7 @@ const days: DaySectionData[] = [
         bullets: [
           [text("From Hub Hotel, walk ~12 min to Sanduo Shopping District MRT (R8), or short taxi with bags if needed")],
           [text("Tap EasyCard / iPASS")],
-          [text("Red Line northbound (toward Gangshan / Ciaotou) → Zuoying (R16), ~20 min")],
+          [text("Red Line northbound (toward Gangshan Station) → Zuoying (R16), ~20 min")],
           [text("Follow station signs for HSR / Taiwan High Speed Rail (same complex)")],
           [text("MRT ~NT$40–80 for 2")],
         ],

@@ -86,6 +86,7 @@ import SettingsModal from "./components/SettingsModal";
 import PdfEditorPage from "./components/PdfEditorPage";
 import ItineraryPlusTab from "./components/ItineraryPlusTab";
 import MapPlusPage from "./components/MapPlusPage";
+import KaohsiungRideGuide from "./components/KaohsiungRideGuide";
 
 type SupabaseExpenseRow = {
   id: string;
@@ -2699,6 +2700,8 @@ function AppShell() {
                   onSelectedMobileDayChange={setSelectedHomeDay}
                 />
                 <AlertBox alert={itinerary.alert} />
+
+                {activeTrip?.slug === "khaoshiong" && <KaohsiungRideGuide onOpenMapPlus={() => navigateTo("/map-plus")} />}
 
                 {itinerary.tips.length > 0 && (
                   <section className="ja-app-section">

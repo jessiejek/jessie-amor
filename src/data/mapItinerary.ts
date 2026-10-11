@@ -376,7 +376,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 2 - October 18 - Consulate + Cijin",
       destinations: [
         { id: "18-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:30 AM", notes: "Hotel breakfast NT$0. Leave ~8:30." },
-        { id: "18-1", name: "Sizihwan Station", lat: 22.6266, lng: 120.2658, time: "8:30 AM", notes: "Hub->R8 walk/taxi, Red northbound to R10, Orange to O1 Sizihwan. Walk uphill ~10-15 min to Consulate. MRT ~NT$60-100 for 2. Or Uber Hub->Consulate ~NT$180-280." },
+        { id: "18-1", name: "Hamasen Station (O1)", lat: 22.62137, lng: 120.2748, time: "8:30 AM", notes: "Hub->R8 walk/taxi, Red northbound to R10, Orange toward Hamasen (O1). Walk uphill ~10-15 min to Consulate. MRT ~NT$60-100 for 2. Or Uber Hub->Consulate ~NT$180-280." },
         { id: "18-2", name: "British Consulate at Takao", lat: 22.6215, lng: 120.2657, time: "9:00 AM", notes: "NT$99 each (NT$198 for 2)." },
         { id: "18-3", name: "Gushan Ferry Pier", lat: 22.6224, lng: 120.2664, time: "10:00 AM", notes: "Ferry to Cijin ~NT$60 for 2." },
         { id: "18-4", name: "Cijin Old Street", lat: 22.6167, lng: 120.2717, time: "10:30 AM", notes: "Old Street + Tianhou Temple." },
