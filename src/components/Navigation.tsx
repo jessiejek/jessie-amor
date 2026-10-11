@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X, Table, TrainFront } from "lucide-react";
+import { ArrowLeftRight, CalendarDays, Copy, Check, Download, Info, LogOut, Map as MapIcon, BookOpen, NotebookText, Printer, Settings, Share2, User, Wallet, FileText, X, Table, TrainFront } from "lucide-react";
 import { createAnimation, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonModal, IonList, IonItem, IonLabel, IonText, IonChip, IonToast } from "@ionic/react";
 import { closeOutline, settingsOutline, shareSocialOutline, downloadOutline } from "ionicons/icons";
 import type { Session } from "@supabase/supabase-js";
@@ -266,6 +266,20 @@ export default function Navigation({ activeTab, setActiveTab, session, isOnline,
                 <IonLabel className="ja-nav-item-label">{item.label}</IonLabel>
               </IonItem>
             ); })}
+          </IonList>
+          <IonList className="ja-nav-list">
+            <IonItem
+              button
+              onClick={() => {
+                setShowMoreDrawer(false);
+                // Full navigation to site root — TripPicker lives outside the trip basename.
+                window.location.assign("/");
+              }}
+              className="ja-nav-item"
+            >
+              <span slot="start" className="ja-nav-item-icon"><ArrowLeftRight size={16} /></span>
+              <IonLabel className="ja-nav-item-label">Change trip</IonLabel>
+            </IonItem>
           </IonList>
           <div className="ja-nav-more-footer">
             {session && onOpenSettings ? (
