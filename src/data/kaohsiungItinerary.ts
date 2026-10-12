@@ -254,11 +254,11 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Evening",
-        title: "8. Dinner",
+        title: "8. Dinner — Cijin Old Street (Miaoqian Rd) street food",
         category: "food",
-        bullets: [[text(`${SHARE} · NT$400`)]],
+        bullets: [[text("旗津老街 / 廟前路 by 旗津天后宮 (Cijin Tianhou Temple), 2–3 min walk from **Cijin Ferry Pier** — street-food stalls (grilled squid, fish balls, seafood-pancake / snack stands). Eat here BEFORE the **ferry** back.")], [text("Suggestion: pick stalls on Miaoqian Rd; skip pricey live-seafood restaurants (pay by weight).")], [text(`${SHARE} · NT$400`)]],
         tags: [tag("Food", "food")],
-        mapQuery: "Gushan Kaohsiung",
+        mapQuery: "Cijin Old Street Miaoqian Road Kaohsiung",
         guideKey: "kh-gushan-dinner",
       }),
       item({
