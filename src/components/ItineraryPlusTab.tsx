@@ -4,6 +4,13 @@ import { pencilOutline, checkmarkOutline, closeOutline, addOutline, trashOutline
 import type { TripProfile, PdfItineraryDay, PdfFlightLeg, TripHotel } from "../types";
 import { buildDefaultItineraryDays, buildDefaultFlightLegs, generateItineraryPlusPdf } from "../utils/generateImmigrationPdf";
 import { isKaohsiung } from "../lib/activeTrip";
+import { kaohsiungPlan } from "../data/kaohsiungItinerary";
+
+const buildKaohsiungDays = (): PdfItineraryDay[] =>
+  kaohsiungPlan.days.map((d) => ({ day: d.day, title: d.title, items: d.items.map((it) => ({ time: it.time, title: it.title })) }));
+const defaultDays = (): PdfItineraryDay[] => (isKaohsiung ? buildKaohsiungDays() : buildDefaultItineraryDays());
+const pickDays = (saved?: PdfItineraryDay[]): PdfItineraryDay[] =>
+  saved?.length && (!isKaohsiung || saved.some((d) => d.day >= 17 && d.day <= 21)) ? saved : defaultDays();
 
 interface ItineraryPlusTabProps {
   tripProfile: TripProfile | null;
@@ -85,7 +92,7 @@ const buildSavePayload = (current: TripProfile | null, itineraryDays: PdfItinera
 });
 
 export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdit }: ItineraryPlusTabProps) {
-  const [days, setDays] = useState<PdfItineraryDay[]>(() => (tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays()));
+  const [days, setDays] = useState<PdfItineraryDay[]>(() => (pickDays(tripProfile?.itineraryDays)));
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility);
@@ -113,7 +120,7 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
 
   useEffect(() => {
     if (isEditing) return;
-    setDays(tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays());
+    setDays(pickDays(tripProfile?.itineraryDays));
   }, [tripProfile, isEditing]);
 
   const updateDayTitle = (dayIndex: number, value: string) => {
@@ -130,7 +137,7 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
 
   const handleStartEdit = () => setIsEditing(true);
   const handleCancel = () => {
-    setDays(tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays());
+    setDays(pickDays(tripProfile?.itineraryDays));
     setIsEditing(false);
   };
   const handleSave = async () => {

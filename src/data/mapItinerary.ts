@@ -87,11 +87,11 @@ const KAOHSIUNG_DAY_LABELS: Record<number, string> = {
   17: "October 17", 18: "October 18", 19: "October 19", 20: "October 20", 21: "October 21",
 };
 const KAOHSIUNG_DAY_TITLES: Record<number, string> = {
-  17: "Day 1 - October 17 - Arrival",
-  18: "Day 2 - October 18 - Consulate + Cijin",
-  19: "Day 3 - October 19 - Meteor Garden LOCKED",
-  20: "Day 4 - October 20 - Slow birthday Amor LOCKED",
-  21: "Day 5 - October 21 - Lotus + fly",
+  17: "Day 0 - October 17 - Arrival",
+  18: "Day 1 - October 18 - Consulate + Cijin",
+  19: "Day 3 · October 19 — Meteor Garden LOCKED",
+  20: "Day 4 · October 20 — Amor birthday LOCKED",
+  21: "Day 5 · October 21 — Lotus + fly",
 };
 
 // groupDestinationsByDay rebuilds the full day skeleton on every Supabase
@@ -361,7 +361,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
     {
       day: 17,
       label: "October 17",
-      title: "Day 1 - October 17 - Arrival",
+      title: "Day 0 - October 17 - Arrival",
       destinations: [
         { id: "17-1", name: "Ninoy Aquino International Airport", lat: 14.5086, lng: 121.0197, time: "5:00 PM", notes: "Flight MNL -> KHH ~5:00-7:00 PM. Prepaid (NT$0 cash)." },
         { id: "17-2", name: "Kaohsiung International Airport (R4 · Red Line)", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "ATM NT$10-12k cash. MRT Red Line Airport (R4 · Red Line) northbound toward Gangshan/Ciaotou." },
@@ -373,15 +373,15 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
     {
       day: 18,
       label: "October 18",
-      title: "Day 2 - October 18 - Consulate + Cijin",
+      title: "Day 1 - October 18 - Consulate + Cijin",
       destinations: [
         { id: "18-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:30 AM", notes: "Hotel breakfast NT$0. Leave ~8:30." },
-        { id: "18-1", name: "Hamasen (O1 · Orange Line)", lat: 22.62137, lng: 120.2748, time: "8:30 AM", notes: "Hub → Sanduo Shopping District (R8 · Red Line) walk/taxi, Red northbound to Formosa Boulevard (R10 · Red Line), Orange toward Hamasen (O1 · Orange Line). Walk uphill ~10-15 min to Consulate. MRT ~NT$60-100 for 2. Or Uber Hub->Consulate ~NT$180-280." },
+        { id: "18-1", name: "Hamasen (O1 · Orange Line)", lat: 22.62137, lng: 120.2748, time: "8:30 AM", notes: "Hub → walk ~8–10 min to Shihjia (R7 · Red Line) (not Sanduo), Red northbound to Formosa Boulevard (R10 · Red Line), Orange toward Hamasen (O1 · Orange Line). Walk uphill ~10-15 min to Consulate. MRT ~NT$60-100 for 2. Or Uber Hub->Consulate ~NT$180-280." },
         { id: "18-2", name: "British Consulate at Takao", lat: 22.6215, lng: 120.2657, time: "9:00 AM", notes: "NT$99 each (NT$198 for 2)." },
         { id: "18-3", name: "Gushan Ferry Pier", lat: 22.6224, lng: 120.2664, time: "10:00 AM", notes: "Ferry to Cijin ~NT$60 for 2." },
         { id: "18-4", name: "Cijin Old Street", lat: 22.6167, lng: 120.2717, time: "10:30 AM", notes: "Old Street + Tianhou Temple." },
         { id: "18-5", name: "Cijin Tianhou Temple", lat: 22.6165, lng: 120.2712, time: "11:00 AM", notes: "" },
-        { id: "18-6", name: "Jinlou Cafe Cijin", lat: 22.6169, lng: 120.2710, time: "12:30 PM", notes: "Aesthetic cafe, share coffee ~NT$150-280. Tunnel optional/skip." },
+        { id: "18-6", name: "老街小巷咖啡簡餐 (Old Street Alley Café)", lat: 22.6185, lng: 120.2700, time: "1:00 PM", notes: "Only café Day 1. 廟前路60巷7號, ~3-5 min from Cijin ferry pier. 1 main + 2 drinks shared ~NT$500. Open 11:30-19:30. No Jinlou." },
         { id: "18-7", name: "Rainbow Church", lat: 22.6135, lng: 120.2670, time: "3:30 PM", notes: "Quick Rainbow Church photo only (20-30 min), no beach time." },
         { id: "18-8", name: "Cihou Fort", lat: 22.6070, lng: 120.2630, time: "4:00 PM", notes: "Fort + Kaohsiung Lighthouse. Sunset ~5:32 PM." },
         { id: "18-9", name: "Cijin Ferry Pier", lat: 22.6198, lng: 120.2686, time: "6:00 PM", notes: "Ferry back ~NT$60 for 2." },
@@ -391,7 +391,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
     {
       day: 19,
       label: "October 19",
-      title: "Day 3 - October 19 - Meteor Garden LOCKED",
+      title: "Day 3 · October 19 — Meteor Garden LOCKED",
       destinations: [
         { id: "19-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:00 AM", notes: "Breakfast NT$0. LOCKED day: no Formosa, no Liuhe, no B1G1." },
         { id: "19-1", name: "Zuoying HSR (HSR)", lat: 22.6879, lng: 120.3086, time: "8:25 AM", notes: "Hub → Shihjia (R7 · Red Line) walk ~8-10 min (nearer than Sanduo), Red northbound → Zuoying (R16 · Red Line) ~20-22 min (~NT$40-80). Return get off R7. No Sanduo required. HSR FULL NT$820 (410x2). No B1G1." },
@@ -405,7 +405,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
     {
       day: 20,
       label: "October 20",
-      title: "Day 4 - October 20 - Slow birthday Amor LOCKED",
+      title: "Day 4 · October 20 — Amor birthday LOCKED",
       destinations: [
         { id: "20-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 AM", notes: "Happy birthday Amor! Slow breakfast NT$0." },
         { id: "20-1", name: "Kaohsiung Main Public Library", lat: 22.6208, lng: 120.3120, time: "10:00 AM", notes: "Library + rooftop garden. Free." },
@@ -420,7 +420,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
     {
       day: 21,
       label: "October 21",
-      title: "Day 5 - October 21 - Lotus + fly",
+      title: "Day 5 · October 21 — Lotus + fly",
       destinations: [
         { id: "21-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "7:00 AM", notes: "Breakfast NT$0." },
         { id: "21-1", name: "Lotus Pond", lat: 22.6725, lng: 120.2953, time: "8:40 AM", notes: "Prefer Shihjia (R7 · Red Line) → Zuoying (R16) + short Uber, or Uber direct Hub → pagodas. No Sanduo required. ~NT$150-250." },
@@ -458,7 +458,7 @@ export const normalizeMapItinerary = (raw: unknown): MapItineraryData => {
     .map((day) => ({
       day: Number((day as MapDay).day),
       label: asciiText(String((day as MapDay).label || `July ${(day as MapDay).day}`)),
-      title: asciiText(String((day as MapDay).title || `Day ${(day as MapDay).day}`)),
+      title: String((day as MapDay).title || `Day ${(day as MapDay).day}`),
       destinations: Array.isArray((day as MapDay).destinations)
         ? (day as MapDay).destinations
             .filter((destination) => destination && typeof destination === "object")

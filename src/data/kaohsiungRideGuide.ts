@@ -35,13 +35,13 @@ export const HOTEL_STATIONS: RideHotelStation[] = [
     label: R("R8"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "Arrival / bags / taxi curb. Day 1 airport stop + Day 2 Formosa transfer + Day 5 bags-to-airport. Walk ~12 min from Hub, or short taxi with luggage.",
+    note: "Arrival / bags / taxi curb. Day 0 airport stop + Day 1 Formosa transfer + Day 4 bags-to-airport. Walk ~12 min from Hub, or short taxi with luggage.",
   },
   {
     label: R("R7"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "Closer walk from Hub (~8–10 min). Prefer for Day 3 Zuoying and Day 5 Lotus when you have no heavy bags. One stop south of Sanduo.",
+    note: "Closer walk from Hub (~8–10 min). Hotel's nearest station — use for every Day 1–3 start (Hamasen, Zuoying, library). Sanduo only Day 0 arrival + Day 4 airport.",
   },
 ];
 
@@ -49,22 +49,22 @@ export type RideStep = { day: string; title: string; color: string; steps: strin
 
 export const MRT_RIDES: RideStep[] = [
   {
-    day: "Day 1 · Oct 17",
+    day: "Day 0 · Oct 17",
     title: "Airport → hotel",
     color: KAOHSIUNG_RED_LINE.color,
     steps: [`Red Line ${RED_NORTHBOUND}`, `${R("R4")} → ${R("R8")}`, "No transfer · then short taxi to Hub"],
   },
   {
-    day: "Day 2 · Oct 18",
+    day: "Day 1 · Oct 18",
     title: "Hotel → Consulate / Cijin ferry",
     color: KAOHSIUNG_ORANGE_LINE.color,
     steps: [
-      `Red Line ${RED_NORTHBOUND}: ${R("R8")} → ${R("R10")}`,
+      `Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R10")}`,
       `Transfer to Orange Line ${ORANGE_WESTBOUND}: ${O("O5")} → ${O("O1")} (last stop, old name Sizihwan)`,
     ],
   },
   {
-    day: "Day 3 · Oct 19",
+    day: "Day 2 · Oct 19",
     title: "Hotel → Chiayi (CCU) and back",
     color: HSR_LINE.color,
     steps: [
@@ -74,7 +74,7 @@ export const MRT_RIDES: RideStep[] = [
     ],
   },
   {
-    day: "Day 5 · Oct 21",
+    day: "Day 4 · Oct 21",
     title: "Lotus Pond, then airport",
     color: KAOHSIUNG_RED_LINE.color,
     steps: [

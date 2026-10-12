@@ -129,7 +129,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     ticket: "EasyCard / iPASS or single token.",
     whereToBuy: ["Any MRT station ticket machine"],
     steps: [
-      "From Hub / Sanduo Shopping District (R8 · Red Line) area, connect at Formosa Boulevard (R10 · Red Line) to the Orange Line toward Hamasen (O1 · Orange Line).",
+      "From Hub, walk to Shihjia (R7 · Red Line) (~600–700 m, not Sanduo), ride Red Line northbound, connect at Formosa Boulevard (R10 · Red Line) to the Orange Line toward Hamasen (O1 · Orange Line).",
       "Ride to Hamasen (O1 · Orange Line), the last stop, and exit toward the bay / ferry signs.",
       "Walk or short-hop toward the British Consulate, then Gushan Ferry Pier.",
     ],

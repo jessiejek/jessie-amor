@@ -132,8 +132,7 @@ export default function MapTab({ session, canEdit = false, isOnline = true, isAc
   };
 
   const displayDays = useMemo(() => itineraryData.days.map((day, i) => {
-    const rl = formatMapDayLabel(day.day, userSettings?.travelDates); const fd = i === 0; const sn = Math.max(1, i);
-    const label = rl ? (fd ? `Flight Day - ${rl}` : `Day ${sn} - ${rl}`) : day.label; return { ...day, label, title: label };
+    const rl = formatMapDayLabel(day.day, userSettings?.travelDates); const label = rl ? `Day ${i} - ${rl}` : day.label; return { ...day, label, title: label };
   }), [itineraryData.days, userSettings?.travelDates]);
   const activeDay = useMemo(() => displayDays.find((d) => d.day === selectedDay) ?? displayDays[0] ?? null, [displayDays, selectedDay]);
 
