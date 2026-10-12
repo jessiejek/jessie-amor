@@ -364,9 +364,8 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 0 - October 17 - Arrival",
       destinations: [
         { id: "17-1", name: "Ninoy Aquino International Airport", lat: 14.5086, lng: 121.0197, time: "5:00 PM", notes: "Flight MNL -> KHH ~5:00-7:00 PM. Prepaid (NT$0 cash)." },
-        { id: "17-2", name: "Kaohsiung International Airport (R4 · Red Line)", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "ATM NT$10-12k cash. **MRT Red Line Airport (R4 · Red Line)** northbound toward Gangshan/Ciaotou." },
-        { id: "17-3", name: "Sanduo Shopping District (R8 · Red Line)", lat: 22.6103, lng: 120.3020, time: "7:20 PM", notes: "**Airport (R4 · Red Line)** → **Sanduo Shopping District (R8 · Red Line)** ~15 min. Walk ~12 min to Hub (一心二路15號). **MRT** ~NT$90. Not a walk with bags." },
-        { id: "17-4", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 PM", notes: "Check in 8-9 PM. Whole stay Oct 17-21." },
+        { id: "17-2", name: "Kaohsiung International Airport (R4 · Red Line)", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "Land. Get bags. Use the ATM (get NT$10-12k cash). Go outside to the **taxi** line. Show the driver: Hub Hotel 一心二路15號. **Taxi** ~20 min, ~NT$250-350. No bags? You can take **MRT Red Line** from **Airport (R4 · Red Line)** instead." },
+        { id: "17-4", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 PM", notes: "**Taxi** drops you here. Check in 8-9 PM. Whole stay Oct 17-21." },
         { id: "17-5", name: "Shenye Gaifan Shidang (深夜蓋飯食堂)", lat: 22.6095, lng: 120.3058, time: "9:00 PM", notes: "Walk ~10-12 min from Hub to 崑明街55號. Confirm Sat open via Google/IG; else ask desk for non-seafood on 一心二路. Dinner ~NT$350-550. No seafood." },
       ],
     },

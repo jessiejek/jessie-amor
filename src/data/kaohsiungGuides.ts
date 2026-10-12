@@ -16,23 +16,23 @@ function guide(
 /** Meaningful landmark + food stops (~24). Hotel / breakfast / pure transit stay short. */
 export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
   "kh-airport-arrival": guide({
-    title: "Arrive KHH · ATM + MRT to Hub",
+    title: "Arrive KHH · ATM + taxi to Hub",
     image: img("khh-airport.webp"),
     summary:
-      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4 · Red Line) to Sanduo Shopping District (R8 · Red Line), then a short taxi (with bags) to Hub Hotel Yisin.",
-    service: "Kaohsiung MRT Red Line (R4 · Red Line → R8 · Red Line)",
-    ticket: "Single-journey token or EasyCard / iPASS at the airport MRT gate.",
-    whereToBuy: ["MRT ticket machines at Kaohsiung International Airport (R4 · Red Line)", "Airport ATM near arrivals for NT$ cash"],
+      "You land at Kaohsiung Airport (KHH) with bags. Get NT$ cash from the ATM, then take a taxi straight to Hub Hotel Yisin. Easy. No train with heavy bags.",
+    service: "Airport taxi (official taxi line outside arrivals)",
+    ticket: "Pay the driver in cash (NT$). About NT$250–350, ~20 min.",
+    whereToBuy: ["Taxi line outside KHH arrivals", "Airport ATM near arrivals for NT$ cash"],
     steps: [
-      "Clear immigration and pick up bags at KHH arrivals.",
-      "Find an ATM and withdraw enough NT$ for a few days (cash is handy for small food shops).",
-      "Follow signs to the MRT (R4 · Red Line). Buy a token or tap EasyCard / iPASS.",
-      "Ride Red Line toward Gangshan Station; get off at Sanduo Shopping District (R8 · Red Line).",
-      "Exit and take a short taxi (with bags, ~NT$100–150) to Hub Hotel Yisin Branch.",
+      "Get off the plane. Pass immigration. Pick up your bags.",
+      "Find an ATM. Take out NT$ cash.",
+      "Walk outside. Follow the TAXI signs to the taxi line.",
+      "Show the driver this: Hub Hotel 一心二路15號 (Hub Hotel Kaohsiung Yisin Branch).",
+      "Ride ~20 min. Pay cash. Check in at the hotel.",
     ],
     tips: [
-      "Keep passports and boarding passes together until you are in the hotel lobby.",
-      "R4 · Red Line → R8 · Red Line is one line — no transfer. Watch the station map once so you know Sanduo.",
+      "Save the hotel address on your phone as a screenshot to show the driver.",
+      "No bags? You can ride the MRT Red Line from Airport (R4 · Red Line) instead.",
     ],
   }),
 
