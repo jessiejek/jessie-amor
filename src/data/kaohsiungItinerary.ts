@@ -118,7 +118,7 @@ const days: DaySectionData[] = [
   {
     day: 17,
     title: "DAY 0 · October 17 — Arrival",
-    budgetLabel: "NT$ 540",
+    budgetLabel: "NT$ 670",
     items: [
       item({
         time: "Evening",
@@ -137,14 +137,14 @@ const days: DaySectionData[] = [
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Sanduo Shopping District Station Kaohsiung",
         guideKey: "kh-airport-arrival",
-        infoNotes: ["Sanduo only because of bags (closest walk to Hub). Every other day starts at **Shijia (R7 · Red Line)**. Uber ONLY if too tired — otherwise walk / **MRT** / **Light Rail** / **bus** / **ferry**."],
+        infoNotes: ["Sanduo only because of bags (short taxi to Hub). Every other day starts at **Shijia (R7 · Red Line)**. Uber ONLY if too tired — otherwise walk / **MRT** / **Light Rail** / **bus** / **ferry**."],
       }),
       item({
         time: "~10 min",
-        title: "3. Walk Sanduo → Hub Hotel Yisin",
+        title: "3. **Taxi** Sanduo → Hub Hotel Yisin (with bags)",
         category: "hotel",
-        bullets: [[text("Walk ~12 min with bags to "), place(HUB, "hotel", HUB), text(" (一心二路15號) · NT$0")]],
-        tags: [tag("Hotel / Walk", "hotel")],
+        bullets: [[text("With bags: **taxi** from **Sanduo Shopping District (R8 · Red Line)** exit to "), place(HUB, "hotel", HUB), text(" (一心二路15號) · ~5 min · ~NT$100–150")], [text("Do NOT walk with luggage. Backup: short **city bus** toward 一心路 if you prefer.")]],
+        tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: HUB,
         guideKey: "kh-hub-hotel-checkin",
       }),
@@ -159,9 +159,9 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Dinner",
-        title: "5. Dinner near Hub",
+        title: "5. Dinner — Ziqiang / Lingya Night Market (suggestion)",
         category: "food",
-        bullets: [[text(`${SHARE} · NT$340`)]],
+        bullets: [[text("Suggestion: 自強夜市 / 苓雅夜市 (Ziqiang / Lingya Night Market), casual street-food stalls near Hub & Sanduo (Lingya District) — short walk, no bags")], [text(`${SHARE} · NT$340`)], [text("If closed/too tired: ask Hub desk for a sit-down spot on 一心路")]],
         tags: [tag("Food", "food")],
         mapQuery: HUB,
         guideKey: "kh-city-walk-snack",

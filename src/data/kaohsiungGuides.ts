@@ -19,7 +19,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
     title: "Arrive KHH · ATM + MRT to Hub",
     image: img("khh-airport.webp"),
     summary:
-      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4 · Red Line) to Sanduo Shopping District (R8 · Red Line), then walk ~12 min to Hub Hotel Yisin.",
+      "Kaohsiung International Airport (KHH) is your soft landing. Get NT$ cash from an ATM, ride the Red Line MRT from Kaohsiung International Airport (R4 · Red Line) to Sanduo Shopping District (R8 · Red Line), then a short taxi (with bags) to Hub Hotel Yisin.",
     service: "Kaohsiung MRT Red Line (R4 · Red Line → R8 · Red Line)",
     ticket: "Single-journey token or EasyCard / iPASS at the airport MRT gate.",
     whereToBuy: ["MRT ticket machines at Kaohsiung International Airport (R4 · Red Line)", "Airport ATM near arrivals for NT$ cash"],
@@ -28,7 +28,7 @@ export const KAOHSIUNG_GUIDES: Partial<Record<GuideKey, DestinationGuide>> = {
       "Find an ATM and withdraw enough NT$ for a few days (cash is handy for small food shops).",
       "Follow signs to the MRT (R4 · Red Line). Buy a token or tap EasyCard / iPASS.",
       "Ride Red Line toward Gangshan Station; get off at Sanduo Shopping District (R8 · Red Line).",
-      "Exit and walk ~12 min to Hub Hotel Yisin Branch.",
+      "Exit and take a short taxi (with bags, ~NT$100–150) to Hub Hotel Yisin Branch.",
     ],
     tips: [
       "Keep passports and boarding passes together until you are in the hotel lobby.",
