@@ -80,7 +80,7 @@ const hero: HeroData = {
   ],
   note: [
     text(
-      `One hotel: ${HUB} (一心二路15號). Nearest metro is ${R7} (~600–700 m walk) — use it for every Day 1–3 start. ${R8} is ONLY for Day 0 arrival and Day 4 airport departure (walk ~12 min with bags). Day 2 National Chung Cheng University (NCCU) is NON-NEGOTIABLE. One café per day max. Food model: 1 main + 2–3 sides, shared. Hotel breakfast free.`,
+      `One hotel: ${HUB} (一心二路15號). Nearest metro is ${R7} (~600–700 m walk) — use it for every Day 1–3 start. With bags (arrival + departure) always **taxi**. Day 2 National Chung Cheng University (NCCU) is NON-NEGOTIABLE. One café per day max. Food model: 1 main + 2–3 sides, shared. Hotel breakfast free.`,
     ),
   ],
 };
@@ -109,7 +109,7 @@ const alert: AlertBoxData = {
   title: "Rules",
   body: [
     text(
-      `(1) Day 1–3 starts: walk to ${R7} — not Sanduo. (2) ${R8} only Day 0 arrival + Day 4 airport. (3) Day 2 NCCU non-negotiable. (4) **HSR** Zuoying → Chiayi = Klook BOGO (G02TAIWAN) ONE leg only; return Chiayi → Zuoying normal fare. (5) **HSR** ticket: same-day later train can be changed at Zuoying counter ≥30 min before departure (same stations, one change). (6) One café per day. (7) ${SHARE}.`,
+      `(1) Day 1–3 starts: walk to ${R7} — not Sanduo. (2) With bags = **taxi** (arrival + airport departure). (3) Day 2 NCCU non-negotiable. (4) **HSR** Zuoying → Chiayi = Klook BOGO (G02TAIWAN) ONE leg only; return Chiayi → Zuoying normal fare. (5) **HSR** ticket: same-day later train can be changed at Zuoying counter ≥30 min before departure (same stations, one change). (6) One café per day. (7) ${SHARE}.`,
     ),
   ],
 };
@@ -530,10 +530,10 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "~2:00–3:00 PM",
-        title: `6. ${R8} → **Kaohsiung International Airport (R4 · Red Line)**`,
-        category: "train",
-        bullets: [[text("Walk bags ~12 min Hub → Sanduo · **Red Line** southbound ~15 min · ×2 NT$100 · at KHH by ~4 PM")]],
-        tags: [tag("Train / MRT / LRT", "train")],
+        title: "6. **Taxi** Hub Hotel → **Kaohsiung International Airport** (with bags)",
+        category: "hotel",
+        bullets: [[text("You have bags. Ask the Hub front desk: \"Taxi to airport, please\" (小港機場). They call a **taxi** for you.")], [text("Ride ~15–20 min · ~NT$250–350 · pay the driver (cash ok). Be at the airport by ~4 PM.")], [text("Do NOT walk to Sanduo. Do NOT take the **MRT** with luggage.")]],
+        tags: [tag("Taxi", "hotel")],
         mapQuery: "Kaohsiung International Airport",
         guideKey: "kh-airport-departure",
       }),
@@ -560,7 +560,7 @@ const days: DaySectionData[] = [
 ];
 
 const tips: TipCardData[] = [
-  { icon: "🚇", description: [text(`Day 1–3: always walk to ${R7}. ${R8} only Day 0 arrival + Day 4 airport.`)] },
+  { icon: "🚇", description: [text(`Day 1–3: always walk to ${R7}. With bags = **taxi** to/from airport.`)] },
   { icon: "🚄", description: [text("Day 2: **HSR** Zuoying → Chiayi BOGO (one leg) ~NT$340; Chiayi → Zuoying normal ~NT$900. **Bus** Chiayi–NCCU RT NT$1,200.")] },
   { icon: "🍜", description: [text(`${SHARE}. Hotel breakfast free. Say 不要海鮮.`)] },
   { icon: "💵", description: [text("Trip ~NT$8,750 for 2. Carry NT$12,000.")] },
