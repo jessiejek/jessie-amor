@@ -144,7 +144,7 @@ const days: DaySectionData[] = [
         title: "3. Walk Sanduo → Hub Hotel Yisin",
         category: "hotel",
         bullets: [[text("Walk ~12 min with bags to "), place(HUB, "hotel", HUB), text(" (一心二路15號) · NT$0")]],
-        tags: [tag("Hotel / Taxi", "hotel")],
+        tags: [tag("Hotel / Walk", "hotel")],
         mapQuery: HUB,
         guideKey: "kh-hub-hotel-checkin",
       }),
