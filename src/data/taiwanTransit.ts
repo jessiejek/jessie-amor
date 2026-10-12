@@ -192,7 +192,7 @@ export const HSR_LINE: TransitLine = {
   kind: "hsr",
   city: "West corridor",
   color: "#F26B21",
-  note: "Nangang ↔ Zuoying HSR. Our Day 2 plan: Zuoying HSR → Chiayi HSR, then taxi to CCU (National Chung Cheng University). Bus backup: BRT 7212 to Chiayi TRA, then 7309 to CCU.",
+  note: "Nangang ↔ Zuoying **HSR**. Our Day 2 plan: Zuoying **HSR** → Chiayi **HSR**, then **bus** to CCU (National Chung Cheng University). **Bus** backup: **BRT** 7212 to Chiayi **TRA**, then 7309 to CCU.",
   stations: [
     s("NAG", "Nangang HSR", "南港", 25.0531, 121.607),
     s("TPE", "Taipei HSR", "台北", 25.04755, 121.51705),

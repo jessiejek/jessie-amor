@@ -15,9 +15,9 @@ const stationName = (line: TransitLine, code: string): string => {
 /** "Sanduo Shopping District (R8 · Red Line)" — same name as Map+ popup. */
 export const stationLabel = (line: TransitLine, code: string): string => stationLabelByCode(line, code);
 
-const R = (code: string) => stationLabel(KAOHSIUNG_RED_LINE, code);
-const O = (code: string) => stationLabel(KAOHSIUNG_ORANGE_LINE, code);
-const HSR = (code: string) => stationLabel(HSR_LINE, code);
+const R = (code: string) => `**${stationLabel(KAOHSIUNG_RED_LINE, code)}**`;
+const O = (code: string) => `**${stationLabel(KAOHSIUNG_ORANGE_LINE, code)}**`;
+const HSR = (code: string) => `**${stationLabel(HSR_LINE, code)}**`;
 
 export const RED_LINE_NAME = KAOHSIUNG_RED_LINE.name; // "Kaohsiung Metro Red Line"
 export const ORANGE_LINE_NAME = KAOHSIUNG_ORANGE_LINE.name; // "Kaohsiung Metro Orange Line"
@@ -35,7 +35,7 @@ export const HOTEL_STATIONS: RideHotelStation[] = [
     label: R("R8"),
     line: RED_LINE_NAME,
     color: KAOHSIUNG_RED_LINE.color,
-    note: "Arrival / bags / taxi curb. Day 0 airport stop + Day 1 Formosa transfer + Day 4 bags-to-airport. Walk ~12 min from Hub, or short taxi with luggage.",
+    note: "Arrival / bags. Day 0 airport stop + Day 1 Formosa transfer + Day 4 bags-to-airport. Walk ~12 min from Hub (with luggage too).",
   },
   {
     label: R("R7"),
@@ -52,15 +52,15 @@ export const MRT_RIDES: RideStep[] = [
     day: "Day 0 · Oct 17",
     title: "Airport → hotel",
     color: KAOHSIUNG_RED_LINE.color,
-    steps: [`Red Line ${RED_NORTHBOUND}`, `${R("R4")} → ${R("R8")}`, "No transfer · then short taxi to Hub"],
+    steps: [`**Red Line** ${RED_NORTHBOUND}`, `${R("R4")} → ${R("R8")}`, "No transfer · then walk ~12 min to Hub"],
   },
   {
     day: "Day 1 · Oct 18",
     title: "Hotel → Consulate / Cijin ferry",
     color: KAOHSIUNG_ORANGE_LINE.color,
     steps: [
-      `Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R10")}`,
-      `Transfer to Orange Line ${ORANGE_WESTBOUND}: ${O("O5")} → ${O("O1")} (last stop, old name Sizihwan)`,
+      `**Red Line** ${RED_NORTHBOUND}: ${R("R7")} → ${R("R10")}`,
+      `Transfer to **Orange Line** ${ORANGE_WESTBOUND}: ${O("O5")} → ${O("O1")} (last stop, old name Sizihwan)`,
     ],
   },
   {
@@ -68,9 +68,9 @@ export const MRT_RIDES: RideStep[] = [
     title: "Hotel → Chiayi (CCU) and back",
     color: HSR_LINE.color,
     steps: [
-      `Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")} (prefer Shihjia — no Sanduo needed)`,
-      `High Speed Rail: ${HSR("ZUY")} → ${HSR("CHY")} · then taxi to CCU (National Chung Cheng University)`,
-      `Return: ${HSR("CHY")} → ${HSR("ZUY")}, Red Line ${RED_SOUTHBOUND}: ${R("R16")} → ${R("R7")}`,
+      `**Red Line** ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")} (prefer Shihjia — no Sanduo needed)`,
+      `**High Speed Rail**: ${HSR("ZUY")} → ${HSR("CHY")} · then **bus** to CCU (National Chung Cheng University)`,
+      `Return: ${HSR("CHY")} → ${HSR("ZUY")}, **Red Line** ${RED_SOUTHBOUND}: ${R("R16")} → ${R("R7")}`,
     ],
   },
   {
@@ -78,8 +78,8 @@ export const MRT_RIDES: RideStep[] = [
     title: "Lotus Pond, then airport",
     color: KAOHSIUNG_RED_LINE.color,
     steps: [
-      `Lotus Pond option: Red Line ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")}, then short Uber (or Uber direct Hub → pagodas)`,
-      `Airport with bags: Red Line ${RED_SOUTHBOUND}: ${R("R8")} → ${R("R4")} (taxi curb); alt light bags: ${R("R7")} → ${R("R4")}`,
+      `Lotus Pond option: **Red Line** ${RED_NORTHBOUND}: ${R("R7")} → ${R("R16")}, then walk ~15 min to pagodas`,
+      `Airport with bags: **Red Line** ${RED_SOUTHBOUND}: ${R("R8")} → ${R("R4")}; alt light bags: ${R("R7")} → ${R("R4")}`,
     ],
   },
 ];
