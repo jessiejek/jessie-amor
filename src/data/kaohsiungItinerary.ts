@@ -403,7 +403,7 @@ const days: DaySectionData[] = [
         category: "spot",
         bullets: [
           [place("Kaohsiung Main Public Library", "library", "Kaohsiung Main Public Library")],
-          [text(`Uber/local hops ~NT$250 · if metro, walk to ${R7} (not Sanduo)`)],
+          [text("Walk from Hub (~20 min) or MRT from **Shijia (R7)** · NO Uber")],
         ],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Kaohsiung Main Public Library",
@@ -420,11 +420,11 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "1:00 PM",
-        title: "4. Circular Light Rail: Library → Museum of Fine Arts (美術館)",
+        title: "4. Circular Light Rail: **Glory Pier (C10)** → **美術館**",
         category: "train",
         bullets: [
-          [text("Walk from Library to Light Rail 光榮碼頭 Glory Pier stop (C10) · EasyCard ~NT$30 each")],
-          [text("Board toward 哈瑪星 / 美術館 · you PASS the Pier-2 stops — stay on · get off at 美術館 Museum of Fine Arts")],
+          [text("Walk from Library to Light Rail **光榮碼頭 Glory Pier (C10)** — the stop beside the library (there is no C8 Library stop; C8 = Exhibition Center) · EasyCard ~NT$30 each")],
+          [text("Board toward **哈瑪星 Hamasen (C14)** / **美術館** · you PASS the **Pier-2** stops — stay on · get off at **美術館 Museum of Fine Arts**")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Kaohsiung Light Rail Glory Pier Station",
@@ -441,7 +441,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "3:00 PM",
-        title: "6. Light Rail back → 駁二大義 Pier-2 Dayi (C12) · Pier-2 + snacks",
+        title: "6. Light Rail back → **駁二大義 Pier-2 Dayi (C12)** · Pier-2 + snacks",
         category: "spot",
         bullets: [[text("Same Light Rail, opposite direction · 1 main + 2 small, shared · NT$160")]],
         tags: [tag("Tourist spot", "spot")],
@@ -468,10 +468,10 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Night",
-        title: "9. Uber back to Hub",
+        title: "9. Light Rail + MRT back to Hub (NO Uber)",
         category: "hotel",
-        bullets: [[text("NT$500")]],
-        tags: [tag("Hotel / Taxi", "hotel")],
+        bullets: [[text("Light Rail **駁二大義 (C12)** → **哈瑪星 (C14)** · walk to MRT **Hamasen (O1)** → Orange to **Formosa Boulevard (R10)** → Red southbound to **Shijia (R7)** → walk ~8–10 min to Hub · ~NT$60–100 for 2 · Uber ONLY if too tired")]],
+        tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: HUB,
         guideKey: "kh-hub-hotel-checkin",
       }),

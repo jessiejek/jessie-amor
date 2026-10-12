@@ -408,13 +408,13 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
       title: "Day 4 · October 20 — Amor birthday LOCKED",
       destinations: [
         { id: "20-0", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 AM", notes: "Happy birthday Amor! Slow breakfast NT$0." },
-        { id: "20-1", name: "Kaohsiung Main Public Library", lat: 22.6208, lng: 120.3120, time: "10:00 AM", notes: "Library + rooftop garden. Free." },
+        { id: "20-1", name: "Kaohsiung Main Public Library", lat: 22.6208, lng: 120.3120, time: "10:00 AM", notes: "Library + rooftop garden. Free. Walk from Hub or MRT **Shijia (R7)**. NO Uber." },
         { id: "20-2", name: "OGNI Coffee", lat: 22.6148, lng: 120.3035, time: "11:30 AM", notes: "ONE café. Share coffee + pastry ~NT$200-350." },
-        { id: "20-3", name: "Light Rail Glory Pier Station (C10)", lat: 22.6105, lng: 120.2990, time: "1:00 PM", notes: "Circular Light Rail toward 美術館. You pass Pier-2 stops — stay on. EasyCard." },
-        { id: "20-4", name: "Kaohsiung Museum of Fine Arts", lat: 22.6560, lng: 120.2865, time: "1:45 PM", notes: "PHOTOS only — outside grounds + lake. Free. Get off at 美術館 stop." },
-        { id: "20-5", name: "Pier-2 Art Center", lat: 22.6206, lng: 120.2848, time: "3:00 PM", notes: "Light Rail back to 駁二大義 (C12). Dayi warehouses + snacks." },
+        { id: "20-3", name: "Light Rail Glory Pier Station (C10)", lat: 22.6105, lng: 120.2990, time: "1:00 PM", notes: "**Glory Pier (C10)** beside library. Circular Light Rail toward **美術館**. You pass **Pier-2** stops — stay on. EasyCard." },
+        { id: "20-4", name: "Kaohsiung Museum of Fine Arts", lat: 22.6560, lng: 120.2865, time: "1:45 PM", notes: "PHOTOS only — outside grounds + lake. Free. Get off at **美術館** stop." },
+        { id: "20-5", name: "Pier-2 Art Center", lat: 22.6206, lng: 120.2848, time: "3:00 PM", notes: "Light Rail back to **駁二大義 Pier-2 Dayi (C12)**. Dayi warehouses + snacks." },
         { id: "20-6", name: "Great Harbour Bridge Kaohsiung", lat: 22.6215, lng: 120.2836, time: "5:30 PM", notes: "Sunset walk from Pier-2 Dayi." },
-        { id: "20-7", name: "Yonshin Fudopia", lat: 22.6200, lng: 120.2840, time: "7:00 PM", notes: "Birthday dinner meat/veg 不要海鮮 ~NT$1800-2600. Uber home ~NT$100-180." },
+        { id: "20-7", name: "Yonshin Fudopia", lat: 22.6200, lng: 120.2840, time: "7:00 PM", notes: "Birthday dinner meat/veg 不要海鮮 ~NT$1800-2600. Home: Light Rail **C12** → **Hamasen (C14)** → MRT **Hamasen (O1)** → **Formosa Boulevard (R10)** → Red to **Shijia (R7)** → walk Hub. NO Uber (only if tired)." },
       ],
     },
     {
