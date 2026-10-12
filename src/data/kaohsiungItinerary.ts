@@ -159,11 +159,11 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Dinner",
-        title: "5. Dinner — Ziqiang / Lingya Night Market (suggestion)",
+        title: "5. Dinner — **Liu Jia Beef Noodle (劉家牛肉麵)** near Hub",
         category: "food",
-        bullets: [[text("Suggestion: 自強夜市 / 苓雅夜市 (Ziqiang / Lingya Night Market), casual street-food stalls near Hub & Sanduo (Lingya District) — short walk, no bags")], [text(`${SHARE} · NT$340`)], [text("If closed/too tired: ask Hub desk for a sit-down spot on 一心路")]],
+        bullets: [[text("Go to **Liu Jia Beef Noodle (劉家牛肉麵)** — beef noodle shop near Sanduo / Hub Yisin (一心路). Short walk after you drop bags. Show the shop name (劉家牛肉麵) to staff/Google Maps.")], [text("Order: 1 big beef noodle bowl + side dishes, shared · NT$400")], [text("If closed/too tired: ask Hub desk for a sit-down spot on 一心路")]],
         tags: [tag("Food", "food")],
-        mapQuery: HUB,
+        mapQuery: "劉家牛肉麵 Kaohsiung Lingya",
         guideKey: "kh-city-walk-snack",
       }),
       item({
@@ -254,9 +254,9 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Evening",
-        title: "8. Dinner — Cijin Old Street (Miaoqian Rd) street food",
+        title: "8. Dinner — **Cijin Old Street (旗津廟前路)** street stalls",
         category: "food",
-        bullets: [[text("旗津老街 / 廟前路 by 旗津天后宮 (Cijin Tianhou Temple), 2–3 min walk from **Cijin Ferry Pier** — street-food stalls (grilled squid, fish balls, seafood-pancake / snack stands). Eat here BEFORE the **ferry** back.")], [text("Suggestion: pick stalls on Miaoqian Rd; skip pricey live-seafood restaurants (pay by weight).")], [text(`${SHARE} · NT$400`)]],
+        bullets: [[text("旗津老街 / 廟前路 by 旗津天后宮 (Cijin Tianhou Temple), 2–3 min walk from **Cijin Ferry Pier** — street-food stalls — order **oyster omelette (蚵仔煎)** and **milkfish (虱目魚)** soup/belly. Eat here BEFORE the **ferry** back.")], [text("Suggestion: pick stalls on Miaoqian Rd; skip pricey live-seafood restaurants (pay by weight).")], [text(`${SHARE} · NT$400`)]],
         tags: [tag("Food", "food")],
         mapQuery: "Cijin Old Street Miaoqian Road Kaohsiung",
         guideKey: "kh-gushan-dinner",
