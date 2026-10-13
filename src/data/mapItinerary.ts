@@ -124,7 +124,7 @@ export const groupDestinationsByDay = (destinations: MapDestination[], dayGetter
 
 type Coordinates = { lat: number; lng: number };
 
-export const MAP_ITINERARY_VERSION = 4;
+export const MAP_ITINERARY_VERSION = 5;
 
 const asciiText = (value: string) =>
   value
@@ -366,8 +366,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
         { id: "17-1", name: "Kaohsiung International Airport", lat: 22.5771, lng: 120.3500, time: "Evening", notes: "Land at the airport. Get your bags. Use the ATM." },
         { id: "17-2", name: "Kaohsiung International Airport (Taxi line)", lat: 22.5771, lng: 120.3500, time: "After landing", notes: "You have bags, so take a **taxi**. Follow the **Taxi** signs. Show the driver: Hub Hotel 一心二路15號. About 15–20 min. About NT$250–350. No trains with bags." },
         { id: "17-3", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "Check-in", notes: "Check in. Hotel is prepaid (NT$0). Use the hotel pantry if hungry. Whole stay Oct 17–21." },
-        { id: "17-5", name: "Liu Jia Beef Noodle (劉家牛肉麵)", lat: 22.5975, lng: 120.3096, time: "Dinner", notes: "Short walk from Hub after you drop bags. Show the shop name (劉家牛肉麵) to staff or Google Maps. Order 1 big beef noodle bowl + side dishes, shared. NT$400. Closed or too tired? Ask the Hub desk for a sit-down spot on 一心路." },
-        { id: "17-6", name: "Liuhe Night Market (六合夜市)", lat: 22.6318, lng: 120.2995, time: "Optional", notes: "Only if you still have energy. Walk 8–10 min to **Shijia (R7 · Red Line)**. Take the **Red Line** north 3 stops to **Formosa Boulevard (R10 · Red Line)**. Use Exit 11. Walk 2–3 min. Snacks only, shared. About NT$200–300 for two. Go home: **Red Line** south to **Shijia (R7 · Red Line)**, then walk to Hub. Too tired? Uber is ok." },
+        { id: "17-6", name: "Liuhe Night Market (六合夜市)", lat: 22.6318, lng: 120.2995, time: "Dinner (pick ONE)", notes: "Dinner: pick ONE. Tired? Eat near Hub (ask the front desk for a spot on 一心路), about NT$400. Have energy? Come here instead. Walk 8–10 min to **Shijia (R7 · Red Line)**. Take the **Red Line** north 3 stops to **Formosa Boulevard (R10 · Red Line)**. Use Exit 11. Walk 2–3 min. Share street food, about NT$400 for two. Go home: **Red Line** south to **Shijia (R7 · Red Line)**, then walk to Hub. Too tired? Uber is ok." },
         { id: "17-7", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "Night", notes: "Sleep. No coffee, no bought water today." },
       ],
     },
