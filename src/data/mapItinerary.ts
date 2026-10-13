@@ -367,6 +367,7 @@ const buildKaohsiungMapItinerary = (): MapItineraryData => ({
         { id: "17-2", name: "Kaohsiung International Airport (R4 · Red Line)", lat: 22.5771, lng: 120.3500, time: "7:00 PM", notes: "Land. Get bags. Use the ATM (get NT$10-12k cash). Go outside to the **taxi** line. Show the driver: Hub Hotel 一心二路15號. **Taxi** ~20 min, ~NT$250-350. No bags? You can take **MRT Red Line** from **Airport (R4 · Red Line)** instead." },
         { id: "17-4", name: "Hub Hotel Kaohsiung Yisin Branch", lat: 22.5975, lng: 120.3096, time: "8:00 PM", notes: "**Taxi** drops you here. Check in 8-9 PM. Whole stay Oct 17-21." },
         { id: "17-5", name: "Shenye Gaifan Shidang (深夜蓋飯食堂)", lat: 22.6095, lng: 120.3058, time: "9:00 PM", notes: "Walk ~10-12 min from Hub to 崑明街55號. Confirm Sat open via Google/IG; else ask desk for non-seafood on 一心二路. Dinner ~NT$350-550. No seafood." },
+        { id: "17-6", name: "Liuhe Night Market (六合夜市)", lat: 22.6318, lng: 120.2995, time: "Optional", notes: "Only if you still have energy. Walk to **Shijia (R7 · Red Line)**, **Red Line** north 3 stops to **Formosa Boulevard (R10 · Red Line)**, Exit 11, walk ~2-3 min. Snacks ~NT$200-300 for two. Home: **Red Line** south to R7." },
       ],
     },
     {
