@@ -55,7 +55,7 @@ interface NavigationProps {
 type NavTab = { label: string; path: string; icon?: React.ComponentType<{ size?: number; className?: string }>; showInBottom?: boolean; };
 const navItems: NavTab[] = [
   { label: "Itinerary", path: "/", icon: CalendarDays, showInBottom: true }, { label: "Itinerary+", path: "/itinerary-plus", icon: Table, showInBottom: true }, { label: "Budget", path: "/budget", icon: Wallet, showInBottom: true },
-  { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Map+", path: "/map-plus", icon: TrainFront, showInBottom: false }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: false },
+  { label: "Map", path: "/map", icon: MapIcon, showInBottom: true }, { label: "Map+", path: "/map-plus", icon: TrainFront, showInBottom: false }, { label: "Train Map", path: "/train-map", icon: TrainFront, showInBottom: false }, { label: "Diary", path: "/diary", icon: BookOpen, showInBottom: true }, { label: "Notes", path: "/notes", icon: NotebookText, showInBottom: false },
 ];
 
 export default function Navigation({ activeTab, setActiveTab, session, isOnline, onOpenAuth, onOpenSettings, onSignOut, metadata, expenses = [], screenSize, tripProfile }: NavigationProps) {

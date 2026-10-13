@@ -76,7 +76,7 @@ const hero: HeroData = {
     "Hub Hotel Yisin Branch, Oct 17–21",
     "Oct 20 — Amor's birthday 🎂",
     "Hotel breakfast free · 1 main + 2–3 sides shared",
-    "Trip budget ~NT$8,750 for 2 · carry NT$12,000",
+    "Trip budget ~NT$8,200 for 2 · carry NT$12,000",
   ],
   note: [
     text(
@@ -96,12 +96,12 @@ const legend: LegendItem[] = [
 
 // NT$ for 2 pax. Flights / hotel / breakfast = 0.
 const budgetSummary: BudgetCard[] = [
-  { label: "October 17", amount: "NT$ 540", php: "Day 0 · arrival" },
-  { label: "October 18", amount: "NT$ 1,878", php: "Day 1 · Consulate + Cijin" },
-  { label: "October 19", amount: "~NT$ 3,520", php: "Day 2 · NCCU" },
-  { label: "October 20", amount: "~NT$ 1,870", php: "Day 3 · Amor's birthday (one café)" },
-  { label: "October 21", amount: "NT$ 980", php: "Day 4 · Lotus + fly" },
-  { label: "Total for 2", amount: "~NT$ 8,750", php: "Share-food model", featured: true },
+  { label: "October 17", amount: "NT$ 640", php: "Day 0 · arrival" },
+  { label: "October 18", amount: "NT$ 1,798", php: "Day 1 · Totoro + Consulate + Cijin" },
+  { label: "October 19", amount: "NT$ 3,400", php: "Day 2 · NCCU" },
+  { label: "October 20", amount: "NT$ 1,310", php: "Day 3 · Amor's birthday (one café)" },
+  { label: "October 21", amount: "NT$ 1,050", php: "Day 4 · Lotus + fly" },
+  { label: "Total for 2", amount: "~NT$ 8,200", php: "Share-food model", featured: true },
   { label: "Recommended cash", amount: "NT$ 12,000", php: "~NT$3,000 buffer", featured: true },
 ];
 
@@ -118,7 +118,7 @@ const days: DaySectionData[] = [
   {
     day: 17,
     title: "DAY 0 · October 17 — Arrival",
-    budgetLabel: "NT$ 670",
+    budgetLabel: "NT$ 640",
     items: [
       item({
         time: "Evening",
@@ -179,8 +179,8 @@ const days: DaySectionData[] = [
   },
   {
     day: 18,
-    title: "DAY 1 · October 18 — Consulate + Cijin",
-    budgetLabel: "NT$ 1,878",
+    title: "DAY 1 · October 18 — Totoro Tunnel + Consulate + Cijin",
+    budgetLabel: "NT$ 1,798",
     mapImage: "/kaohsiung-maps/day2-cijijn.jpg",
     items: [
       item({
@@ -194,28 +194,63 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "8:30–9:00 AM",
-        title: `2. **MRT** ${R7} → **Hamasen (O1 · Orange Line)**`,
+        title: `2. **MRT** ${R7} → **Aozihdi (R13 · Red Line)**`,
         category: "train",
         bullets: [
           [text(`Walk ~8–10 min (~600–700 m) from Hub to ${R7} — NOT Sanduo`)],
-          [text("**Red Line** northbound → **Formosa Boulevard (R10 · Red Line / O5 · Orange Line)** → **Orange Line** westbound → **Hamasen (O1 · Orange Line)**")],
+          [text("**Red Line** northbound (toward Gangshan) · ONE train, no change · get off at **Aozihdi (R13 · Red Line)**")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
-        mapQuery: "Hamasen Station O1 Kaohsiung",
+        mapQuery: "Aozihdi Station R13 Kaohsiung",
         guideKey: "kh-hamasen-railway-museum",
       }),
       item({
-        time: "9:15–10:30 AM",
-        title: "3. British Consulate at Takao",
+        time: "9:00–9:20 AM",
+        title: "3. **Light Rail** **Heart of Love River (C24 · Light Rail)** → **Kaohsiung Museum of Fine Arts (C21 · Light Rail)**",
+        category: "train",
+        bullets: [
+          [text("At **Aozihdi (R13 · Red Line)** follow signs to the **Light Rail** stop **愛河之心 Heart of Love River (C24 · Light Rail)** (same transfer station)")],
+          [text("Ride west 3 stops (C23 → C22) · get off at **美術館 Kaohsiung Museum of Fine Arts (C21 · Light Rail)** · EasyCard NT$30 × 2 = NT$60")],
+        ],
+        tags: [tag("Train / MRT / LRT", "train")],
+        mapQuery: "Kaohsiung Light Rail Museum of Fine Arts Station C21",
+        guideKey: "kh-pier2-art-center",
+      }),
+      item({
+        time: "9:20–10:00 AM",
+        title: "4. Totoro Tunnel (龍貓隧道) — photos",
         category: "spot",
-        bullets: [[place("British Consulate at Takao", "landmark", "British Consulate at Takao"), text(" · walk uphill ~10–15 min from **Hamasen (O1 · Orange Line)**")], [text("Tickets NT$99 × 2 = NT$198 (pay at gate) · No. 20 Lianhai Rd")]],
+        bullets: [
+          [place("Totoro Tunnel", "landmark", "龍貓隧道 Totoro Tunnel Kaohsiung"), text(" · green tree tunnel the **Light Rail** passes through · free")],
+          [text("Best photo: at the round green \"Mikan\" (蜜柑) sign inside **美術館 Kaohsiung Museum of Fine Arts (C21 · Light Rail)** station")],
+          [text("Museum of Fine Arts is right beside this station — take outside photos here too (free).")],
+          [text("Do NOT step on the tracks. When the warning light turns on, step back.")],
+        ],
+        tags: [tag("Tourist spot", "spot")],
+        mapQuery: "龍貓隧道 Totoro Tunnel Kaohsiung",
+        guideKey: "kh-central-park-kaohsiung",
+      }),
+      item({
+        time: "10:00–10:30 AM",
+        title: "5. **Light Rail** continue south → **Hamasen (C14 · Light Rail)**",
+        category: "train",
+        bullets: [[text("Board the **Light Rail** going south (C21A → C20 → … → C15) · same direction, no going back · get off at **哈瑪星 Hamasen (C14 · Light Rail)** · NT$30 × 2 = NT$60 · then walk uphill to the Consulate")]],
+        tags: [tag("Train / MRT / LRT", "train")],
+        mapQuery: "Hamasen Light Rail Station C14",
+        guideKey: "kh-british-consulate-gushan",
+      }),
+      item({
+        time: "10:45 AM–12:00 PM",
+        title: "5. British Consulate at Takao",
+        category: "spot",
+        bullets: [[place("British Consulate at Takao", "landmark", "British Consulate at Takao"), text(" · walk uphill ~10–15 min from **Hamasen (C14 · Light Rail)**")], [text("Tickets NT$99 × 2 = NT$198 (pay at gate) · No. 20 Lianhai Rd")]],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "British Consulate at Takao",
         guideKey: "kh-british-consulate-gushan",
       }),
       item({
-        time: "10:45 AM",
-        title: "4. **Ferry** Gushan → Cijin",
+        time: "12:15 PM",
+        title: "6. **Ferry** Gushan → Cijin",
         category: "train",
         bullets: [[text("Gushan **Ferry** Pier → Cijin · straight from Consulate (no café detour) · EasyCard")]],
         tags: [tag("Train / MRT / LRT", "train")],
@@ -223,8 +258,8 @@ const days: DaySectionData[] = [
         guideKey: "kh-ferry-to-cijin",
       }),
       item({
-        time: "11:30 AM–12:30 PM",
-        title: "5. Lunch on Cijin",
+        time: "12:45–1:45 PM",
+        title: "7. Lunch on Cijin",
         category: "food",
         bullets: [[text(`${SHARE} · NT$340 · say 不要海鮮`)]],
         tags: [tag("Food", "food")],
@@ -232,8 +267,8 @@ const days: DaySectionData[] = [
         guideKey: "kh-cijin-lunch-nonseafood",
       }),
       item({
-        time: "1:00–2:30 PM",
-        title: "6. 老街小巷咖啡簡餐 (Old Street Alley Café) — only café today",
+        time: "2:00–3:30 PM",
+        title: "8. 老街小巷咖啡簡餐 (Old Street Alley Café) — only café today",
         category: "food",
         bullets: [
           [text("Cijin Old Street lane · 廟前路60巷7號 · ~3–5 min walk from Cijin **ferry** pier, near Tianhou Temple")],
@@ -245,7 +280,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Late afternoon",
-        title: "7. **Ferry** Cijin → Gushan",
+        title: "9. **Ferry** Cijin → Gushan",
         category: "train",
         bullets: [[text("**Ferry** RT ×2 NT$80 total")]],
         tags: [tag("Train / MRT / LRT", "train")],
@@ -254,7 +289,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Evening",
-        title: "8. Dinner — **Cijin Old Street (旗津廟前路)** street stalls",
+        title: "10. Dinner — **Cijin Old Street (旗津廟前路)** street stalls",
         category: "food",
         bullets: [[text("旗津老街 / 廟前路 by 旗津天后宮 (Cijin Tianhou Temple), 2–3 min walk from **Cijin Ferry Pier** — street-food stalls — order **oyster omelette (蚵仔煎)** and **milkfish (虱目魚)** soup/belly. Eat here BEFORE the **ferry** back.")], [text("Suggestion: pick stalls on Miaoqian Rd; skip pricey live-seafood restaurants (pay by weight).")], [text(`${SHARE} · NT$400`)]],
         tags: [tag("Food", "food")],
@@ -263,7 +298,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Night",
-        title: `9. Back to Hub — **MRT** get off ${R7}`,
+        title: `11. Back to Hub — **MRT** get off ${R7}`,
         category: "hotel",
         bullets: [[text("Metro/EasyCard hops for the day ×2 NT$160 · walk to Consulate NT$0")]],
         tags: [tag("Hotel / Taxi", "hotel")],
@@ -275,7 +310,7 @@ const days: DaySectionData[] = [
   {
     day: 19,
     title: "DAY 3 · October 19 — Meteor Garden LOCKED",
-    budgetLabel: "~NT$ 3,520",
+    budgetLabel: "NT$ 3,400",
     mapImage: "/kaohsiung-maps/day3-ccu-formosa.jpg",
     items: [
       item({
@@ -385,7 +420,7 @@ const days: DaySectionData[] = [
   {
     day: 20,
     title: "DAY 4 · October 20 — Amor birthday LOCKED",
-    budgetLabel: "~NT$ 1,870",
+    budgetLabel: "NT$ 1,310",
     mapImage: "/kaohsiung-maps/day4-pier2-bridge.jpg",
     items: [
       item({
@@ -420,37 +455,28 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "1:00 PM",
-        title: "4. Circular **Light Rail**: **Glory Pier (C10 · Light Rail)** → **美術館 Museum of Fine Arts (C20 · Light Rail)**",
+        title: "4. **Light Rail** **Glory Pier (C10 · Light Rail)** → **駁二大義 Pier-2 Dayi (C12 · Light Rail)**",
         category: "train",
         bullets: [
-          [text("Walk from Library to **Light Rail** **光榮碼頭 Glory Pier (C10 · Light Rail)** — the stop beside the library (there is no C8 Library stop; C8 = Exhibition Center) · EasyCard ~NT$30 each")],
-          [text("Board toward **哈瑪星 Hamasen (C14 · Light Rail)** / **美術館 Museum of Fine Arts (C20 · Light Rail)** · you PASS the **Pier-2** stops — stay on · get off at **美術館 Museum of Fine Arts (C20 · Light Rail)**")],
+          [text("Walk from the Library to the **Light Rail** stop **光榮碼頭 Glory Pier (C10 · Light Rail)** — the stop beside the library · EasyCard NT$30 × 2 = NT$60")],
+          [text("Ride 2 stops · get off at **駁二大義 Pier-2 Dayi (C12 · Light Rail)**")],
         ],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: "Kaohsiung Light Rail Glory Pier Station",
         guideKey: "kh-pier2-art-center",
       }),
       item({
-        time: "1:45 PM",
-        title: "5. Kaohsiung Museum of Fine Arts — PHOTOS only",
+        time: "1:30 PM",
+        title: "5. Pier-2 Art Center + snacks",
         category: "spot",
-        bullets: [[place("Kaohsiung Museum of Fine Arts", "museum", "Kaohsiung Museum of Fine Arts"), text(" · outside grounds + lake · free")]],
-        tags: [tag("Tourist spot", "spot")],
-        mapQuery: "Kaohsiung Museum of Fine Arts",
-        guideKey: "kh-central-park-kaohsiung",
-      }),
-      item({
-        time: "3:00 PM",
-        title: "6. **Light Rail** back → **駁二大義 Pier-2 Dayi (C12 · Light Rail)** · Pier-2 + snacks",
-        category: "spot",
-        bullets: [[text("Same **Light Rail**, opposite direction · 1 main + 2 small, shared · NT$160")]],
+        bullets: [[place("Pier-2 Art Center", "landmark", "Pier-2 Art Center"), text(" · walk around, photos · free · 1 main + 2 small, shared · NT$160")]],
         tags: [tag("Tourist spot", "spot")],
         mapQuery: "Pier-2 Art Center",
         guideKey: "kh-pier2-art-center",
       }),
       item({
         time: "Sunset",
-        title: "7. Great Harbour Bridge sunset",
+        title: "6. Great Harbour Bridge sunset",
         category: "spot",
         bullets: [[place("Great Harbor Bridge", "bridge", "Kaohsiung Great Harbor Bridge"), text(" · free")]],
         tags: [tag("Tourist spot", "spot")],
@@ -459,7 +485,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Dinner",
-        title: "8. Birthday dinner: Yonshin Fudopia (or street food to save)",
+        title: "7. Birthday dinner: Yonshin Fudopia (or street food to save)",
         category: "food",
         bullets: [[text(`${SHARE} · NT$460`)]],
         tags: [tag("Food", "food")],
@@ -468,9 +494,9 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Night",
-        title: "9. **Light Rail** + **MRT** back to Hub",
+        title: "8. **Light Rail** + **MRT** back to Hub",
         category: "hotel",
-        bullets: [[text("**Light Rail** **駁二大義 Pier-2 (C12 · Light Rail)** → **哈瑪星 Hamasen (C14 · Light Rail)** · walk to **MRT** **Hamasen (O1 · Orange Line)** → Orange to **Formosa Boulevard (R10 · Red Line)** → Red southbound to **Shijia (R7 · Red Line)** → walk ~8–10 min to Hub · ~NT$60–100 for 2")]],
+        bullets: [[text("**Light Rail** from **駁二大義 Pier-2 Dayi (C12 · Light Rail)** going south (C11 → C10 → … → C4) · get off at **凱旋 Kaisyuan (C3 · Light Rail)** · change to **MRT** **Kaisyuan (R6 · Red Line)** · **Red Line** northbound ONE stop to **Shijia (R7 · Red Line)** · walk ~8–10 min to Hub · ~NT$120 for 2")]],
         tags: [tag("Train / MRT / LRT", "train")],
         mapQuery: HUB,
         guideKey: "kh-hub-hotel-checkin",
@@ -480,7 +506,7 @@ const days: DaySectionData[] = [
   {
     day: 21,
     title: "DAY 5 · October 21 — Lotus Pond + fly ~8 PM",
-    budgetLabel: "NT$ 980",
+    budgetLabel: "NT$ 1,050",
     mapImage: "/kaohsiung-maps/day5-lotus-airport.jpg",
     items: [
       item({
@@ -563,7 +589,7 @@ const tips: TipCardData[] = [
   { icon: "🚇", description: [text(`Day 1–3: always walk to ${R7}. With bags = **taxi** to/from airport.`)] },
   { icon: "🚄", description: [text("Day 2: **HSR** Zuoying → Chiayi BOGO (one leg) ~NT$340; Chiayi → Zuoying normal ~NT$900. **Bus** Chiayi–NCCU RT NT$1,200.")] },
   { icon: "🍜", description: [text(`${SHARE}. Hotel breakfast free. Say 不要海鮮.`)] },
-  { icon: "💵", description: [text("Trip ~NT$8,750 for 2. Carry NT$12,000.")] },
+  { icon: "💵", description: [text("Trip ~NT$8,200 for 2. Carry NT$12,000.")] },
 ];
 
 export const kaohsiungPlan: ItineraryPlan = {

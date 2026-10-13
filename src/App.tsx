@@ -86,6 +86,7 @@ import SettingsModal from "./components/SettingsModal";
 import PdfEditorPage from "./components/PdfEditorPage";
 import ItineraryPlusTab from "./components/ItineraryPlusTab";
 import MapPlusPage from "./components/MapPlusPage";
+import TrainMapPage from "./components/TrainMapPage";
 import KaohsiungRideGuide from "./components/KaohsiungRideGuide";
 
 type SupabaseExpenseRow = {
@@ -511,6 +512,7 @@ function AppShell() {
     if (pathname === "/pdf-editor") return "/pdf-editor";
     if (pathname === "/itinerary-plus") return "/itinerary-plus";
     if (pathname === "/map-plus") return "/map-plus";
+    if (pathname === "/train-map") return "/train-map";
     return "/";
   };
 
@@ -2856,6 +2858,9 @@ function AppShell() {
               <MapPlusPage isActive={activeRoute === "/map-plus"} />,
               { routeKey: "/map-plus", showFooter: false }
             )}
+          </Route>
+          <Route exact path="/train-map">
+            {renderPage(<TrainMapPage />, { routeKey: "/train-map", showFooter: false })}
           </Route>
           <Redirect to="/" />
         </IonRouterOutlet>
