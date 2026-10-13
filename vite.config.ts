@@ -55,7 +55,8 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks: {
-            "vendor-react": ["react", "react-dom"],
+            // Keep React in the main graph — a dedicated vendor-react chunk was
+            // emitting empty after Vite 6 / React 19 dedupe.
             "vendor-ionic": ["@ionic/react", "@ionic/react-router", "ionicons"],
             "vendor-leaflet": ["leaflet"],
             "vendor-supabase": ["@supabase/supabase-js"],

@@ -4,6 +4,13 @@ import { pencilOutline, checkmarkOutline, closeOutline, addOutline, trashOutline
 import type { TripProfile, PdfItineraryDay, PdfFlightLeg, TripHotel } from "../types";
 import { buildDefaultItineraryDays, buildDefaultFlightLegs, generateItineraryPlusPdf } from "../utils/generateImmigrationPdf";
 import { isKaohsiung } from "../lib/activeTrip";
+import { kaohsiungPlan } from "../data/kaohsiungItinerary";
+
+const buildKaohsiungDays = (): PdfItineraryDay[] =>
+  kaohsiungPlan.days.map((d) => ({ day: d.day, title: d.title, items: d.items.map((it) => ({ time: it.time, title: it.title })) }));
+const defaultDays = (): PdfItineraryDay[] => (isKaohsiung ? buildKaohsiungDays() : buildDefaultItineraryDays());
+const pickDays = (saved?: PdfItineraryDay[]): PdfItineraryDay[] =>
+  saved?.length && (!isKaohsiung || saved.some((d) => d.day >= 17 && d.day <= 21)) ? saved : defaultDays();
 
 interface ItineraryPlusTabProps {
   tripProfile: TripProfile | null;
@@ -85,7 +92,7 @@ const buildSavePayload = (current: TripProfile | null, itineraryDays: PdfItinera
 });
 
 export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdit }: ItineraryPlusTabProps) {
-  const [days, setDays] = useState<PdfItineraryDay[]>(() => (tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays()));
+  const [days, setDays] = useState<PdfItineraryDay[]>(() => (pickDays(tripProfile?.itineraryDays)));
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility);
@@ -98,22 +105,22 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
     });
   };
 
-  // Grid columns are built dynamically so hidden columns don't leave dead
-  // space, and Activities always spans from column 1 up through the last
-  // non-OOTD column (or the whole row, if no OOTD columns are shown at all).
+  // Grid columns are built dynamically so hidden columns don't leave dead space.
+  // Edit mode keeps Activities on its own full-width row under the field inputs.
   const EDIT_GRID_TEMPLATE = "1fr 1.8fr 0.9fr 1.3fr 1.3fr";
   const viewGridTemplateColumns = [
-    "1fr",
-    columnVisibility.destination ? "1.8fr" : null,
+    "minmax(11rem, 1.8fr)",
+    columnVisibility.destination ? "1.4fr" : null,
     columnVisibility.fees ? "0.9fr" : null,
     columnVisibility.ootdJessie ? "1.3fr" : null,
     columnVisibility.ootdAmor ? "1.3fr" : null,
   ].filter(Boolean).join(" ");
-  const viewNonOotdColumnCount = 1 + (columnVisibility.destination ? 1 : 0) + (columnVisibility.fees ? 1 : 0);
+  // View mode is a single row per item (time · title in col 1), so OOTD
+  // rowSpan is 1× the merge length — not 2× as in the old two-row layout.
 
   useEffect(() => {
     if (isEditing) return;
-    setDays(tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays());
+    setDays(pickDays(tripProfile?.itineraryDays));
   }, [tripProfile, isEditing]);
 
   const updateDayTitle = (dayIndex: number, value: string) => {
@@ -130,7 +137,7 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
 
   const handleStartEdit = () => setIsEditing(true);
   const handleCancel = () => {
-    setDays(tripProfile?.itineraryDays?.length ? tripProfile.itineraryDays : buildDefaultItineraryDays());
+    setDays(pickDays(tripProfile?.itineraryDays));
     setIsEditing(false);
   };
   const handleSave = async () => {
@@ -198,12 +205,9 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
 
           <div
             className="ja-itplus-grid"
-            style={{
-              gridTemplateColumns: isEditing ? EDIT_GRID_TEMPLATE : viewGridTemplateColumns,
-              ["--ja-itplus-activities-end" as any]: isEditing ? -1 : viewNonOotdColumnCount + 1,
-            }}
+            style={{ gridTemplateColumns: isEditing ? EDIT_GRID_TEMPLATE : viewGridTemplateColumns }}
           >
-            <div className="ja-itplus-grid-head">Time</div>
+            <div className="ja-itplus-grid-head">{isEditing ? "Time" : "Time / Activity"}</div>
             {(isEditing || columnVisibility.destination) && <div className="ja-itplus-grid-head">Destination</div>}
             {(isEditing || columnVisibility.fees) && <div className="ja-itplus-grid-head">Fees</div>}
             {(isEditing || columnVisibility.ootdJessie) && <div className="ja-itplus-grid-head">OOTD — Jessie</div>}
@@ -228,16 +232,19 @@ export default function ItineraryPlusTab({ tripProfile, onSave, isSaving, canEdi
                     </>
                   ) : (
                     <>
-                      <div className="ja-itplus-cell">{item.time || "—"}</div>
+                      <div className="ja-itplus-cell ja-itplus-time-title-cell">
+                        <span className="ja-itplus-summary-time">{item.time || "—"}</span>
+                        <span className="ja-itplus-summary-sep" aria-hidden="true"> · </span>
+                        <span className="ja-itplus-summary-title">{item.title || "—"}</span>
+                      </div>
                       {columnVisibility.destination && <div className="ja-itplus-cell">{item.destination || "—"}</div>}
                       {columnVisibility.fees && <div className="ja-itplus-cell">{item.fees || "—"}</div>}
                       {columnVisibility.ootdJessie && jessieSpans[itemIndex] > 0 && (
-                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdJessie) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${jessieSpans[itemIndex] * 2}` }}>{ootdDisplayValue(item.ootdJessie)}</div>
+                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdJessie) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${jessieSpans[itemIndex]}` }}>{ootdDisplayValue(item.ootdJessie)}</div>
                       )}
                       {columnVisibility.ootdAmor && amorSpans[itemIndex] > 0 && (
-                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdAmor) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${amorSpans[itemIndex] * 2}` }}>{ootdDisplayValue(item.ootdAmor)}</div>
+                        <div className={`ja-itplus-cell${ootdDisplayValue(item.ootdAmor) ? " ja-itplus-ootd-cell" : ""}`} style={{ gridRow: `span ${amorSpans[itemIndex]}` }}>{ootdDisplayValue(item.ootdAmor)}</div>
                       )}
-                      <div className="ja-itplus-cell-activities">{item.title || "—"}</div>
                     </>
                   )}
                 </React.Fragment>

@@ -1,0 +1,13 @@
+.kr-ride .kr-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .kr-ride .kr-grid { grid-template-columns: repeat(3, 1fr); } }
+.kr-card { background: var(--ja-card-bg, #fff); border: 1px solid var(--ja-line, #e7e5e4); border-radius: var(--ja-radius-md, 12px); padding: 14px 16px; box-shadow: var(--ja-shadow-sm); }
+.kr-card h4 { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 600; color: var(--ja-text, #292524); margin: 0 0 10px; }
+.kr-card h4.kr-sub { margin-top: 14px; }
+.kr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.kr-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; color: var(--ja-text, #292524); }
+.kr-list p { margin: 2px 0 0; color: var(--ja-text-secondary, #57534e); font-size: 0.8rem; line-height: 1.35; }
+.kr-dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 999px; margin-top: 5px; }
+.kr-ref { flex: 0 0 auto; min-width: 40px; text-align: center; color: #fff; font-weight: 700; font-size: 0.75rem; border-radius: 6px; padding: 2px 6px; margin-top: 1px; }
+.kr-muted { color: var(--ja-muted, #a8a29e); font-weight: 400; }
+.kr-foot { font-size: 0.75rem; margin: 12px 0 0; }
+.kr-mapbtn { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ja-line, #e7e5e4); background: #0B3530; color: #fff; border-radius: 999px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }

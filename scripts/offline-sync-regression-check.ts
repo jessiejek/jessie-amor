@@ -548,6 +548,149 @@ runCase("No duplicate notes, checklist, or diary ids remain after reconnect simu
   ensureUniqueIds("Diary reconnect", diaryCached.data.map((entry) => entry.id));
 });
 
+
+// --- Expense / receipt offline merge hardening (mirrors App.tsx mergeBootstrapItems) ---
+type ExpenseLike = {
+  id: string;
+  item: string;
+  syncStatus?: "synced" | "pending";
+  receiptPath?: string;
+  receiptUrl?: string;
+};
+
+const isPendingLocalExpense = (status?: "synced" | "pending") => status !== "synced";
+const isExpenseLocalReceiptUrl = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("data:"));
+const isExpenseLocalReceiptMarker = (receiptUrl?: string) => Boolean(receiptUrl?.startsWith("local-receipt:"));
+
+const mergeExpenseBootstrap = <T extends { id: string; syncStatus?: "synced" | "pending" }>(
+  localItems: T[],
+  remoteItems: T[],
+  syncedIds: string[] = [],
+  cacheDirty = false,
+) => {
+  const localById = new Map(localItems.map((item) => [item.id, item] as const));
+  const deletedIds = new Set(syncedIds.filter((id) => !localById.has(id)));
+  const merged: T[] = [];
+  const seen = new Set<string>();
+
+  for (const remoteItem of remoteItems) {
+    if (deletedIds.has(remoteItem.id)) continue;
+    const localItem = localById.get(remoteItem.id);
+    if (localItem && (cacheDirty || isPendingLocalExpense(localItem.syncStatus))) {
+      merged.push(localItem);
+      seen.add(localItem.id);
+      continue;
+    }
+    if (localItem) {
+      const localReceipt = localItem as unknown as { receiptPath?: string; receiptUrl?: string };
+      const remoteReceipt = remoteItem as unknown as { receiptPath?: string };
+      if (
+        (localReceipt.receiptPath && !remoteReceipt.receiptPath) ||
+        isExpenseLocalReceiptUrl(localReceipt.receiptUrl) ||
+        isExpenseLocalReceiptMarker(localReceipt.receiptUrl)
+      ) {
+        merged.push({
+          ...remoteItem,
+          receiptPath: localReceipt.receiptPath ?? remoteReceipt.receiptPath,
+          receiptUrl: localReceipt.receiptUrl,
+          syncStatus: "pending" as const,
+        });
+      } else {
+        merged.push(remoteItem);
+      }
+      seen.add(remoteItem.id);
+      continue;
+    }
+    merged.push(remoteItem);
+    seen.add(remoteItem.id);
+  }
+
+  for (const localItem of localItems) {
+    if (seen.has(localItem.id)) continue;
+    // Mirror App.tsx: pending local-only only. Empty-remote anti-wipe lives in bootstrap.
+    if (isPendingLocalExpense(localItem.syncStatus)) {
+      merged.push(localItem);
+    }
+  }
+
+  const hasLocalPending =
+    cacheDirty ||
+    Boolean(deletedIds.size) ||
+    localItems.some((item) => isPendingLocalExpense(item.syncStatus)) ||
+    merged.some((item) => isPendingLocalExpense(item.syncStatus));
+
+  return { merged, hasLocalPending };
+};
+
+runCase("Expense pending local row wins over remote on reconnect", () => {
+  const local: ExpenseLike[] = [
+    { id: "e1", item: "Night market tofu", syncStatus: "pending", receiptUrl: "data:image/jpeg;base64,abc" },
+  ];
+  const remote: ExpenseLike[] = [
+    { id: "e1", item: "Stale remote name", syncStatus: "synced" },
+  ];
+  const { merged, hasLocalPending } = mergeExpenseBootstrap(local, remote, ["e1"], false);
+  assert.equal(hasLocalPending, true);
+  assert.equal(merged[0]?.item, "Night market tofu");
+  assert.equal(merged[0]?.receiptUrl?.startsWith("data:"), true);
+});
+
+runCase("Expense dirty cache keeps local even if status was wrongly synced", () => {
+  const local: ExpenseLike[] = [
+    { id: "e2", item: "Offline edit", syncStatus: "synced", receiptUrl: "data:image/jpeg;base64,xyz" },
+  ];
+  const remote: ExpenseLike[] = [
+    { id: "e2", item: "Remote", syncStatus: "synced" },
+  ];
+  const { merged, hasLocalPending } = mergeExpenseBootstrap(local, remote, ["e2"], true);
+  assert.equal(hasLocalPending, true);
+  assert.equal(merged[0]?.item, "Offline edit");
+});
+
+runCase("Merge drops synced local-only on empty remote (bootstrap guards wipe)", () => {
+  const local: ExpenseLike[] = [
+    { id: "e3", item: "Cached lunch", syncStatus: "synced" },
+  ];
+  const { merged } = mergeExpenseBootstrap(local, [], ["e3"], false);
+  assert.equal(merged.length, 0);
+});
+
+runCase("Merge still keeps pending local-only on empty remote", () => {
+  const local: ExpenseLike[] = [
+    { id: "e3b", item: "Offline add", syncStatus: "pending" },
+  ];
+  const { merged, hasLocalPending } = mergeExpenseBootstrap(local, [], [], false);
+  assert.equal(merged.length, 1);
+  assert.equal(hasLocalPending, true);
+  assert.equal(merged[0]?.item, "Offline add");
+});
+
+runCase("Dirty cache does not resurrect synced local-only deleted remotely", () => {
+  const local: ExpenseLike[] = [
+    { id: "keep", item: "Offline edit", syncStatus: "pending" },
+    { id: "ghost", item: "Deleted elsewhere", syncStatus: "synced" },
+  ];
+  const remote: ExpenseLike[] = [
+    { id: "keep", item: "Stale remote", syncStatus: "synced" },
+  ];
+  const { merged } = mergeExpenseBootstrap(local, remote, ["keep", "ghost"], true);
+  assert.equal(merged.some((row) => row.id === "ghost"), false);
+  assert.equal(merged.find((row) => row.id === "keep")?.item, "Offline edit");
+});
+
+runCase("Local receipt data URL is rescued when remote path is still null", () => {
+  const local: ExpenseLike[] = [
+    { id: "e4", item: "With photo", syncStatus: "synced", receiptUrl: "data:image/jpeg;base64,qq" },
+  ];
+  const remote: ExpenseLike[] = [
+    { id: "e4", item: "With photo", syncStatus: "synced" },
+  ];
+  const { merged, hasLocalPending } = mergeExpenseBootstrap(local, remote, ["e4"], false);
+  assert.equal(hasLocalPending, true);
+  assert.equal(merged[0]?.syncStatus, "pending");
+  assert.equal(merged[0]?.receiptUrl?.startsWith("data:"), true);
+});
+
 console.log("Offline sync regression proof");
 for (const line of caseLogs) {
   console.log(`- ${line}`);

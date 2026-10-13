@@ -5,12 +5,19 @@ import {
   IonChip,
   IonButton,
   IonIcon,
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonContent,
 } from "@ionic/react";
-import { informationCircleOutline } from "ionicons/icons";
+import { cameraOutline, closeOutline, informationCircleOutline, mapOutline } from "ionicons/icons";
 import { Bus, Camera, Clock3, Train, Utensils, Bed, MapPin, Footprints, Shirt } from "lucide-react";
 import type { DaySectionData, TimelineItemData, TagVariant } from "../data/code1Itinerary";
 import { activeTrip } from "../lib/activeTrip";
 import RichText from "./RichText";
+import { boldTransit } from "../utils/boldTransit";
 
 interface DailyItineraryViewProps {
   days: DaySectionData[];
@@ -58,10 +65,16 @@ const getMobileDayHeadline = (day: DaySectionData) => splitDayTitle(day.title).d
 
 export default function DailyItineraryView({ days, onInfoClick, selectedMobileDay, onSelectedMobileDayChange }: DailyItineraryViewProps) {
   const [internalDay, setInternalDay] = useState<number>(days[0]?.day ?? 0);
+  const [mapModalDay, setMapModalDay] = useState<number | null>(null);
+  const [photoModalItem, setPhotoModalItem] = useState<TimelineItemData | null>(null);
   const activeMobileDay = selectedMobileDay ?? internalDay;
   const setActiveMobileDay = onSelectedMobileDayChange ?? setInternalDay;
   const selectedDay = useMemo(() => days.find((d) => d.day === activeMobileDay) ?? days[0] ?? null, [activeMobileDay, days]);
   const selectedDayIndex = selectedDay ? days.findIndex((d) => d.day === selectedDay.day) : -1;
+  const mapModalDayData = useMemo(
+    () => (mapModalDay == null ? null : days.find((d) => d.day === mapModalDay) ?? null),
+    [days, mapModalDay],
+  );
 
   const renderDayArticle = (day: DaySectionData, displayNum: number, mobileOnly = false) => (
     <article key={day.day} className={`ja-itinerary-article${mobileOnly ? " ja-itinerary-article-mobile" : " ja-itinerary-article-desktop"}`}>
@@ -72,6 +85,20 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
           <p className="ja-itinerary-day-meta"><span>{day.budgetLabel}</span></p>
         </div>
       </div>
+
+      {day.mapImage ? (
+        <div className="ja-day-map-controls">
+          <IonButton
+            fill="outline"
+            size="small"
+            className="ja-day-map-toggle"
+            onClick={() => setMapModalDay(day.day)}
+          >
+            <IonIcon icon={mapOutline} slot="start" />
+            Show map image
+          </IonButton>
+        </div>
+      ) : null}
 
       {day.outfitTip && (
         <div className="ja-outfit-tip">
@@ -129,20 +156,30 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                       </div>
                       <div className="ja-itinerary-item-content">
                         <h4 className="ja-itinerary-item-title">
-                          <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{item.title}</a>
+                          <a href={getMapsUrl(item.mapQuery)} target="_blank" rel="noopener noreferrer" className="ja-itinerary-item-link" aria-label={`Open ${item.title} in Google Maps`}>{boldTransit(item.title)}</a>
                         </h4>
-                        <p className="ja-itinerary-item-desc"><RichText segments={item.description} /></p>
+                        {item.bullets?.length ? (
+                          <ul className="ja-itinerary-item-bullets">
+                            {item.bullets.map((bullet, bi) => (
+                              <li key={bi} className="ja-itinerary-item-bullet">
+                                <RichText segments={bullet} />
+                              </li>
+                            ))}
+                          </ul>
+                        ) : item.description.length ? (
+                          <p className="ja-itinerary-item-desc"><RichText segments={item.description} /></p>
+                        ) : null}
                         {item.warnings?.length ? (
                           <div className="ja-item-warnings">
                             {item.warnings.map((warning, wi) => (
-                              <div key={wi} className="ja-item-warning-badge">{warning}</div>
+                              <div key={wi} className="ja-item-warning-badge">{boldTransit(warning)}</div>
                             ))}
                           </div>
                         ) : null}
                         {item.infoNotes?.length ? (
                           <div className="ja-item-info-notes">
                             {item.infoNotes.map((note, ni) => (
-                              <span key={ni} className="ja-item-info-note">{note}</span>
+                              <span key={ni} className="ja-item-info-note">{boldTransit(note)}</span>
                             ))}
                           </div>
                         ) : null}
@@ -163,11 +200,24 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
                           <span className="ja-itinerary-cost-value">{item.cost}</span>
                         </div>
                       ) : <div />}
-                      {onInfoClick ? (
-                        <IonButton fill="clear" size="small" onClick={() => onInfoClick(item)} className="ja-itinerary-action-btn">
-                          <IonIcon icon={informationCircleOutline} slot="start" />Guide
-                        </IonButton>
-                      ) : null}
+                      <div className="ja-itinerary-item-actions">
+                        {item.image ? (
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            onClick={() => setPhotoModalItem(item)}
+                            className="ja-itinerary-action-btn"
+                            aria-label={`View photo of ${item.title}`}
+                          >
+                            <IonIcon icon={cameraOutline} slot="start" />Photo
+                          </IonButton>
+                        ) : null}
+                        {onInfoClick ? (
+                          <IonButton fill="clear" size="small" onClick={() => onInfoClick(item)} className="ja-itinerary-action-btn">
+                            <IonIcon icon={informationCircleOutline} slot="start" />Guide
+                          </IonButton>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   {item.alternates?.length ? (
@@ -237,6 +287,61 @@ export default function DailyItineraryView({ days, onInfoClick, selectedMobileDa
 
       <div className="ja-itinerary-mobile-articles">{selectedDay ? renderDayArticle(selectedDay, selectedDayIndex, true) : null}</div>
       <div className="ja-itinerary-desktop-articles">{days.map((day, i) => renderDayArticle(day, i))}</div>
+
+      <IonModal
+        isOpen={mapModalDay != null && Boolean(mapModalDayData?.mapImage)}
+        onDidDismiss={() => setMapModalDay(null)}
+        className="ja-day-map-modal"
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>{mapModalDayData ? `Day map · ${mapModalDayData.title}` : "Day map"}</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setMapModalDay(null)} aria-label="Close map">
+                <IonIcon icon={closeOutline} slot="icon-only" />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ja-day-map-modal-content">
+          {mapModalDayData?.mapImage ? (
+            <img
+              src={mapModalDayData.mapImage}
+              alt={`Map for ${mapModalDayData.title}`}
+              className="ja-day-map-img ja-day-map-img-modal"
+            />
+          ) : null}
+        </IonContent>
+      </IonModal>
+
+      <IonModal
+        isOpen={Boolean(photoModalItem?.image)}
+        onDidDismiss={() => setPhotoModalItem(null)}
+        className="ja-item-photo-modal"
+      >
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>{photoModalItem?.title ?? "Photo"}</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setPhotoModalItem(null)} aria-label="Close photo">
+                <IonIcon icon={closeOutline} slot="icon-only" />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ja-item-photo-modal-content">
+          {photoModalItem?.image ? (
+            <figure className="ja-item-photo-figure">
+              <img
+                src={photoModalItem.image}
+                alt={photoModalItem.title}
+                className="ja-item-photo-img"
+              />
+              <figcaption className="ja-item-photo-caption">{photoModalItem.title}</figcaption>
+            </figure>
+          ) : null}
+        </IonContent>
+      </IonModal>
     </section>
   );
 }

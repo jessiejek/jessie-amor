@@ -7,6 +7,7 @@ import {
 import { closeOutline } from "ionicons/icons";
 import { MapPinned, Route, ShoppingBag, Utensils, Info } from "lucide-react";
 import type { DestinationGuide } from "../data/code1Itinerary";
+import { boldTransit } from "../utils/boldTransit";
 
 interface DestinationInfoModalProps { guide: DestinationGuide | null; onClose: () => void; }
 
@@ -28,18 +29,23 @@ export default function DestinationInfoModal({ guide, onClose }: DestinationInfo
       {guide && (
         <IonContent style={{ "--background": "#fafaf9" } as React.CSSProperties}>
           <div className="ja-dest-content">
-            <IonCard className="ja-dest-summary-card"><IonCardContent><p className="ja-dest-text">{guide.summary}</p></IonCardContent></IonCard>
+            {guide.image ? (
+              <div className="ja-dest-hero-image">
+                <img src={guide.image} alt={guide.title} loading="lazy" />
+              </div>
+            ) : null}
+            <IonCard className="ja-dest-summary-card"><IonCardContent><p className="ja-dest-text">{boldTransit(guide.summary)}</p></IonCardContent></IonCard>
 
             {(guide.service || guide.ticket || guide.whereToBuy?.length) && (
               <div className="ja-dest-info-grid">
                 {guide.service ? (
-                  <IonCard className="ja-dest-info-card"><IonCardHeader className="ja-dest-info-hdr"><IonCardSubtitle className="ja-dest-info-label">Service</IonCardSubtitle></IonCardHeader><IonCardContent className="ja-dest-info-body"><p className="ja-dest-info-value">{guide.service}</p></IonCardContent></IonCard>
+                  <IonCard className="ja-dest-info-card"><IonCardHeader className="ja-dest-info-hdr"><IonCardSubtitle className="ja-dest-info-label">Service</IonCardSubtitle></IonCardHeader><IonCardContent className="ja-dest-info-body"><p className="ja-dest-info-value">{boldTransit(guide.service)}</p></IonCardContent></IonCard>
                 ) : null}
                 {guide.ticket ? (
                   <IonCard className="ja-dest-info-card"><IonCardHeader className="ja-dest-info-hdr"><IonCardSubtitle className="ja-dest-info-label">Ticket</IonCardSubtitle></IonCardHeader><IonCardContent className="ja-dest-info-body"><p className="ja-dest-info-value">{guide.ticket}</p></IonCardContent></IonCard>
                 ) : null}
                 {guide.whereToBuy?.length ? (
-                  <IonCard className="ja-dest-info-card"><IonCardHeader className="ja-dest-info-hdr"><IonCardSubtitle className="ja-dest-info-label">Where to buy</IonCardSubtitle></IonCardHeader><IonCardContent className="ja-dest-info-body"><ul className="ja-dest-buy-list">{guide.whereToBuy.map((p) => <li key={p}>{p}</li>)}</ul></IonCardContent></IonCard>
+                  <IonCard className="ja-dest-info-card"><IonCardHeader className="ja-dest-info-hdr"><IonCardSubtitle className="ja-dest-info-label">Where to buy</IonCardSubtitle></IonCardHeader><IonCardContent className="ja-dest-info-body"><ul className="ja-dest-buy-list">{guide.whereToBuy.map((p) => <li key={p}>{boldTransit(p)}</li>)}</ul></IonCardContent></IonCard>
                 ) : null}
               </div>
             )}
@@ -85,7 +91,7 @@ export default function DestinationInfoModal({ guide, onClose }: DestinationInfo
                 {guide.steps.map((step, index) => (
                   <IonItem key={step} className="ja-dest-step-item">
                     <div slot="start" className="ja-dest-step-num">{index + 1}</div>
-                    <IonLabel className="ja-dest-step-text">{step}</IonLabel>
+                    <IonLabel className="ja-dest-step-text">{boldTransit(step)}</IonLabel>
                   </IonItem>
                 ))}
               </IonList>
@@ -95,7 +101,7 @@ export default function DestinationInfoModal({ guide, onClose }: DestinationInfo
               <div className="ja-dest-section-title">Remember</div>
               <IonList className="ja-dest-list">
                 {guide.tips.map((tip) => (
-                  <IonItem key={tip} className="ja-dest-tip-item"><IonLabel className="ja-dest-step-text">{tip}</IonLabel></IonItem>
+                  <IonItem key={tip} className="ja-dest-tip-item"><IonLabel className="ja-dest-step-text">{boldTransit(tip)}</IonLabel></IonItem>
                 ))}
               </IonList>
             </div>
@@ -111,7 +117,7 @@ function GuideCard({ title, icon, items, fullWidth = false }: { title: string; i
     <IonCard className={`ja-dest-guide-card${fullWidth ? " ja-dest-guide-card-wide" : ""}`}>
       <IonCardContent>
         <div className="ja-dest-guide-header"><span className="ja-dest-guide-icon">{icon}</span>{title}</div>
-        <ul className="ja-dest-guide-list">{items.map((item) => <li key={item} className="ja-dest-guide-row"><span className="ja-dest-guide-dot" /><span>{item}</span></li>)}</ul>
+        <ul className="ja-dest-guide-list">{items.map((item) => <li key={item} className="ja-dest-guide-row"><span className="ja-dest-guide-dot" /><span>{boldTransit(item)}</span></li>)}</ul>
       </IonCardContent>
     </IonCard>
   );
