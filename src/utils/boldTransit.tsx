@@ -38,9 +38,8 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Split text into plain / transit chunks (transit = should be bold). */
-export function splitTransit(text: string): Array<{ bold: boolean; value: string }> {
-  if (!text) return [];
+/** Regex-only split (no ** markers). */
+function splitTransitPlain(text: string): Array<{ bold: boolean; value: string }> {
   const out: Array<{ bold: boolean; value: string }> = [];
   let last = 0;
   TRANSIT_RE.lastIndex = 0;
@@ -54,6 +53,27 @@ export function splitTransit(text: string): Array<{ bold: boolean; value: string
   }
   if (last < text.length) out.push({ bold: false, value: text.slice(last) });
   return out;
+}
+
+/** Split text into plain / transit chunks (transit = should be bold). **x** markers are bold and never shown raw. */
+export function splitTransit(text: string): Array<{ bold: boolean; value: string }> {
+  if (!text) return [];
+  const out: Array<{ bold: boolean; value: string }> = [];
+  const pieces = text.split("**");
+  pieces.forEach((piece, i) => {
+    if (!piece) return;
+    // odd index = inside a ** pair (only when the pair is closed)
+    const inside = i % 2 === 1 && i < pieces.length - 1;
+    if (inside) out.push({ bold: true, value: piece });
+    else out.push(...splitTransitPlain(i % 2 === 1 ? piece : piece));
+  });
+  // merge neighbours with the same weight
+  return out.reduce<Array<{ bold: boolean; value: string }>>((acc, p) => {
+    const prev = acc[acc.length - 1];
+    if (prev && prev.bold === p.bold) prev.value += p.value;
+    else acc.push({ ...p });
+    return acc;
+  }, []);
 }
 
 /** React nodes with transit names wrapped in <strong>. */
