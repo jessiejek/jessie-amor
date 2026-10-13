@@ -1,5 +1,5 @@
 // Kaohsiung, Taiwan — October 17–21, 2026 (Day 0–4). Hub Hotel Yisin.
-// Rule: Day 1–3 starts at Shijia (R7 · Red Line); Sanduo (R8) only Day 0 arrival + Day 4 airport.
+// Rule: Day 1–3 starts at Shijia (R7 · Red Line). With bags (Day 0 arrival, Day 4 airport) = taxi only.
 // Day 2 NCCU non-negotiable. Food: 1 main + 2–3 sides shared. Hotel breakfast free.
 
 import type {
@@ -131,26 +131,17 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "After landing",
-        title: `2. **MRT Airport (R4 · Red Line)** → ${R8}`,
-        category: "train",
-        bullets: [[text("**Red Line** northbound (toward Gangshan) ~15 min · ×2 NT$90")]],
-        tags: [tag("Train / MRT / LRT", "train")],
-        mapQuery: "Sanduo Shopping District Station Kaohsiung",
-        guideKey: "kh-airport-arrival",
-        infoNotes: ["Sanduo only because of bags (short taxi to Hub). Every other day starts at **Shijia (R7 · Red Line)**. Uber ONLY if too tired — otherwise walk / **MRT** / **Light Rail** / **bus** / **ferry**."],
-      }),
-      item({
-        time: "~10 min",
-        title: "3. **Taxi** Sanduo → Hub Hotel Yisin (with bags)",
+        title: "2. **Taxi** Airport → Hub Hotel Yisin (with bags)",
         category: "hotel",
-        bullets: [[text("With bags: **taxi** from **Sanduo Shopping District (R8 · Red Line)** exit to "), place(HUB, "hotel", HUB), text(" (一心二路15號) · ~5 min · ~NT$100–150")], [text("Do NOT walk with luggage. Backup: short **city bus** toward 一心路 if you prefer.")]],
+        bullets: [[text("Go out of arrivals and follow the **Taxi** signs. Get in the taxi line.")], [text("Show the driver: "), place(HUB, "hotel", HUB), text(" · 一心二路15號 · about 15–20 min · about NT$250–350")], [text("No trains with bags.")]],
         tags: [tag("Hotel / Taxi", "hotel")],
         mapQuery: HUB,
         guideKey: "kh-hub-hotel-checkin",
+        infoNotes: ["Every other day starts at **Shijia (R7 · Red Line)**. Uber ONLY if too tired. Otherwise walk, **MRT**, **Light Rail**, **bus** or **ferry**."],
       }),
       item({
         time: "Check-in",
-        title: "4. Check in · hotel pantry if hungry",
+        title: "3. Check in · hotel pantry if hungry",
         category: "hotel",
         bullets: [[text("Hotel prepaid (NT$0)")]],
         tags: [tag("Hotel / Taxi", "hotel")],
@@ -159,7 +150,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Dinner",
-        title: "5. Dinner — **Liu Jia Beef Noodle (劉家牛肉麵)** near Hub",
+        title: "4. Dinner — **Liu Jia Beef Noodle (劉家牛肉麵)** near Hub",
         category: "food",
         bullets: [[text("Go to **Liu Jia Beef Noodle (劉家牛肉麵)** — beef noodle shop near Sanduo / Hub Yisin (一心路). Short walk after you drop bags. Show the shop name (劉家牛肉麵) to staff/Google Maps.")], [text("Order: 1 big beef noodle bowl + side dishes, shared · NT$400")], [text("If closed/too tired: ask Hub desk for a sit-down spot on 一心路")]],
         tags: [tag("Food", "food")],
@@ -168,7 +159,7 @@ const days: DaySectionData[] = [
       }),
       item({
         time: "Night",
-        title: "6. Sleep",
+        title: "5. Sleep",
         category: "hotel",
         bullets: [[text("No coffee, no bought water today")]],
         tags: [tag("Hotel / Taxi", "hotel")],
