@@ -42,6 +42,9 @@ import {
 } from "ionicons/icons";
 import { installKeyboardClass } from "./utils/keyboardClass";
 import type { Session } from "@supabase/supabase-js";
+//JJQR - AI (Oct 16, 2026)
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+//JJQR - END
 import {
   buildGuideForItem,
   selectedItinerary,
@@ -484,6 +487,67 @@ const mergeBootstrapItems = <T extends { id: string; syncStatus?: SyncStatus }>(
 
 const diaryCacheKey = makeOfflineCacheKey(tripKey, "diary");
 
+//JJQR - AI (Oct 16, 2026)
+const LAST_USER_STORAGE_KEY = "ja-last-user";
+type LastUser = { userId: string; email: string };
+
+const readLastUser = (): LastUser | null => {
+  try {
+    const raw = localStorage.getItem(LAST_USER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastUser>;
+    if (typeof parsed.userId !== "string" || parsed.userId.length === 0) return null;
+    return { userId: parsed.userId, email: typeof parsed.email === "string" ? parsed.email : "" };
+  } catch {
+    return null;
+  }
+};
+
+const writeLastUser = (user: LastUser) => {
+  try {
+    localStorage.setItem(LAST_USER_STORAGE_KEY, JSON.stringify(user));
+  } catch {
+    // ignore
+  }
+};
+
+const clearLastUser = () => {
+  try {
+    localStorage.removeItem(LAST_USER_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+};
+
+const makeAdminCacheKey = (userId: string) => `ja-admin:${userId}`;
+
+const readCachedAdmin = (userId: string): boolean | null => {
+  try {
+    const raw = localStorage.getItem(makeAdminCacheKey(userId));
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedAdmin = (userId: string, isAdmin: boolean) => {
+  try {
+    localStorage.setItem(makeAdminCacheKey(userId), isAdmin ? "true" : "false");
+  } catch {
+    // ignore
+  }
+};
+
+const clearCachedAdmin = (userId: string) => {
+  try {
+    localStorage.removeItem(makeAdminCacheKey(userId));
+  } catch {
+    // ignore
+  }
+};
+//JJQR - END
 
 function AppShell() {
   const itinerary = selectedItinerary;
@@ -520,10 +584,19 @@ function AppShell() {
   const location = useLocation();
   const activeRoute = routeFromPath(location.pathname);
   const [session, setSession] = useState<Session | null>(null);
+  //JJQR - AI (Oct 16, 2026)
+  const [lastUser, setLastUser] = useState<LastUser | null>(() => readLastUser());
+  //JJQR - END
   const [authReady, setAuthReady] = useState<boolean>(!supabase);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string>("");
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  //JJQR - AI (Oct 16, 2026)
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const remembered = readLastUser();
+    if (remembered) return readCachedAdmin(remembered.userId) === true;
+    return false;
+  });
+  //JJQR - END
   const [showLiveSpends, setShowLiveSpends] = useState<boolean>(false);
   const [selectedHomeDay, setSelectedHomeDay] = useState<number>(selectedItinerary.days[0]?.day ?? 0);
   const [selectedGuide, setSelectedGuide] = useState<DestinationGuide | null>(null);
@@ -586,19 +659,33 @@ function AppShell() {
   const checklistSnapshotOwnerRef = useRef<string>("");
   const diarySnapshotOwnerRef = useRef<string>("");
 
-  const currentUser: CurrentUserInfo | null = session?.user
-    ? {
-        userId: session.user.id,
-        email: session.user.email ?? "",
-        isAdmin,
-      }
-    : null;
-  const currentSavedBy = currentUser
-    ? {
-        userId: currentUser.userId,
-        email: currentUser.email,
-      }
-    : null;
+  //JJQR - AI (Oct 16, 2026)
+  const fallbackUser = !session && lastUser ? lastUser : null;
+  const effectiveUserId = session?.user?.id ?? fallbackUser?.userId ?? null;
+  const effectiveUserEmail = session?.user ? (session.user.email ?? "") : (fallbackUser?.email ?? "");
+  const currentUser: CurrentUserInfo | null = React.useMemo(
+    () =>
+      effectiveUserId
+        ? {
+            userId: effectiveUserId,
+            email: effectiveUserEmail,
+            isAdmin,
+          }
+        : null,
+    [effectiveUserId, effectiveUserEmail, isAdmin],
+  );
+  const currentSavedBy = React.useMemo(
+    () =>
+      currentUser
+        ? {
+            userId: currentUser.userId,
+            email: currentUser.email,
+          }
+        : null,
+    [currentUser],
+  );
+  const canEditTrip = Boolean(session) || (!isOnline && Boolean(fallbackUser));
+  //JJQR - END
   const persistExpenseCache = (nextExpenses: Expense[], syncedSignature: string, dirty: boolean, syncedIds: string[] = nextExpenses.map((expense) => expense.id)) => {
     const cachedExpenses = dehydrateExpenseReceipts(nextExpenses);
     const wrote = writeCachedDataset(expenseCacheKey, {
@@ -697,10 +784,16 @@ function AppShell() {
 
     supabase.auth
       .getSession()
-      .then(({ data }) => {
+      //JJQR - AI (Oct 16, 2026)
+      .then(({ data, error }) => {
         if (!mounted) return;
         void supabase.realtime.setAuth(data.session?.access_token ?? "");
         setSession(data.session);
+        if (!data.session && (!error || !isAuthRetryableFetchError(error))) {
+          clearLastUser();
+          setLastUser(null);
+        }
+        //JJQR - END
         setAuthReady(true);
       })
       .catch(() => {
@@ -708,10 +801,16 @@ function AppShell() {
         setAuthReady(true);
       });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    //JJQR - AI (Oct 16, 2026)
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       void supabase.realtime.setAuth(nextSession?.access_token ?? "");
+      if (event === "SIGNED_OUT") {
+        clearLastUser();
+        setLastUser(null);
+      }
       setSession(nextSession);
     });
+    //JJQR - END
 
     return () => {
       mounted = false;
@@ -719,11 +818,29 @@ function AppShell() {
     };
   }, []);
 
+  //JJQR - AI (Oct 16, 2026)
   useEffect(() => {
-    if (!supabase || !session?.user) {
+    if (!session?.user) return;
+    const user: LastUser = { userId: session.user.id, email: session.user.email ?? "" };
+    writeLastUser(user);
+    setLastUser((prev) => {
+      if (prev?.userId === user.userId && prev?.email === user.email) return prev;
+      return user;
+    });
+  }, [session?.user?.id, session?.user?.email]);
+  //JJQR - END
+
+  useEffect(() => {
+    //JJQR - AI (Oct 16, 2026)
+    const profileUserId = session?.user?.id ?? fallbackUser?.userId ?? null;
+    if (!profileUserId) {
       setIsAdmin(false);
       return;
     }
+    const cachedAdmin = readCachedAdmin(profileUserId);
+    setIsAdmin(cachedAdmin ?? false);
+    if (!supabase || !session?.user || !isOnline) return;
+    //JJQR - END
 
     let cancelled = false;
 
@@ -738,7 +855,8 @@ function AppShell() {
 
       if (error) {
         console.warn("Supabase profile load failed:", error.message);
-        setIsAdmin(false);
+        //JJQR - AI (Oct 16, 2026) — keep cached admin on fetch error
+        //JJQR - END
         return;
       }
 
@@ -746,11 +864,20 @@ function AppShell() {
         setIsAdmin(false);
         setAuthError("Access to this trip has been revoked. Contact the trip owner if this is a mistake.");
         setShowAuthModal(true);
+        //JJQR - AI (Oct 16, 2026)
+        clearCachedAdmin(profileUserId);
+        clearLastUser();
+        setLastUser(null);
+        //JJQR - END
         void supabase.auth.signOut();
         return;
       }
 
-      setIsAdmin(Boolean(data?.is_admin));
+      //JJQR - AI (Oct 16, 2026)
+      const nextAdmin = Boolean(data?.is_admin);
+      setIsAdmin(nextAdmin);
+      writeCachedAdmin(profileUserId, nextAdmin);
+      //JJQR - END
     };
 
     void loadProfile();
@@ -758,7 +885,9 @@ function AppShell() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+    //JJQR - AI (Oct 16, 2026)
+  }, [session?.user?.id, fallbackUser?.userId, isOnline]);
+  //JJQR - END
 
   useEffect(() => {
     if (!supabase || !authReady) {
@@ -1428,6 +1557,10 @@ function AppShell() {
 
   useEffect(() => {
     if (!expensesLoaded) return;
+    //JJQR - AI (Oct 16, 2026)
+    if (!currentUser) return;
+    const syncUser = currentUser;
+    //JJQR - END
 
     const managedExpenses = expenses.filter((expense) => {
       if (!currentUser) return false;
@@ -1438,7 +1571,10 @@ function AppShell() {
     const payload = managedExpenses.map((expense) => expenseToRow(expense));
     const currentSignature = expenseSignature(managedExpenses);
     const currentIds = managedExpenses.map((expense) => expense.id);
-    const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id));
+    //JJQR - AI (Oct 16, 2026)
+    const allExpenseIds = new Set(expenses.map((expense) => expense.id));
+    const removedIds = expenseIdsRef.current.filter((id) => !currentIds.includes(id) && !allExpenseIds.has(id));
+    //JJQR - END
     const hasPendingLocalChanges =
       currentSignature !== expenseSignatureRef.current || removedIds.length > 0 || expenseDirtyRef.current;
 
@@ -1457,6 +1593,9 @@ function AppShell() {
     }
 
     if (expenseSyncInFlightRef.current) {
+      //JJQR - AI (Oct 16, 2026)
+      saveExpenseSnapshot(expenses, expenseSignatureRef.current, true, expenseIdsRef.current);
+      //JJQR - END
       expenseSyncQueuedRef.current = true;
       return;
     }
@@ -1494,10 +1633,11 @@ function AppShell() {
         }
 
         if (requestRemovedIds.length > 0) {
-          const { error: deleteError } = await supabase
-            .from(supabaseExpenseTable)
-            .delete()
-            .in("id", requestRemovedIds);
+          //JJQR - AI (Oct 16, 2026)
+          let expenseDeleteQuery = supabase.from(supabaseExpenseTable).delete().in("id", requestRemovedIds);
+          if (!syncUser.isAdmin) expenseDeleteQuery = expenseDeleteQuery.eq("saved_by_user_id", syncUser.userId);
+          const { data: deletedExpenseRows, error: deleteError } = await expenseDeleteQuery.select("id");
+          //JJQR - END
 
           if (deleteError) {
             console.warn("Supabase expense delete failed:", deleteError.message);
@@ -1505,9 +1645,12 @@ function AppShell() {
           }
 
           // Remove the orphaned receipt photos from Storage too.
-          const removedReceiptPaths = requestRemovedIds
+          //JJQR - AI (Oct 16, 2026)
+          const deletedExpenseIds = (deletedExpenseRows ?? []).map((row) => String((row as { id: string }).id));
+          const removedReceiptPaths = deletedExpenseIds
             .map((id) => expenseReceiptPathsRef.current[id])
             .filter((value): value is string => Boolean(value));
+          //JJQR - END
           if (removedReceiptPaths.length > 0) {
             const { error: receiptDeleteError } = await supabase.storage
               .from(supabaseReceiptBucket)
@@ -1582,7 +1725,8 @@ function AppShell() {
 
     return () => {
       window.clearTimeout(timeout);
-      expenseSyncInFlightRef.current = false;
+      //JJQR - AI (Oct 16, 2026) — do not clear expenseSyncInFlightRef here; finally block owns it
+      //JJQR - END
     };
   }, [expenses, expensesLoaded, authReady, session, isOnline, currentUser, expenseSyncNonce]);
 
@@ -1682,6 +1826,9 @@ function AppShell() {
 
   useEffect(() => {
     if (!checklistLoaded) return;
+    //JJQR - AI (Oct 16, 2026)
+    if (!currentUser) return;
+    //JJQR - END
 
     const managedChecklist = checklist.filter((item) => {
       if (!currentUser) return false;
@@ -1690,7 +1837,10 @@ function AppShell() {
     });
     const currentSignature = checklistSignature(managedChecklist);
     const currentIds = managedChecklist.map((item) => item.id);
-    const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id));
+    //JJQR - AI (Oct 16, 2026)
+    const allChecklistIds = new Set(checklist.map((item) => item.id));
+    const removedIds = checklistIdsRef.current.filter((id) => !currentIds.includes(id) && !allChecklistIds.has(id));
+    //JJQR - END
     const hasPendingLocalChanges = currentSignature !== checklistSignatureRef.current || removedIds.length > 0 || checklistDirtyRef.current;
 
     if (!hasPendingLocalChanges) return;
@@ -1741,10 +1891,11 @@ function AppShell() {
         }
 
         if (requestRemovedIds.length > 0) {
-          const { error: deleteError } = await supabase
-            .from(supabaseChecklistTable)
-            .delete()
-            .in("id", requestRemovedIds);
+          //JJQR - AI (Oct 16, 2026)
+          let checklistDeleteQuery = supabase.from(supabaseChecklistTable).delete().in("id", requestRemovedIds);
+          if (!currentUser.isAdmin) checklistDeleteQuery = checklistDeleteQuery.eq("saved_by_user_id", currentUser.userId);
+          const { error: deleteError } = await checklistDeleteQuery;
+          //JJQR - END
 
           if (deleteError) {
             // dirty state persisted before return
@@ -1908,6 +2059,10 @@ function AppShell() {
         diaryIdsRef.current = managedIds;
       }
     }
+    //JJQR - AI (Oct 16, 2026)
+    if (!currentUser) return;
+    const syncUser = currentUser;
+    //JJQR - END
 
     const managedDiaryEntries = diaryEntries.filter((entry) => {
       if (!currentUser) return false;
@@ -1916,7 +2071,10 @@ function AppShell() {
     });
     const currentSignature = diarySignature(managedDiaryEntries);
     const currentIds = managedDiaryEntries.map((entry) => entry.id);
-    const removedIds = diaryIdsRef.current.filter((id) => !currentIds.includes(id));
+    //JJQR - AI (Oct 16, 2026)
+    const allDiaryIds = new Set(diaryEntries.map((entry) => entry.id));
+    const removedIds = diaryIdsRef.current.filter((id) => !currentIds.includes(id) && !allDiaryIds.has(id));
+    //JJQR - END
     const pendingPhotoSignature = managedDiaryEntries
       .filter((entry) => entry.photoUrl?.startsWith("data:"))
       .map((entry) => `${entry.id}:${hashString(entry.photoUrl ?? "")}:${entry.photoPath ?? ""}`)
@@ -2078,23 +2236,33 @@ function AppShell() {
         }
 
         const requestRemovedIds = removedIds.slice();
+        //JJQR - AI (Oct 16, 2026)
+        let deletedDiaryIds: string[] = [];
+        //JJQR - END
 
         if (requestRemovedIds.length > 0) {
-          const { error: deleteError } = await supabase
-            .from(supabaseDiaryTable)
-            .delete()
-            .in("id", requestRemovedIds);
+          //JJQR - AI (Oct 16, 2026)
+          let diaryDeleteQuery = supabase.from(supabaseDiaryTable).delete().in("id", requestRemovedIds);
+          if (!syncUser.isAdmin) diaryDeleteQuery = diaryDeleteQuery.eq("saved_by_user_id", syncUser.userId);
+          const { data: deletedDiaryRows, error: deleteError } = await diaryDeleteQuery.select("id");
+          //JJQR - END
 
           if (deleteError) {
             // dirty state persisted before return
             console.warn("Supabase diary delete failed:", deleteError.message);
             return;
           }
+
+          //JJQR - AI (Oct 16, 2026)
+          deletedDiaryIds = (deletedDiaryRows ?? []).map((row) => String((row as { id: string }).id));
+          //JJQR - END
         }
 
-        const removedPhotoPaths = requestRemovedIds
+        //JJQR - AI (Oct 16, 2026)
+        const removedPhotoPaths = deletedDiaryIds
           .map((id) => diarySyncedEntriesRef.current[id]?.photoPath)
           .filter((value): value is string => Boolean(value));
+        //JJQR - END
 
         if (removedPhotoPaths.length > 0) {
           const { error: photoDeleteError } = await supabase.storage.from(supabaseDiaryBucket).remove(removedPhotoPaths);
@@ -2336,6 +2504,10 @@ function AppShell() {
 
   const handleSignOut = async () => {
     if (!supabase) return;
+    //JJQR - AI (Oct 16, 2026)
+    clearLastUser();
+    setLastUser(null);
+    //JJQR - END
     setAuthError("");
     setUserSettings(null);
     setSettingsLoaded(false);
@@ -2752,7 +2924,9 @@ function AppShell() {
                 setExpenses={setExpenses}
                 isSupabaseConnected={Boolean(supabase && session)}
                 isOnline={isOnline}
-                canEdit={Boolean(session)}
+                //JJQR - AI (Oct 16, 2026)
+                canEdit={canEditTrip}
+                //JJQR - END
                 currentUser={currentUser}
                 exchangeRates={exchangeRates}
                 budgetCapPhp={budgetCapPhp}
@@ -2783,7 +2957,9 @@ function AppShell() {
                 checklist={checklist}
                 setChecklist={setChecklist}
                 isOnline={isOnline}
-                canEdit={Boolean(session)}
+                //JJQR - AI (Oct 16, 2026)
+                canEdit={canEditTrip}
+                //JJQR - END
                 currentUser={currentUser}
               />,
               { routeKey: "/notes" }
@@ -2795,7 +2971,9 @@ function AppShell() {
                 diaryEntries={diaryEntries}
                 setDiaryEntries={setDiaryEntries}
                 isOnline={isOnline}
-                canEdit={Boolean(session)}
+                //JJQR - AI (Oct 16, 2026)
+                canEdit={canEditTrip}
+                //JJQR - END
                 currentUser={currentUser}
                 onRetryPhotoUpload={() => {
                   diaryPhotoRetryBlockRef.current = "";

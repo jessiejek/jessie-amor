@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { exchangeRates as fallbackRates } from "../data/itinerary";
+//JJQR - AI (Oct 16, 2026)
+import { isKaohsiung } from "./activeTrip";
+//JJQR - END
 
 export type ExchangeRates = {
   rates: Record<string, number>;
@@ -9,7 +12,9 @@ export type ExchangeRates = {
   source: "live" | "cached" | "fallback";
 };
 
-const CACHE_KEY = "ja-exchange-rates";
+//JJQR - AI (Oct 16, 2026)
+const CACHE_KEY = isKaohsiung ? "ja-exchange-rates:kaohsiung" : "ja-exchange-rates";
+//JJQR - END
 
 // Currencies our upstream (Frankfurter / ECB) does not publish. We keep an
 // approximate static rate so conversions still work instead of showing "N/A".
@@ -19,6 +24,9 @@ const STATIC_RATES: Record<string, number> = {
 
 const buildRatesSnapshot = (rates: Record<string, number>, source: ExchangeRates["source"], updatedAt?: string): ExchangeRates => {
   const merged = { ...STATIC_RATES, ...rates };
+  //JJQR - AI (Oct 16, 2026)
+  if (isKaohsiung && merged.TWD) merged.PHP = merged.TWD * fallbackRates.twdToPhp;
+  //JJQR - END
   return {
     rates: merged,
     php: merged.PHP ?? fallbackRates.php,

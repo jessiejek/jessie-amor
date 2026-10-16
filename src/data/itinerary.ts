@@ -4,6 +4,9 @@ export const exchangeRates = {
   php: 15.1449, // 1 RM = 15.1449 PHP
   sgd: 0.31601, // 1 RM = 0.31601 SGD
   twd: 7.61, // 1 RM ≈ 7.61 TWD — calibrated so RM→PHP→TWD cross-rate lands near the real 1 TWD ≈ 1.98-2.00 PHP rate (ECB/Frankfurter does not publish TWD directly)
+  //JJQR - AI (Oct 16, 2026)
+  twdToPhp: 1.96, // Jessie's fixed rate: NT$1 = PHP 1.96 (Kaohsiung trip)
+  //JJQR - END
 } as const;
 
 export const exchangeRate = exchangeRates.php;

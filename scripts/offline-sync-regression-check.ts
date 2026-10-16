@@ -691,6 +691,66 @@ runCase("Local receipt data URL is rescued when remote path is still null", () =
   assert.equal(merged[0]?.receiptUrl?.startsWith("data:"), true);
 });
 
+//JJQR - AI (Oct 16, 2026)
+const computeRemovedIds = (syncedIds: string[], managedIds: string[], allLocalIds: string[]) => {
+  const all = new Set(allLocalIds);
+  return syncedIds.filter((id) => !managedIds.includes(id) && !all.has(id));
+};
+
+type MultiUserExpense = ExpenseLike & { savedByUserId: string };
+
+const jessieId = "user-jessie";
+const amorId = "user-amor";
+
+const multiUserLocalExpenses: MultiUserExpense[] = [
+  { id: "j1", item: "Jessie lunch", syncStatus: "synced", savedByUserId: jessieId },
+  { id: "j2", item: "Jessie taxi", syncStatus: "synced", savedByUserId: jessieId },
+  { id: "a1", item: "Amor snack", syncStatus: "synced", savedByUserId: amorId },
+  { id: "j3", item: "Jessie market", syncStatus: "synced", savedByUserId: jessieId },
+];
+
+const managedExpenseIdsForUser = (expenses: MultiUserExpense[], userId: string, isAdmin: boolean) =>
+  expenses.filter((row) => isAdmin || row.savedByUserId === userId).map((row) => row.id);
+
+runCase("Non-admin live update does not delete other user's rows", () => {
+  const allLocalIds = multiUserLocalExpenses.map((row) => row.id);
+  const syncedIds = ["j1", "j2", "a1", "j3"];
+  const managedIds = managedExpenseIdsForUser(multiUserLocalExpenses, amorId, false);
+  assert.deepEqual(computeRemovedIds(syncedIds, managedIds, allLocalIds), []);
+});
+
+runCase("Non-admin reconnect bootstrap (syncedIds = all remote ids) does not delete other user's rows", () => {
+  const local = multiUserLocalExpenses;
+  const remote = multiUserLocalExpenses.map((row) => ({ ...row, syncStatus: "synced" as const }));
+  const syncedIds = remote.map((row) => row.id);
+  const { merged } = mergeExpenseBootstrap(local, remote, syncedIds, false);
+  const allLocalIds = merged.map((row) => row.id);
+  const managedIds = managedExpenseIdsForUser(merged as MultiUserExpense[], amorId, false);
+  assert.deepEqual(computeRemovedIds(syncedIds, managedIds, allLocalIds), []);
+});
+
+runCase("Own delete is still detected", () => {
+  const syncedIds = ["a1", "a2", "j1"];
+  const local: MultiUserExpense[] = [
+    { id: "a1", item: "Amor snack", syncStatus: "synced", savedByUserId: amorId },
+    { id: "j1", item: "Jessie lunch", syncStatus: "synced", savedByUserId: jessieId },
+  ];
+  const managedIds = managedExpenseIdsForUser(local, amorId, false);
+  const allLocalIds = local.map((row) => row.id);
+  assert.deepEqual(computeRemovedIds(syncedIds, managedIds, allLocalIds), ["a2"]);
+});
+
+runCase("Demoted admin (offline cold start) reconnect does not delete partner rows", () => {
+  const local = multiUserLocalExpenses.filter((row) => row.id !== "j3");
+  const remote = local.map((row) => ({ ...row, syncStatus: "synced" as const }));
+  const syncedIds = remote.map((row) => row.id);
+  const { merged } = mergeExpenseBootstrap(local, remote, syncedIds, false);
+  const allLocalIds = merged.map((row) => row.id);
+  const managedIds = managedExpenseIdsForUser(merged as MultiUserExpense[], jessieId, false);
+  assert.deepEqual(computeRemovedIds(syncedIds, managedIds, allLocalIds), []);
+});
+//JJQR - END
+
 console.log("Offline sync regression proof");
 for (const line of caseLogs) {
   console.log(`- ${line}`);
